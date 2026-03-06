@@ -279,11 +279,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 2, build: 2,
+  major: 2, minor: 2, build: 3,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.2.3',date:'2026-03-06',changes:['Switch não-PoE (SG 800 Q+): alimentação DC 12-30V via fonte/nobreak como interface opcional','Switch não-PoE: PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-) como interface opcional','Labels atualizadas com especificações reais do datasheet Intelbras']},
     {ver:'2.2.2',date:'2026-03-06',changes:['Fix: busca CNPJ corrigida — só sobrescreve campos com dados reais da API','Fix: telefone com DDD tratado corretamente (formato DDD+número junto)','Fix: campos vazios da API não apagam dados já preenchidos','Fix: stale closure resolvido — usa setData(prev=>) para merge seguro']},
     {ver:'2.2.1',date:'2026-03-06',changes:['Busca automática de CNPJ via BrasilAPI — preenche razão social, nome fantasia, endereço, telefone, email','Busca automática de CEP via BrasilAPI — preenche endereço, cidade e UF','Auto-trigger ao completar 14 dígitos (CNPJ) ou 8 dígitos (CEP)','Botão de busca manual + status visual (✓ encontrado / ✕ erro)']},
     {ver:'2.2.0',date:'2026-03-06',changes:['Tela de cadastro do cliente (PJ/PF) antes da seleção de cenário','Dados: razão social, CNPJ/CPF, endereço, contato, referência do projeto','Máscaras automáticas: CNPJ, CPF, CEP, telefone','Fluxo: Cliente → Cenário → Projeto (3 etapas)','Dados do cliente salvos no projeto, exibidos na topbar e no export','Nome do cliente exibido na tela de seleção de cenário']},
@@ -519,10 +520,12 @@ const DEVICE_INTERFACES = {
   sirene:        [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
                   {type:'signal_in',cables:['2pares'],label:'Acionamento',required:true}],
   // Rede
-  sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede',required:true},
-                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
-  sw_normal:    [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede',required:true},
-                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
+  sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede (uplink + PoE out)',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 100-240V (fonte bivolt)',required:true}],
+  sw_normal:    [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede (8 portas Gigabit)',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 100-240V (fonte bivolt)',required:true},
+                 {type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação DC 12-30V (fonte/nobreak DC)',required:false},
+                 {type:'power_in',cables:['cat5e','cat6'],label:'PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-)',required:false}],
   nvr:          [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'Rede p/ câmeras',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
   router:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'WAN/LAN',required:true},
