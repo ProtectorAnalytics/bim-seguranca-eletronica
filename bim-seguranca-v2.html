@@ -98,6 +98,18 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .device-on-canvas .doc-label{font-size:9px;font-weight:600;color:var(--azul);margin-top:2px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.9);padding:0 3px;border-radius:2px}
 .device-on-canvas .doc-model{font-size:8px;color:var(--cinza)}
 
+/* Connection handles */
+.conn-handles{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+.conn-handle{position:absolute;width:11px;height:11px;border-radius:50%;border:2px solid #fff;cursor:crosshair;pointer-events:all;transition:.15s;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.7}
+.conn-handle:hover{transform:scale(1.4);opacity:1;z-index:20}
+.conn-handle.ch-data{background:#3b82f6}
+.conn-handle.ch-power-in{background:#ef4444}
+.conn-handle.ch-power-out{background:#22c55e}
+.conn-handle.ch-signal{background:#eab308}
+.conn-handle.ch-automation{background:#f97316}
+.conn-handle.ch-passthrough{background:#8b5cf6}
+.device-on-canvas:hover .conn-handle{opacity:1}
+
 /* Connection lines */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
 .conn-line-path{fill:none;stroke-width:2;stroke-linecap:round}
@@ -236,11 +248,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 1, build: 1,
+  major: 2, minor: 1, build: 2,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.1.2',date:'2026-03-06',changes:['Conexão handles (pequenos pontos coloridos) em cada dispositivo','Posicionamento circular de handles ao redor de cada dispositivo','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)','Classificação de portas por tipo: power_in, power_out, data_in, data_io, signal_in, signal_out, automation_in, automation_out','Animação de hover nos handles com escala e opacidade']},
     {ver:'2.1.1',date:'2026-03-06',changes:['Drag-and-drop da paleta para canvas','Nobreak AC/DC como dispositivo configurável com catálogo de modelos','Bateria externa + cabo de engate + módulo de baterias','Rack como container (arrastar equipamentos para dentro)','Acessórios de rack com gestão de U','BOM completa: dispositivos, cabos, baterias, acessórios','SNMP condicional no nobreak AC','7 modelos reais no catálogo (Intelbras + MCM)']},
     {ver:'2.0.0',date:'2026-03-05',changes:['Reescrita completa baseada em análise do Omada Design Hub','Engine de conexões com regras de compatibilidade','Automação: leitor facial/LPR/tag → motor/quadro via borne SAK','Cabos de automação com estilo visual próprio','Validação de projeto em tempo real']},
     {ver:'1.0.0',date:'2026-03-04',changes:['MVP inicial com canvas e paleta de dispositivos','Kit Quadro de Conectividade (QCA/QCAC/QCAF)','Cenários predefinidos']},
@@ -438,18 +451,25 @@ const DEVICE_INTERFACES = {
   cam_lpr:      [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true},
                  {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
   // Controle Acesso
-  leitor_facial:[{type:'data_in',cables:['cat5e','cat6','2pares'],label:'Rede/Wiegand',required:true},
-                 {type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+  leitor_facial:[{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC (Grupo A: +12V/GND)',required:true},
+                 {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (RJ45)',required:true},
+                 {type:'data_in',cables:['2pares'],label:'RS-485 (Grupo C: C1/C2)',required:false},
+                 {type:'signal_out',cables:['2pares'],label:'Wiegand saída (Grupo C: W0/W1)',required:false},
+                 {type:'signal_in',cables:['2pares'],label:'Alarme entrada (Grupo B: B1-B3)',required:false},
+                 {type:'signal_out',cables:['2pares'],label:'Alarme saída (Grupo B: B4-B6)',required:false},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Fechadura (Grupo D: NC/COM/NÃO)',required:false},
+                 {type:'signal_in',cables:['2pares'],label:'Sensor porta / Botoeira (Grupo D: SENSOR/BTN)',required:false}],
   leitor_tag:   [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
                  {type:'data_in',cables:['2pares'],label:'Wiegand/RS485',required:true},
                  {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
-  controladora: [{type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
-                 {type:'power_in',cables:['dc_power','ac_power'],label:'Alimentação',required:true},
-                 {type:'signal_out',cables:['2pares'],label:'Saída p/ leitores',required:false},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída relay (automação)',required:false}],
-  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
-                 {type:'signal_in',cables:['2pares'],label:'Sinal controladora',required:true}],
+  controladora: [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC Full Range',required:true},
+                 {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída fechadura eletroímã (NF)',required:true},
+                 {type:'signal_in',cables:['2pares'],label:'Botoeira entrada',required:false},
+                 {type:'signal_out',cables:['2pares'],label:'Saída auxiliar 2A (automação)',required:false},
+                 {type:'power_out',cables:['dc_power'],label:'Bateria 12V 7-9Ah',required:false}],
+  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC',required:true},
+                 {type:'automation_in',cables:['auto_2v','2pares'],label:'Acionamento (NF/COM do facial ou controladora)',required:true}],
   motor:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'AC 110/220V',required:true},
                  {type:'signal_in',cables:['2pares'],label:'Sinal central/controladora',required:false},
                  {type:'automation_in',cables:['auto_2v','auto_4v','2pares'],label:'Entrada automação (botoeira/contato)',required:false}],
@@ -583,6 +603,30 @@ const getDeviceInterfaces = (device) => {
       targets:['sw_poe','sw_normal','router']}];
   }
   return base;
+};
+
+// Compute connection handle positions around a device circle (40px icon)
+const getHandlePositions = (interfaces) => {
+  if (!interfaces || !interfaces.length) return [];
+  const positions = [];
+  const total = interfaces.length;
+  // Distribute handles around the circle (40px diameter = 20px radius, handles at 24px from center)
+  const radius = 24;
+  const startAngle = -Math.PI / 2; // Start from top
+  interfaces.forEach((iface, i) => {
+    const angle = startAngle + (2 * Math.PI * i / total);
+    const x = 20 + radius * Math.cos(angle); // 20 = half of 40px icon
+    const y = 20 + radius * Math.sin(angle);
+    let cls = 'ch-data';
+    if (iface.type === 'power_in') cls = 'ch-power-in';
+    else if (iface.type === 'power_out') cls = 'ch-power-out';
+    else if (iface.type.startsWith('signal')) cls = 'ch-signal';
+    else if (iface.type.startsWith('automation')) cls = 'ch-automation';
+    else if (iface.type === 'passthrough') cls = 'ch-passthrough';
+    else if (iface.type === 'data_io' || iface.type === 'data_in') cls = 'ch-data';
+    positions.push({ x, y, cls, iface, index: i });
+  });
+  return positions;
 };
 
 // Get the best default cable for a device pair
@@ -1490,6 +1534,27 @@ function ProjectApp({project,setProject,onBack}){
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
                       {ICONS[dev.key]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
+                    {/* Connection handles - visible on hover or when selected */}
+                    {(!cableMode||(isSource||targetStatus==='valid'))&&(()=>{
+                      const ifaces=getDeviceInterfaces(dev);
+                      const handles=getHandlePositions(ifaces);
+                      return handles.length>0&&(
+                        <div className="conn-handles">
+                          {handles.map((h,hi)=>(
+                            <div key={hi} className={`conn-handle ${h.cls}`}
+                              title={h.iface.label}
+                              style={{left:h.x-5.5,top:h.y-5.5}}
+                              onMouseDown={(e)=>{
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setCableMode({from:dev.id,ifaceType:h.iface.type});
+                                setTool('cable');
+                              }}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })()}
                     <div className="doc-label">{dev.name}</div>
                     {dev.model&&<div className="doc-model">{dev.model}</div>}
                     {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
