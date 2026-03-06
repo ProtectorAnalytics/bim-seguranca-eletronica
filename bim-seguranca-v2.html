@@ -98,17 +98,30 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .device-on-canvas .doc-label{font-size:9px;font-weight:600;color:var(--azul);margin-top:2px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.9);padding:0 3px;border-radius:2px}
 .device-on-canvas .doc-model{font-size:8px;color:var(--cinza)}
 
-/* Connection handles */
-.conn-handles{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
-.conn-handle{position:absolute;width:11px;height:11px;border-radius:50%;border:2px solid #fff;cursor:crosshair;pointer-events:all;transition:.15s;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.7}
-.conn-handle:hover{transform:scale(1.4);opacity:1;z-index:20}
-.conn-handle.ch-data{background:#3b82f6}
-.conn-handle.ch-power-in{background:#ef4444}
-.conn-handle.ch-power-out{background:#22c55e}
-.conn-handle.ch-signal{background:#eab308}
-.conn-handle.ch-automation{background:#f97316}
-.conn-handle.ch-passthrough{background:#8b5cf6}
-.device-on-canvas:hover .conn-handle{opacity:1}
+/* Connection port popup */
+.port-popup-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:900;background:rgba(0,0,0,.15)}
+.port-popup{position:absolute;z-index:910;display:flex;flex-direction:column;gap:3px;min-width:220px;
+  background:var(--branco);border:1px solid var(--cinzaM);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18);
+  padding:6px;animation:portPopIn .15s ease-out}
+@keyframes portPopIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.port-popup .pp-title{font-size:10px;font-weight:700;color:var(--azul);padding:4px 8px;border-bottom:1px solid var(--cinzaM);margin-bottom:2px}
+.port-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;background:transparent;
+  border-radius:7px;cursor:crosshair;transition:.12s;text-align:left;width:100%}
+.port-btn:hover{background:#EBF5FB}
+.port-btn .pb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.port-btn .pb-dot.ch-data{background:#3b82f6}
+.port-btn .pb-dot.ch-power-in{background:#ef4444}
+.port-btn .pb-dot.ch-power-out{background:#22c55e}
+.port-btn .pb-dot.ch-signal-in{background:#eab308}
+.port-btn .pb-dot.ch-signal-out{background:#d97706}
+.port-btn .pb-dot.ch-automation-in{background:#f97316}
+.port-btn .pb-dot.ch-automation-out{background:#ea580c}
+.port-btn .pb-dot.ch-passthrough{background:#8b5cf6}
+.port-btn .pb-info{flex:1;min-width:0}
+.port-btn .pb-label{font-size:10px;font-weight:600;color:var(--azulD);line-height:1.2}
+.port-btn .pb-type{font-size:8px;color:var(--cinza);margin-top:1px}
+.port-btn .pb-req{font-size:7px;color:var(--vermelho);font-weight:700}
+.port-btn .pb-opt{font-size:7px;color:var(--cinza);font-style:italic}
 
 /* Connection lines */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
@@ -248,12 +261,13 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 1, build: 2,
+  major: 2, minor: 1, build: 3,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
-    {ver:'2.1.2',date:'2026-03-06',changes:['Conexão handles (pequenos pontos coloridos) em cada dispositivo','Posicionamento circular de handles ao redor de cada dispositivo','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)','Classificação de portas por tipo: power_in, power_out, data_in, data_io, signal_in, signal_out, automation_in, automation_out','Animação de hover nos handles com escala e opacidade']},
+    {ver:'2.1.3',date:'2026-03-06',changes:['Pop-up de portas no dispositivo (⚡) em vez de bolinhas — limpo e descritivo','Cada porta mostra: label, tipo, cabos compatíveis e se é obrigatória/opcional','Clique na porta inicia conexão do tipo correto','Interfaces reais: leitor facial 8 portas, controladora 6 portas, fechadura 2 portas']},
+    {ver:'2.1.2',date:'2026-03-06',changes:['Connection handles coloridos por tipo de interface','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)']},
     {ver:'2.1.1',date:'2026-03-06',changes:['Drag-and-drop da paleta para canvas','Nobreak AC/DC como dispositivo configurável com catálogo de modelos','Bateria externa + cabo de engate + módulo de baterias','Rack como container (arrastar equipamentos para dentro)','Acessórios de rack com gestão de U','BOM completa: dispositivos, cabos, baterias, acessórios','SNMP condicional no nobreak AC','7 modelos reais no catálogo (Intelbras + MCM)']},
     {ver:'2.0.0',date:'2026-03-05',changes:['Reescrita completa baseada em análise do Omada Design Hub','Engine de conexões com regras de compatibilidade','Automação: leitor facial/LPR/tag → motor/quadro via borne SAK','Cabos de automação com estilo visual próprio','Validação de projeto em tempo real']},
     {ver:'1.0.0',date:'2026-03-04',changes:['MVP inicial com canvas e paleta de dispositivos','Kit Quadro de Conectividade (QCA/QCAC/QCAF)','Cenários predefinidos']},
@@ -605,28 +619,23 @@ const getDeviceInterfaces = (device) => {
   return base;
 };
 
-// Compute connection handle positions around a device circle (40px icon)
-const getHandlePositions = (interfaces) => {
-  if (!interfaces || !interfaces.length) return [];
-  const positions = [];
-  const total = interfaces.length;
-  // Distribute handles around the circle (40px diameter = 20px radius, handles at 24px from center)
-  const radius = 24;
-  const startAngle = -Math.PI / 2; // Start from top
-  interfaces.forEach((iface, i) => {
-    const angle = startAngle + (2 * Math.PI * i / total);
-    const x = 20 + radius * Math.cos(angle); // 20 = half of 40px icon
-    const y = 20 + radius * Math.sin(angle);
-    let cls = 'ch-data';
-    if (iface.type === 'power_in') cls = 'ch-power-in';
-    else if (iface.type === 'power_out') cls = 'ch-power-out';
-    else if (iface.type.startsWith('signal')) cls = 'ch-signal';
-    else if (iface.type.startsWith('automation')) cls = 'ch-automation';
-    else if (iface.type === 'passthrough') cls = 'ch-passthrough';
-    else if (iface.type === 'data_io' || iface.type === 'data_in') cls = 'ch-data';
-    positions.push({ x, y, cls, iface, index: i });
-  });
-  return positions;
+// CSS class for interface type dot color
+const getPortDotClass = (type) => {
+  if (type === 'power_in') return 'ch-power-in';
+  if (type === 'power_out') return 'ch-power-out';
+  if (type === 'signal_in') return 'ch-signal-in';
+  if (type === 'signal_out') return 'ch-signal-out';
+  if (type === 'automation_in') return 'ch-automation-in';
+  if (type === 'automation_out') return 'ch-automation-out';
+  if (type === 'passthrough') return 'ch-passthrough';
+  return 'ch-data';
+};
+// Human-readable type name
+const getPortTypeName = (type) => {
+  const map = {data_in:'Dados (entrada)',data_io:'Dados (bidirecional)',power_in:'Energia (entrada)',
+    power_out:'Energia (saída)',signal_in:'Sinal (entrada)',signal_out:'Sinal (saída)',
+    automation_in:'Automação (entrada)',automation_out:'Automação (saída)',passthrough:'Passagem'};
+  return map[type]||type;
 };
 
 // Get the best default cable for a device pair
@@ -821,6 +830,7 @@ function ProjectApp({project,setProject,onBack}){
   const [pendingDevice,setPendingDevice]=useState(null);
   const [cableType,setCableType]=useState('cat6');
   const [cableMode,setCableMode]=useState(null); // null | {from:deviceId}
+  const [portPopup,setPortPopup]=useState(null); // null | {devId,x,y} - connection port selector popup
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
@@ -1252,7 +1262,7 @@ function ProjectApp({project,setProject,onBack}){
   useEffect(()=>{
     const handler=(e)=>{
       if(e.key==='Delete'&&selectedDevice) deleteDevice(selectedDevice);
-      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null)}
+      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null)}
       if(e.ctrlKey&&e.key==='z') e.preventDefault(); // placeholder undo
     };
     window.addEventListener('keydown',handler);
@@ -1534,25 +1544,26 @@ function ProjectApp({project,setProject,onBack}){
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
                       {ICONS[dev.key]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
-                    {/* Connection handles - visible on hover or when selected */}
-                    {(!cableMode||(isSource||targetStatus==='valid'))&&(()=>{
+                    {/* Connection button - opens port popup */}
+                    {!cableMode&&(()=>{
                       const ifaces=getDeviceInterfaces(dev);
-                      const handles=getHandlePositions(ifaces);
-                      return handles.length>0&&(
-                        <div className="conn-handles">
-                          {handles.map((h,hi)=>(
-                            <div key={hi} className={`conn-handle ${h.cls}`}
-                              title={h.iface.label}
-                              style={{left:h.x-5.5,top:h.y-5.5}}
-                              onMouseDown={(e)=>{
-                                e.stopPropagation();
-                                e.preventDefault();
-                                setCableMode({from:dev.id,ifaceType:h.iface.type});
-                                setTool('cable');
-                              }}
-                            />
-                          ))}
-                        </div>
+                      if(!ifaces.length) return null;
+                      return (
+                        <div style={{position:'absolute',top:-4,right:-4,width:16,height:16,borderRadius:'50%',
+                          background:'var(--azul2)',border:'2px solid #fff',display:'flex',alignItems:'center',
+                          justifyContent:'center',cursor:'pointer',boxShadow:'0 1px 4px rgba(0,0,0,.3)',
+                          fontSize:9,color:'#fff',fontWeight:900,zIndex:12,opacity:portPopup?.devId===dev.id?1:.6,
+                          transition:'.15s'}}
+                          title="Conectar porta"
+                          onMouseDown={(e)=>{e.stopPropagation();e.preventDefault()}}
+                          onClick={(e)=>{
+                            e.stopPropagation();
+                            const rect=canvasRef.current?.getBoundingClientRect();
+                            if(!rect) return;
+                            setPortPopup({devId:dev.id,
+                              x:(dev.x*zoom+pan.x+50),
+                              y:(dev.y*zoom+pan.y-10)});
+                          }}>⚡</div>
                       );
                     })()}
                     <div className="doc-label">{dev.name}</div>
@@ -1568,6 +1579,36 @@ function ProjectApp({project,setProject,onBack}){
               })}
             </div>
           </div>
+
+          {/* Port connection popup */}
+          {portPopup&&(()=>{
+            const ppDev=devices.find(d=>d.id===portPopup.devId);
+            if(!ppDev) return null;
+            const ifaces=getDeviceInterfaces(ppDev);
+            if(!ifaces.length) return null;
+            return (
+              <>
+                <div className="port-popup-overlay" onClick={()=>setPortPopup(null)}/>
+                <div className="port-popup" style={{left:portPopup.x,top:portPopup.y}}>
+                  <div className="pp-title">⚡ Portas — {ppDev.name}</div>
+                  {ifaces.map((iface,i)=>(
+                    <button key={i} className="port-btn" onClick={()=>{
+                      setCableMode({from:ppDev.id,ifaceType:iface.type});
+                      setTool('cable');
+                      setPortPopup(null);
+                    }}>
+                      <div className={`pb-dot ${getPortDotClass(iface.type)}`}/>
+                      <div className="pb-info">
+                        <div className="pb-label">{iface.label}</div>
+                        <div className="pb-type">{getPortTypeName(iface.type)} · {iface.cables?.map(c=>CABLE_TYPES.find(ct=>ct.id===c)?.name||c).join(', ')}</div>
+                      </div>
+                      {iface.required?<span className="pb-req">OBRIG.</span>:<span className="pb-opt">opcional</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
 
           {/* Empty state */}
           {devices.length===0&&(
