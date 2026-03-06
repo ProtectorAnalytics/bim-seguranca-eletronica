@@ -279,11 +279,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 2, build: 3,
+  major: 2, minor: 3, build: 0,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.3.0',date:'2026-03-06',changes:['Repositório de Equipamentos — cadastro de dispositivos customizados com campos dinâmicos por tipo','Parser de datasheet — cola texto do datasheet e extrai specs automaticamente (tensão, corrente, resolução, portas, IP rating, etc)','Schemas por categoria: câmera, acesso, fechadura, alarme, sensor, switch, gravador, fonte, nobreak, infra','Equipamentos custom aparecem na paleta (📦 Customizados) com herança de ícone e interfaces','Persistência via localStorage — equipamentos salvos entre sessões','Fechadura eletroímã: adicionada saída sensor porta NF/C (vai pro facial, controladora ou fonte)','Fonte 12V: adicionada entrada alarme/aterramento para sensor de porta']},
     {ver:'2.2.3',date:'2026-03-06',changes:['Switch não-PoE (SG 800 Q+): alimentação DC 12-30V via fonte/nobreak como interface opcional','Switch não-PoE: PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-) como interface opcional','Labels atualizadas com especificações reais do datasheet Intelbras']},
     {ver:'2.2.2',date:'2026-03-06',changes:['Fix: busca CNPJ corrigida — só sobrescreve campos com dados reais da API','Fix: telefone com DDD tratado corretamente (formato DDD+número junto)','Fix: campos vazios da API não apagam dados já preenchidos','Fix: stale closure resolvido — usa setData(prev=>) para merge seguro']},
     {ver:'2.2.1',date:'2026-03-06',changes:['Busca automática de CNPJ via BrasilAPI — preenche razão social, nome fantasia, endereço, telefone, email','Busca automática de CEP via BrasilAPI — preenche endereço, cidade e UF','Auto-trigger ao completar 14 dígitos (CNPJ) ou 8 dígitos (CEP)','Botão de busca manual + status visual (✓ encontrado / ✕ erro)']},
@@ -505,8 +506,9 @@ const DEVICE_INTERFACES = {
                  {type:'signal_in',cables:['2pares'],label:'Botoeira entrada',required:false},
                  {type:'signal_out',cables:['2pares'],label:'Saída auxiliar 2A (automação)',required:false},
                  {type:'power_out',cables:['dc_power'],label:'Bateria 12V 7-9Ah',required:false}],
-  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC',required:true},
-                 {type:'automation_in',cables:['auto_2v','2pares'],label:'Acionamento (NF/COM do facial ou controladora)',required:true}],
+  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC (Lock+/Lock−)',required:true},
+                 {type:'automation_in',cables:['auto_2v','2pares'],label:'Acionamento NF/COM (do facial ou controladora)',required:true},
+                 {type:'signal_out',cables:['2pares'],label:'Sensor porta NF/C (estado aberto/fechado)',required:false}],
   motor:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'AC 110/220V',required:true},
                  {type:'signal_in',cables:['2pares'],label:'Sinal central/controladora',required:false},
                  {type:'automation_in',cables:['auto_2v','auto_4v','2pares'],label:'Entrada automação (botoeira/contato)',required:false}],
@@ -541,10 +543,82 @@ const DEVICE_INTERFACES = {
   modulo_bat:   [{type:'power_out',cables:['dc_power','ac_power'],label:'Fornecimento energia',required:true}],
   cabo_engate:  [{type:'passthrough',cables:['dc_power','ac_power'],label:'Conexão nobreak↔bateria'}],
   fonte:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC',required:true},
-                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída 12VDC',required:true}],
+                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída 12VDC',required:true},
+                 {type:'signal_in',cables:['2pares'],label:'Entrada alarme/aterramento (sensor porta)',required:false}],
   dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra',required:true}],
   // Borne SAK - emenda/passagem de cabos de automação e sinal no quadro
   borne_sak:    [{type:'passthrough',cables:['auto_2v','auto_4v','2pares','dc_power','dc_par'],label:'Emenda/passagem automação (trilho DIN)'}],
+};
+
+// ====================================================================
+// EQUIPMENT SCHEMAS - Type-specific field definitions
+// ====================================================================
+const EQUIPMENT_SCHEMAS = {
+  camera: [
+    {key:'resolucao',label:'Resolução',type:'select',required:false,options:['2MP','4MP','5MP','8MP','12MP']},
+    {key:'lente',label:'Lente',type:'text',required:false,unit:'mm'},
+    {key:'ir',label:'Alcance IR',type:'text',required:false,unit:'m'},
+    {key:'poeW',label:'Consumo PoE',type:'number',required:false,unit:'W'},
+    {key:'protocolo',label:'Protocolo',type:'select',required:false,options:['ONVIF','CGI']},
+    {key:'ip_rating',label:'IP Rating',type:'text',required:false},
+    {key:'fov',label:'Campo de visão',type:'text',required:false,unit:'°'}
+  ],
+  acesso: [
+    {key:'faces',label:'Capacidade faces',type:'number',required:false},
+    {key:'tela',label:'Tamanho tela',type:'text',required:false,unit:'polegadas'},
+    {key:'protocolo',label:'Protocolo',type:'select',required:false,options:['Wiegand','RS485','TCP-IP']},
+    {key:'saidas_relay',label:'Saídas relay',type:'number',required:false},
+    {key:'temp',label:'Leitura temperatura',type:'bool',required:false}
+  ],
+  fechadura: [
+    {key:'tipo',label:'Tipo',type:'select',required:false,options:['Eletroímã','Solenóide','Fail-safe','Fail-secure']},
+    {key:'forca',label:'Força',type:'text',required:false,unit:'kgf'},
+    {key:'tensao',label:'Tensão',type:'text',required:false,unit:'V'},
+    {key:'corrente',label:'Corrente',type:'text',required:false,unit:'A'}
+  ],
+  alarme: [
+    {key:'zonas',label:'Zonas',type:'number',required:false},
+    {key:'particoes',label:'Partições',type:'number',required:false},
+    {key:'comunicacao',label:'Comunicação',type:'text',required:false},
+    {key:'expansivel',label:'Expansível',type:'bool',required:false}
+  ],
+  sensor: [
+    {key:'tipo_sensor',label:'Tipo',type:'select',required:false,options:['IVP','Barreira','Magnético','Vibração']},
+    {key:'alcance',label:'Alcance',type:'text',required:false,unit:'m'},
+    {key:'angulo',label:'Ângulo',type:'text',required:false,unit:'°'},
+    {key:'pet_friendly',label:'Pet-friendly',type:'bool',required:false}
+  ],
+  switch_rede: [
+    {key:'portas',label:'Portas',type:'number',required:false},
+    {key:'poe_budget',label:'PoE Budget',type:'number',required:false,unit:'W'},
+    {key:'throughput',label:'Throughput',type:'text',required:false},
+    {key:'vlan',label:'VLAN',type:'bool',required:false},
+    {key:'sfp',label:'Portas SFP',type:'number',required:false},
+    {key:'tensao_entrada',label:'Tensão entrada',type:'text',required:false,unit:'V'}
+  ],
+  gravador: [
+    {key:'canais',label:'Canais',type:'number',required:false},
+    {key:'hd_max',label:'HD máximo',type:'text',required:false},
+    {key:'raid',label:'RAID',type:'bool',required:false},
+    {key:'resolucao_max',label:'Resolução máxima',type:'text',required:false}
+  ],
+  fonte_energia: [
+    {key:'potencia',label:'Potência',type:'text',required:false,unit:'W'},
+    {key:'tensao_saida',label:'Tensão saída',type:'text',required:false,unit:'V'},
+    {key:'corrente_saida',label:'Corrente saída',type:'text',required:false,unit:'A'},
+    {key:'entradas_saida',label:'Entradas/saídas',type:'number',required:false}
+  ],
+  nobreak: [
+    {key:'potencia_va',label:'Potência VA',type:'number',required:false,unit:'VA'},
+    {key:'potencia_w',label:'Potência W',type:'number',required:false,unit:'W'},
+    {key:'tensao_saida',label:'Tensão saída',type:'text',required:false,unit:'V'},
+    {key:'autonomia_base',label:'Autonomia base',type:'text',required:false}
+  ],
+  infra: [
+    {key:'material',label:'Material',type:'text',required:false},
+    {key:'dimensoes',label:'Dimensões',type:'text',required:false},
+    {key:'peso',label:'Peso',type:'text',required:false,unit:'kg'}
+  ]
 };
 
 // Validate if a connection between two device types with a given cable is valid
@@ -635,9 +709,11 @@ const validateConnection = (fromKey, toKey, cableId) => {
 
 // Get device interfaces dynamically based on config
 const getDeviceInterfaces = (device) => {
-  const base = DEVICE_INTERFACES[device.key] || [];
+  // For custom devices, use the base device type's interfaces
+  const key = device.key.startsWith('custom_') ? getDeviceIconKey(device.key) : device.key;
+  const base = DEVICE_INTERFACES[key] || [];
   // For nobreak_ac, add SNMP interface only if config.snmp is true
-  if (device.key === 'nobreak_ac' && device.config?.snmp) {
+  if (key === 'nobreak_ac' && device.config?.snmp) {
     return [...base, {type:'data_io',cables:['cat5e','cat6'],label:'SNMP (placa de rede)',required:false,
       targets:['sw_poe','sw_normal','router']}];
   }
@@ -791,7 +867,33 @@ const REGRAS=[
 
 function findDevDef(key){
   for(const cat of DEVICE_LIB) for(const item of cat.items) if(item.key===key) return item;
+  // Check custom devices
+  try {
+    const custom=JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
+    const found=custom.find(c=>c.key===key);
+    if(found) return found;
+  }catch(e){}
   return null;
+}
+
+function getCustomDevices(){
+  try {
+    return JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
+  }catch(e){
+    return [];
+  }
+}
+
+function saveCustomDevices(devices){
+  localStorage.setItem('bim_custom_devices',JSON.stringify(devices));
+}
+
+function getDeviceIconKey(deviceKey){
+  if(deviceKey.startsWith('custom_')){
+    const custom=getCustomDevices().find(c=>c.key===deviceKey);
+    return custom?custom.deviceType:deviceKey;
+  }
+  return deviceKey;
 }
 
 // ====================================================================
@@ -1123,6 +1225,8 @@ function ProjectApp({project,setProject,onBack}){
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
+  const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
+  const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -1158,6 +1262,15 @@ function ProjectApp({project,setProject,onBack}){
     let config={};
     if(selectedModel && selectedModel.id){
       config={modelId:selectedModel.id,modelData:selectedModel};
+    }
+
+    // For custom devices, store custom specs and inherit icon/interfaces from base device
+    const isCustom=deviceKey.startsWith('custom_');
+    const baseKey=isCustom?def.deviceType:deviceKey;
+    if(isCustom){
+      config.customSpecs=def.specs||{};
+      config.brand=def.brand;
+      config.model=def.model;
     }
 
     const newDev={id:uid(),key:deviceKey,name:def.name,x:x||200+Math.random()*400,y:y||150+Math.random()*300,
@@ -1199,6 +1312,20 @@ function ProjectApp({project,setProject,onBack}){
     setSelectedDevice(newDev.id);
   };
 
+  // Save custom device to localStorage
+  const saveCustomDevice=(customDevice)=>{
+    const updated=[...customDevices.filter(c=>c.id!==customDevice.id),customDevice];
+    setCustomDevices(updated);
+    saveCustomDevices(updated);
+  };
+
+  // Delete custom device
+  const deleteCustomDevice=(customId)=>{
+    const updated=customDevices.filter(c=>c.id!==customId);
+    setCustomDevices(updated);
+    saveCustomDevices(updated);
+  };
+
   // Connection validation toast state
   const [connToast,setConnToast]=React.useState(null);
   const showConnToast=(msg,type='error')=>{
@@ -1235,9 +1362,11 @@ function ProjectApp({project,setProject,onBack}){
     const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
     const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
 
-    // Validate connection
+    // Validate connection (use base device keys for custom devices)
     const chosenCable=type||cableType;
-    const validation=validateConnection(fromDev.key,toDev.key,chosenCable);
+    const fromKey=getDeviceIconKey(fromDev.key);
+    const toKey=getDeviceIconKey(toDev.key);
+    const validation=validateConnection(fromKey,toKey,chosenCable);
 
     if(!validation.valid && validation.cables.length===0){
       showConnToast(`✕ ${validation.reason}`,'error');
@@ -1682,6 +1811,13 @@ function ProjectApp({project,setProject,onBack}){
           <div className="lp-content">
             {leftTab==='devices'&&<>
               <input className="lp-search" placeholder="Buscar dispositivo..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              <button onClick={()=>setShowEquipmentRepo(true)}
+                style={{width:'100%',padding:'8px 10px',marginBottom:8,background:'rgba(243,156,18,.1)',border:'1px solid #f39c12',
+                  borderRadius:5,color:'#f39c12',fontSize:11,fontWeight:600,cursor:'pointer',transition:'.15s'}}
+                onMouseOver={e=>e.currentTarget.style.background='rgba(243,156,18,.15)'}
+                onMouseOut={e=>e.currentTarget.style.background='rgba(243,156,18,.1)'}>
+                📦 Repositório
+              </button>
               {DEVICE_LIB.map(cat=>{
                 const filtered=cat.items.filter(i=>!search||i.name.toLowerCase().includes(search.toLowerCase())||i.key.includes(search.toLowerCase()));
                 if(!filtered.length) return null;
@@ -1708,6 +1844,26 @@ function ProjectApp({project,setProject,onBack}){
                   </div>
                 );
               })}
+              {customDevices.length>0&&(
+                <div className="dev-category">
+                  <div className="dev-cat-title" style={{color:'#f39c12'}}>
+                    📦 Customizados <span className="cnt">{customDevices.length}</span>
+                  </div>
+                  {customDevices.map(item=>(
+                    <div key={item.key} className="dev-item"
+                      draggable
+                      onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
+                      onClick={()=>{setPendingDevice(item.key);setTool('device')}}
+                      style={pendingDevice===item.key?{background:'#fef9e7',borderColor:'#f39c12'}:{cursor:'grab'}}>
+                      <div className="di-icon" style={{color:'#f39c12'}}>⚙️</div>
+                      <div className="di-info">
+                        <div className="di-name">{item.name}</div>
+                        <div className="di-spec">{item.deviceType}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>}
             {leftTab==='environments'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Clique para adicionar ao piso:</div>
@@ -1878,7 +2034,7 @@ function ProjectApp({project,setProject,onBack}){
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
                       setCableMode({from:dev.id});setTool('cable')}}>
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
-                      {ICONS[dev.key]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
+                      {ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
                     {/* Connection button - opens port popup */}
                     {!cableMode&&(()=>{
@@ -2062,7 +2218,7 @@ function ProjectApp({project,setProject,onBack}){
               return (
                 <div>
                   <div className="prop-header">
-                    <div className="ph-icon">{ICONS[selectedDev.key]?.(catInfo?.color)}</div>
+                    <div className="ph-icon">{ICONS[getDeviceIconKey(selectedDev.key)]?.(catInfo?.color)}</div>
                     <div className="ph-info">
                       <div className="ph-name">{selectedDev.name}</div>
                       <div className="ph-model">{catInfo?.cat} · {selectedDev.key}</div>
@@ -2469,6 +2625,11 @@ function ProjectApp({project,setProject,onBack}){
         onSelect={(model)=>addDevice(modelSelectorModal.deviceKey,modelSelectorModal.x,modelSelectorModal.y,model)}
         onCancel={()=>setModelSelectorModal(null)}/>}
 
+      {/* EQUIPMENT REPOSITORY MODAL */}
+      {showEquipmentRepo&&<EquipmentRepoModal customDevices={customDevices}
+        onSave={saveCustomDevice} onDelete={deleteCustomDevice}
+        onClose={()=>setShowEquipmentRepo(false)}/>}
+
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
         connections={project.floors.flatMap(f=>f.connections)} onClose={()=>setShowExport(false)}/>}
@@ -2490,7 +2651,7 @@ function TopoNode({node,devices,level,onSelect}){
     <div>
       <div className={`topo-node ${node.disconnected?'topo-disconnected':''}`}
         style={{marginLeft:level*16,cursor:'pointer'}} onClick={()=>onSelect(node.device.id)}>
-        <div className="tn-icon">{ICONS[node.device.key]?.(catInfo?.color||'#999')}</div>
+        <div className="tn-icon">{ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
         <div className="tn-info">
           <div className="tn-name">{node.device.name}</div>
           <div className="tn-detail">{node.device.model||node.device.key}</div>
@@ -2606,6 +2767,358 @@ function ExportModal({project,bom,allDevices,connections,onClose}){
       </div>
     </div>
   );
+}
+
+// ====================================================================
+// EQUIPMENT REPOSITORY MODAL
+// ====================================================================
+function EquipmentRepoModal({customDevices,onSave,onDelete,onClose}){
+  const [step,setStep]=useState(1); // 1=list, 2=add form step 1 (category), 3=add form step 2 (base device), 4=common, 5=specs
+  const [editingDevice,setEditingDevice]=useState(null);
+  const [formState,setFormState]=useState({
+    category:'camera',
+    baseDeviceType:'cam_dome',
+    brand:'',
+    model:'',
+    descricao:'',
+    referencia:'',
+    preco:'',
+    specs:{},
+    datasheetText:''
+  });
+
+  const handleCategorySelect=(category)=>{
+    setFormState(f=>({...f,category,baseDeviceType:''}));
+    setStep(3); // skip to base device selection
+  };
+
+  const handleBaseDeviceSelect=(deviceKey)=>{
+    setFormState(f=>({...f,baseDeviceType:deviceKey}));
+    setStep(4);
+  };
+
+  const handleCommonFieldChange=(key,value)=>{
+    setFormState(f=>({...f,[key]:value}));
+  };
+
+  const handleSpecChange=(key,value)=>{
+    setFormState(f=>({...f,specs:{...f.specs,[key]:value}}));
+  };
+
+  const parseDatasheet=()=>{
+    const text=formState.datasheetText;
+    const specs={...formState.specs};
+
+    // Voltage patterns
+    const voltageMatch=text.match(/(\d+[\.,]?\d*)\s*(V|Vcc|VDC|VAC|volts?)/gi);
+    if(voltageMatch&&formState.category==='fechadura'){
+      specs.tensao=voltageMatch[0].replace(/[^\d.,]/g,'').replace(',','.').substring(0,5)+' V';
+    }
+
+    // Current patterns
+    const currentMatch=text.match(/(\d+[\.,]?\d*)\s*(A|mA|ampere)/gi);
+    if(currentMatch&&formState.category==='fechadura'){
+      specs.corrente=currentMatch[0].replace(/[^\d.,]/g,'').replace(',','.')+' A';
+    }
+
+    // Power patterns
+    const powerMatch=text.match(/(\d+[\.,]?\d*)\s*(W|VA|watts?)/gi);
+    if(powerMatch){
+      const val=powerMatch[0].replace(/[^\d.,]/g,'').replace(',','.');
+      if(formState.category==='fonte_energia') specs.potencia=val+' W';
+      if(formState.category==='nobreak') specs.potencia_w=parseInt(val)||0;
+    }
+
+    // Resolution patterns
+    const resMatch=text.match(/(\d+)\s*MP/i);
+    if(resMatch&&formState.category==='camera'){
+      specs.resolucao=resMatch[1]+'MP';
+    }
+
+    // Ports patterns
+    const portsMatch=text.match(/(\d+)\s*(portas?|ports?)/i);
+    if(portsMatch){
+      const num=parseInt(portsMatch[1]);
+      if(formState.category==='switch_rede') specs.portas=num;
+      if(formState.category==='acesso') specs.saidas_relay=num;
+    }
+
+    // IP rating
+    const ipMatch=text.match(/IP\s*(\d{2})/i);
+    if(ipMatch&&formState.category==='camera'){
+      specs.ip_rating='IP '+ipMatch[1];
+    }
+
+    // Weight
+    const weightMatch=text.match(/(\d+[\.,]?\d*)\s*(kg|g)\b/i);
+    if(weightMatch&&formState.category==='infra'){
+      specs.peso=weightMatch[0].replace(',','.');
+    }
+
+    setFormState(f=>({...f,specs}));
+  };
+
+  const handleSave=()=>{
+    if(!formState.brand||!formState.model||!formState.baseDeviceType){
+      alert('Preencha marca, modelo e tipo de dispositivo base');
+      return;
+    }
+
+    const customDev={
+      id:editingDevice?.id||'custom_'+Date.now(),
+      key:'custom_'+(editingDevice?.id||Date.now()),
+      name:formState.brand+' '+formState.model,
+      category:formState.category,
+      deviceType:formState.baseDeviceType,
+      brand:formState.brand,
+      model:formState.model,
+      descricao:formState.descricao,
+      referencia:formState.referencia,
+      preco:formState.preco,
+      specs:formState.specs,
+      createdAt:new Date().toISOString().split('T')[0],
+      datasheetText:formState.datasheetText
+    };
+
+    onSave(customDev);
+    setStep(1);
+    setEditingDevice(null);
+    setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:''});
+  };
+
+  const categoryLabels={
+    camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores',
+    switch_rede:'Switches',gravador:'Gravador',fonte_energia:'Fonte',nobreak:'Nobreak',infra:'Infraestrutura'
+  };
+
+  const getCategoryDevices=(category)=>{
+    return DEVICE_LIB.find(c=>c.items.some(i=>EQUIPMENT_SCHEMAS[category]?.some(s=>i.key===category)))?.items||
+           DEVICE_LIB.flatMap(c=>c.items).filter(i=>{
+             const schema=EQUIPMENT_SCHEMAS[category];
+             return schema && i.key.startsWith(category.substring(0,3));
+           });
+  };
+
+  if(step===1){
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:700}}>
+          <h3>📦 Repositório de Equipamentos</h3>
+          <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
+            Gerencie seus equipamentos personalizados para uso em projetos
+          </div>
+
+          <div style={{maxHeight:350,overflowY:'auto',marginBottom:16,borderTop:'1px solid #e5e8eb',paddingTop:8}}>
+            {customDevices.length===0?(
+              <div style={{textAlign:'center',padding:'32px 16px',color:'var(--cinza)',fontSize:11}}>
+                Nenhum equipamento personalizado ainda.<br/>Clique em "Novo equipamento" para começar.
+              </div>
+            ):(
+              customDevices.map(dev=>(
+                <div key={dev.id} style={{padding:10,marginBottom:8,background:'#f8f9fa',borderRadius:6,
+                  borderLeft:'3px solid '+({camera:'#f59e0b',acesso:'#3b82f6',fechadura:'#ef4444',
+                    alarme:'#f97316',sensor:'#84cc16',switch_rede:'#06b6d4',gravador:'#8b5cf6',
+                    fonte_energia:'#ec4899',nobreak:'#f43f5e',infra:'#6b7280'}[dev.category]||'#999')}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
+                    <div>
+                      <div style={{fontWeight:600,color:'var(--azul)',fontSize:12}}>{dev.name}</div>
+                      <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
+                        {categoryLabels[dev.category]} • {dev.deviceType}
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:4}}>
+                      <button onClick={()=>{setEditingDevice(dev);setFormState({category:dev.category,baseDeviceType:dev.deviceType,
+                        brand:dev.brand,model:dev.model,descricao:dev.descricao,referencia:dev.referencia,preco:dev.preco,
+                        specs:dev.specs,datasheetText:dev.datasheetText});setStep(4);}}
+                        style={{padding:'4px 10px',fontSize:9,background:'var(--azul2)',color:'#fff',border:'none',
+                          borderRadius:4,cursor:'pointer',transition:'.15s'}}
+                        onMouseOver={e=>e.currentTarget.style.opacity='.8'}
+                        onMouseOut={e=>e.currentTarget.style.opacity='1'}>Editar</button>
+                      <button onClick={()=>onDelete(dev.id)}
+                        style={{padding:'4px 10px',fontSize:9,background:'#e5e8eb',color:'var(--cinza)',border:'none',
+                          borderRadius:4,cursor:'pointer',transition:'.15s'}}
+                        onMouseOver={e=>e.currentTarget.style.background='#d1d5db'}
+                        onMouseOut={e=>e.currentTarget.style.background='#e5e8eb'}>Remover</button>
+                    </div>
+                  </div>
+                  {dev.specs && Object.keys(dev.specs).length>0&&(
+                    <div style={{fontSize:8,color:'var(--cinza)',display:'flex',gap:8,flexWrap:'wrap'}}>
+                      {Object.entries(dev.specs).slice(0,3).map(([k,v])=>(
+                        <span key={k}>{k}={v}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          <div style={{display:'flex',gap:8}}>
+            <button className="mc-btn mc-btn-secondary" onClick={onClose}>Fechar</button>
+            <button className="mc-btn mc-btn-primary" onClick={()=>{setStep(2);setEditingDevice(null);
+              setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',
+                preco:'',specs:{},datasheetText:''});}}>+ Novo equipamento</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if(step===2){
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:500}}>
+          <h3>Novo Equipamento - Categoria</h3>
+          <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
+            Selecione a categoria de equipamento
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+            {Object.entries(categoryLabels).map(([cat,label])=>(
+              <button key={cat} onClick={()=>handleCategorySelect(cat)}
+                style={{padding:12,border:'1px solid #d1d5db',background:'#f8f9fa',borderRadius:6,
+                  fontSize:11,fontWeight:600,cursor:'pointer',transition:'.15s'}}
+                onMouseOver={e=>e.currentTarget.style.background='#e5e8eb'}
+                onMouseOut={e=>e.currentTarget.style.background='#f8f9fa'}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button className="mc-btn mc-btn-secondary" onClick={()=>setStep(1)}>Voltar</button>
+        </div>
+      </div>
+    );
+  }
+
+  if(step===3){
+    const devices=DEVICE_LIB.flatMap(c=>c.items);
+    const categoryPrefix=formState.category.substring(0,2);
+    const filtered=devices.filter(d=>d.key.startsWith(categoryPrefix)||d.key.includes(formState.category));
+
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:500}}>
+          <h3>Novo Equipamento - Tipo Base</h3>
+          <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
+            Selecione um tipo de dispositivo para herdar propriedades
+          </div>
+          <div style={{maxHeight:300,overflowY:'auto',marginBottom:16}}>
+            {filtered.map(dev=>(
+              <button key={dev.key} onClick={()=>handleBaseDeviceSelect(dev.key)}
+                style={{display:'block',width:'100%',textAlign:'left',padding:10,marginBottom:6,
+                  border:'1px solid #d1d5db',background:'#f8f9fa',borderRadius:6,fontSize:11,cursor:'pointer'}}
+                onMouseOver={e=>e.currentTarget.style.background='#e5e8eb'}
+                onMouseOut={e=>e.currentTarget.style.background='#f8f9fa'}>
+                <div style={{fontWeight:600,color:'var(--azul)'}}>{dev.name}</div>
+                <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>{dev.key}</div>
+              </button>
+            ))}
+          </div>
+          <button className="mc-btn mc-btn-secondary" onClick={()=>setStep(2)}>Voltar</button>
+        </div>
+      </div>
+    );
+  }
+
+  if(step===4 || step===5){
+    const schema=EQUIPMENT_SCHEMAS[formState.category]||[];
+
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:550}}>
+          <h3>{editingDevice?'Editar':'Novo'} Equipamento - {step===4?'Dados Gerais':'Especificações'}</h3>
+
+          <div style={{maxHeight:400,overflowY:'auto',marginBottom:16}}>
+            {step===4?(
+              <>
+                <div className="cf-field" style={{marginBottom:12}}>
+                  <label>Marca *</label>
+                  <input value={formState.brand} onChange={e=>handleCommonFieldChange('brand',e.target.value)}/>
+                </div>
+                <div className="cf-field" style={{marginBottom:12}}>
+                  <label>Modelo *</label>
+                  <input value={formState.model} onChange={e=>handleCommonFieldChange('model',e.target.value)}/>
+                </div>
+                <div className="cf-field" style={{marginBottom:12}}>
+                  <label>Descrição</label>
+                  <textarea value={formState.descricao} onChange={e=>handleCommonFieldChange('descricao',e.target.value)}
+                    style={{minHeight:60}}/>
+                </div>
+                <div className="cf-field" style={{marginBottom:12}}>
+                  <label>Referência (SKU)</label>
+                  <input value={formState.referencia} onChange={e=>handleCommonFieldChange('referencia',e.target.value)}/>
+                </div>
+                <div className="cf-field" style={{marginBottom:12}}>
+                  <label>Preço (R$)</label>
+                  <input value={formState.preco} onChange={e=>handleCommonFieldChange('preco',e.target.value)} type="number"/>
+                </div>
+                <div className="cf-field">
+                  <label>Datasheet (colar texto)</label>
+                  <textarea value={formState.datasheetText} onChange={e=>handleCommonFieldChange('datasheetText',e.target.value)}
+                    style={{minHeight:80,fontSize:9}}
+                    placeholder="Cole aqui o texto do datasheet para extração automática de especificações"/>
+                  <button onClick={parseDatasheet}
+                    style={{marginTop:6,padding:'6px 12px',fontSize:9,background:'var(--azul2)',color:'#fff',
+                      border:'none',borderRadius:4,cursor:'pointer'}}>
+                    🔍 Extrair especificações
+                  </button>
+                </div>
+              </>
+            ):(
+              <>
+                {schema.map(field=>(
+                  <div key={field.key} className="cf-field" style={{marginBottom:12}}>
+                    <label>{field.label}{field.required?' *':''}</label>
+                    {field.type==='text'&&(
+                      <input value={formState.specs[field.key]||''}
+                        onChange={e=>handleSpecChange(field.key,e.target.value)}
+                        placeholder={field.unit?'Ex: 12 '+field.unit:''}/>
+                    )}
+                    {field.type==='number'&&(
+                      <input value={formState.specs[field.key]||''}
+                        onChange={e=>handleSpecChange(field.key,e.target.value)}
+                        type="number" placeholder={field.unit?'0 '+field.unit:'0'}/>
+                    )}
+                    {field.type==='select'&&(
+                      <select value={formState.specs[field.key]||''}
+                        onChange={e=>handleSpecChange(field.key,e.target.value)}>
+                        <option value="">Selecionar...</option>
+                        {field.options.map(opt=>(
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    )}
+                    {field.type==='bool'&&(
+                      <label style={{display:'flex',alignItems:'center',gap:6}}>
+                        <input type="checkbox" checked={!!formState.specs[field.key]}
+                          onChange={e=>handleSpecChange(field.key,e.target.checked)}/>
+                        <span style={{fontSize:11}}>{field.label}</span>
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+
+          <div style={{display:'flex',gap:8}}>
+            <button className="mc-btn mc-btn-secondary" onClick={()=>setStep(step===4?2:4)} style={{flex:1}}>
+              Voltar
+            </button>
+            {step===4&&(
+              <button className="mc-btn mc-btn-primary" onClick={()=>setStep(5)}>
+                Próximo
+              </button>
+            )}
+            {step===5&&(
+              <button className="mc-btn mc-btn-primary" onClick={handleSave}>
+                {editingDevice?'Atualizar':'Criar'} Equipamento
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 // ====================================================================
