@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIM Segurança Eletrônica | Protector Sistemas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--azul:#1B4F72;--azul2:#2E86C1;--azulD:#154360;--laranja:#F39C12;--verde:#27AE60;--vermelho:#E74C3C;
+--roxo:#8E44AD;--cinza:#5D6D7E;--cinzaL:#F8F9FA;--cinzaM:#E5E8EB;--branco:#FFF;
+--sombra:0 2px 12px rgba(0,0,0,.08);--radius:10px;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F5;color:#2C3E50;overflow:hidden;height:100vh}
+
+/* ===== LANDING ===== */
+.landing{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%)}
+.landing-logo{color:rgba(255,255,255,.5);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.landing-title{color:#fff;font-size:36px;font-weight:800;margin-bottom:4px}
+.landing-sub{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:48px}
+.scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:720px}
+.scenario-card{width:160px;background:rgba(255,255,255,.06);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px 16px;cursor:pointer;transition:.25s;text-align:center;color:#fff}
+.scenario-card:hover{background:rgba(255,255,255,.12);border-color:var(--laranja);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.scenario-card .sc-icon{font-size:32px;margin-bottom:10px}
+.scenario-card h4{font-size:13px;margin-bottom:4px;font-weight:600}
+.scenario-card p{font-size:10px;opacity:.5;line-height:1.3}
+
+/* ===== APP SHELL ===== */
+.app-shell{display:flex;flex-direction:column;height:100vh}
+.app-topbar{height:48px;background:var(--azulD);color:#fff;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.app-topbar .logo{font-size:12px;font-weight:700;letter-spacing:1px;opacity:.7}
+.app-topbar .proj-name{font-size:14px;font-weight:600;flex:1}
+.app-topbar .tb-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);border-radius:5px;font-size:11px;cursor:pointer;transition:.15s}
+.app-topbar .tb-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.app-topbar .tb-btn.primary{background:var(--laranja);border-color:var(--laranja);color:#000;font-weight:700}
+
+/* ===== TOOLBAR ===== */
+.toolbar{height:40px;background:var(--branco);border-bottom:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0}
+.tool-group{display:flex;align-items:center;gap:2px;padding:0 8px;border-right:1px solid var(--cinzaM)}
+.tool-group:last-child{border-right:none}
+.tool-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:5px;cursor:pointer;font-size:14px;color:var(--cinza);transition:.15s}
+.tool-btn:hover{background:var(--cinzaL);color:var(--azul)}
+.tool-btn.active{background:#EBF5FB;color:var(--azul2)}
+.tool-sep{width:1px;height:24px;background:var(--cinzaM)}
+.tool-label{font-size:10px;color:var(--cinza);padding:0 4px}
+
+/* Simulation toggle */
+.sim-toggle{display:flex;align-items:center;gap:6px;margin-left:auto;padding:0 8px}
+.sim-toggle label{font-size:10px;color:var(--cinza);font-weight:600}
+.sim-pill{display:flex;background:var(--cinzaL);border-radius:4px;overflow:hidden;border:1px solid var(--cinzaM)}
+.sim-pill button{padding:4px 10px;border:none;background:transparent;font-size:10px;font-weight:600;cursor:pointer;color:var(--cinza);transition:.15s}
+.sim-pill button.active{background:var(--azul);color:#fff}
+
+/* ===== MAIN AREA ===== */
+.main-area{flex:1;display:flex;overflow:hidden}
+
+/* ===== LEFT PANEL ===== */
+.left-panel{width:240px;background:var(--branco);border-right:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.lp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
+.lp-tab{flex:1;padding:8px 4px;font-size:10px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.lp-tab.active{color:var(--azul);border-color:var(--azul2)}
+.lp-content{flex:1;overflow-y:auto;padding:8px}
+.lp-search{width:100%;padding:6px 10px;border:1px solid var(--cinzaM);border-radius:5px;font-size:11px;margin-bottom:8px}
+.lp-search:focus{outline:none;border-color:var(--azul2)}
+.dev-category{margin-bottom:10px}
+.dev-cat-title{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);padding:4px 6px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
+.dev-cat-title .cnt{font-size:9px;background:var(--cinzaL);padding:1px 5px;border-radius:8px}
+.dev-item{display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px 0;border-radius:6px;cursor:grab;transition:.12s;font-size:11px;border:1px solid transparent}
+.dev-item:hover{background:#F0F7FD;border-color:#D6EAF8}
+.dev-item:active{cursor:grabbing;opacity:.7;transform:scale(.97)}
+.dev-item .di-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dev-item .di-icon svg{width:100%;height:100%}
+.dev-item .di-info{flex:1;min-width:0}
+.dev-item .di-name{font-weight:600;color:var(--azul);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-item .di-spec{font-size:9px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-item .di-tag{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0}
+.tag-poe{background:#E8F8F0;color:var(--verde)}
+.tag-dc{background:#FEF5E7;color:#E67E22}
+
+/* ===== CANVAS AREA ===== */
+.canvas-area{flex:1;position:relative;overflow:hidden;background:#fafbfc}
+.canvas-viewport{position:absolute;inset:0;overflow:hidden}
+.canvas-transform{transform-origin:0 0;position:absolute;top:0;left:0}
+.canvas-grid{position:absolute;top:0;left:0;pointer-events:none}
+.canvas-bg{position:absolute;top:0;left:0;pointer-events:none;opacity:.3}
+
+/* Floor plan image */
+.floor-image{position:absolute;top:0;left:0;pointer-events:none}
+
+/* Device nodes on canvas */
+.device-on-canvas{position:absolute;cursor:move;user-select:none;z-index:5;display:flex;flex-direction:column;align-items:center}
+.device-on-canvas .doc-icon{width:40px;height:40px;background:var(--branco);border:2px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:.15s}
+.device-on-canvas:hover .doc-icon{box-shadow:0 4px 16px rgba(0,0,0,.2);transform:scale(1.05)}
+.device-on-canvas.selected .doc-icon{border-color:var(--laranja);box-shadow:0 0 0 4px rgba(243,156,18,.2)}
+.device-on-canvas .doc-label{font-size:9px;font-weight:600;color:var(--azul);margin-top:2px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.9);padding:0 3px;border-radius:2px}
+.device-on-canvas .doc-model{font-size:8px;color:var(--cinza)}
+
+/* Connection lines */
+.conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
+.conn-line-path{fill:none;stroke-width:2;stroke-linecap:round}
+.cable-label{font-size:8px;fill:var(--cinza);text-anchor:middle}
+
+/* Environments/rooms overlay */
+.env-rect{position:absolute;border:2px dashed;border-radius:6px;z-index:1;pointer-events:none}
+.env-label{position:absolute;top:-14px;left:8px;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;color:#fff}
+
+/* Canvas controls */
+.canvas-controls{position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:4px;z-index:20}
+.canvas-controls button{width:32px;height:32px;background:var(--branco);border:1px solid var(--cinzaM);border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--cinza);transition:.15s}
+.canvas-controls button:hover{background:#EBF5FB;color:var(--azul)}
+.scale-indicator{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.9);padding:4px 10px;border-radius:4px;font-size:10px;color:var(--cinza);border:1px solid var(--cinzaM);z-index:20}
+
+/* Toast animation */
+@keyframes fadeIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* Canvas hint */
+.canvas-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--cinza);pointer-events:none;z-index:1}
+.canvas-hint .ch-icon{font-size:48px;opacity:.3;margin-bottom:12px}
+.canvas-hint p{font-size:13px;opacity:.5}
+.canvas-hint .ch-sub{font-size:11px;opacity:.3;margin-top:4px}
+
+/* ===== RIGHT PANEL ===== */
+.right-panel{width:320px;background:var(--branco);border-left:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.rp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
+.rp-tab{flex:1;padding:8px 4px;font-size:10px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.rp-tab.active{color:var(--azul);border-color:var(--azul2)}
+.rp-content{flex:1;overflow-y:auto;padding:12px}
+
+/* Device properties panel */
+.prop-section{margin-bottom:12px}
+.prop-header{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--cinzaM);margin-bottom:8px}
+.prop-header .ph-icon{width:36px;height:36px;background:#EBF5FB;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.prop-header .ph-info{flex:1}
+.prop-header .ph-name{font-size:13px;font-weight:700;color:var(--azul)}
+.prop-header .ph-model{font-size:10px;color:var(--cinza)}
+.prop-header .ph-replace{font-size:10px;color:var(--azul2);cursor:pointer;font-weight:600}
+.prop-header .ph-replace:hover{text-decoration:underline}
+.prop-row{display:flex;align-items:center;padding:5px 0;font-size:11px}
+.prop-row .pr-label{width:100px;color:var(--cinza);font-weight:500;flex-shrink:0}
+.prop-row .pr-value{flex:1}
+.prop-row input,.prop-row select{width:100%;padding:4px 8px;border:1px solid var(--cinzaM);border-radius:4px;font-size:11px}
+.prop-row input:focus,.prop-row select:focus{outline:none;border-color:var(--azul2)}
+.prop-actions{display:flex;gap:6px;margin-top:8px}
+.prop-actions button{flex:1;padding:6px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-apply{background:var(--verde);color:#fff}
+.btn-apply:hover{background:#229954}
+.btn-delete{background:transparent;border:1px solid var(--vermelho)!important;color:var(--vermelho)}
+.btn-delete:hover{background:#FDEDEC}
+.btn-copy{background:transparent;border:1px solid var(--azul2)!important;color:var(--azul2)}
+.btn-copy:hover{background:#EBF5FB}
+
+/* Topology view */
+.topo-node{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:4px 0;background:var(--cinzaL);border-radius:6px;font-size:11px;border-left:3px solid var(--azul2)}
+.topo-node .tn-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.topo-node .tn-info{flex:1}
+.topo-node .tn-name{font-weight:600;color:var(--azul)}
+.topo-node .tn-detail{font-size:9px;color:var(--cinza)}
+.topo-node .tn-ports{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.ports-ok{background:#E8F8F0;color:var(--verde)}
+.ports-warn{background:#FEF5E7;color:#E67E22}
+.ports-full{background:#FDEDEC;color:var(--vermelho)}
+.topo-children{padding-left:20px;border-left:2px solid var(--cinzaM);margin-left:20px}
+.topo-disconnected{border-left-color:var(--vermelho);background:#FDEDEC}
+
+/* Equipment List */
+.eq-table{width:100%;border-collapse:collapse;font-size:10px}
+.eq-table th{text-align:left;padding:6px 8px;background:var(--cinzaL);border-bottom:1px solid var(--cinzaM);font-weight:700;color:var(--cinza);position:sticky;top:0}
+.eq-table td{padding:5px 8px;border-bottom:1px solid #f0f0f0}
+.eq-table tr:hover{background:#FAFBFC}
+.eq-table .eq-total{font-weight:700;color:var(--azul)}
+.eq-footer{padding:10px 0;border-top:2px solid var(--cinzaM)}
+.eq-footer .ef-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.eq-footer .ef-row.total{font-size:13px;font-weight:700;color:var(--azul);padding-top:6px;border-top:1px solid var(--cinzaM);margin-top:4px}
+.eq-input{width:60px;padding:2px 4px;border:1px solid var(--cinzaM);border-radius:3px;font-size:10px;text-align:right}
+.eq-input:focus{outline:none;border-color:var(--azul2)}
+
+/* Validation alerts */
+.val-card{border-radius:6px;padding:8px 10px;margin-bottom:6px;border-left:3px solid}
+.val-card.critica{background:#FDEDEC;border-color:var(--vermelho)}
+.val-card.alta{background:#FEF5E7;border-color:#E67E22}
+.val-card.media{background:#EBF5FB;border-color:var(--azul2)}
+.val-card.obrigatoria{background:#F5EEF8;border-color:var(--roxo)}
+.val-title{font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px}
+.val-sev{font-size:8px;padding:1px 5px;border-radius:3px;color:#fff;font-weight:700}
+.sev-critica{background:var(--vermelho)}
+.sev-alta{background:#E67E22}
+.sev-media{background:var(--azul2)}
+.sev-obrigatoria{background:var(--roxo)}
+.val-body{font-size:10px;color:var(--cinza);margin-top:3px;line-height:1.4}
+
+/* Export dialog */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal-card{background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto}
+.modal-card h3{font-size:16px;color:var(--azul);margin-bottom:12px}
+.modal-card .mc-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.modal-card .mc-row label{flex:1;cursor:pointer}
+.modal-card .mc-actions{display:flex;gap:8px;margin-top:16px}
+.modal-card .mc-btn{flex:1;padding:10px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.mc-btn-primary{background:var(--azul);color:#fff}
+.mc-btn-primary:hover{background:var(--azul2)}
+.mc-btn-secondary{background:var(--cinzaL);color:var(--cinza);border:1px solid var(--cinzaM)!important}
+
+/* Floor tabs */
+.floor-tabs{display:flex;align-items:center;gap:2px;padding:0 8px;border-bottom:1px solid var(--cinzaM);background:var(--cinzaL);height:32px;flex-shrink:0}
+.floor-tab{padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;border-radius:4px 4px 0 0;color:var(--cinza);transition:.12s;border:1px solid transparent;border-bottom:none}
+.floor-tab.active{background:var(--branco);color:var(--azul);border-color:var(--cinzaM)}
+.floor-tab:hover{background:rgba(255,255,255,.5)}
+.floor-add{padding:4px 8px;font-size:12px;cursor:pointer;color:var(--azul2);font-weight:700;border:none;background:transparent;border-radius:4px}
+.floor-add:hover{background:rgba(46,134,193,.1)}
+
+/* Environment badges */
+.env-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:600;margin:2px;cursor:pointer;transition:.12s}
+.env-badge:hover{filter:brightness(.9)}
+
+/* Status bar */
+.status-bar{height:24px;background:var(--cinzaL);border-top:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 12px;gap:16px;font-size:10px;color:var(--cinza);flex-shrink:0}
+.status-bar .sb-item{display:flex;align-items:center;gap:4px}
+.sb-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.sb-ok{background:var(--verde)}
+.sb-warn{background:var(--laranja)}
+.sb-err{background:var(--vermelho)}
+
+/* Keyboard shortcut hints */
+.shortcut{font-size:9px;background:var(--cinzaL);padding:1px 4px;border-radius:2px;color:var(--cinza);border:1px solid var(--cinzaM);font-family:monospace}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo,useCallback,useEffect,useRef} = React;
+
+// ====================================================================
+// VERSION CONTROL
+// ====================================================================
+const APP_VERSION = {
+  major: 2, minor: 1, build: 1,
+  date: '2026-03-06',
+  get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
+  get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
+  changelog: [
+    {ver:'2.1.1',date:'2026-03-06',changes:['Drag-and-drop da paleta para canvas','Nobreak AC/DC como dispositivo configurável com catálogo de modelos','Bateria externa + cabo de engate + módulo de baterias','Rack como container (arrastar equipamentos para dentro)','Acessórios de rack com gestão de U','BOM completa: dispositivos, cabos, baterias, acessórios','SNMP condicional no nobreak AC','7 modelos reais no catálogo (Intelbras + MCM)']},
+    {ver:'2.0.0',date:'2026-03-05',changes:['Reescrita completa baseada em análise do Omada Design Hub','Engine de conexões com regras de compatibilidade','Automação: leitor facial/LPR/tag → motor/quadro via borne SAK','Cabos de automação com estilo visual próprio','Validação de projeto em tempo real']},
+    {ver:'1.0.0',date:'2026-03-04',changes:['MVP inicial com canvas e paleta de dispositivos','Kit Quadro de Conectividade (QCA/QCAC/QCAF)','Cenários predefinidos']},
+  ]
+};
+
+// ====================================================================
+// SVG ICONS - Security Devices
+// ====================================================================
+const ICONS={
+  cam_dome:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28"><circle cx="24" cy="28" r="14" fill="none" stroke={c} strokeWidth="2.5"/><ellipse cx="24" cy="20" rx="18" ry="8" fill="none" stroke={c} strokeWidth="2"/><circle cx="24" cy="28" r="5" fill={c} opacity=".3"/></svg>,
+  cam_bullet:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="18" width="30" height="14" rx="7" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="36" cy="25" r="5" fill={c} opacity=".3"/><line x1="36" y1="25" x2="44" y2="25" stroke={c} strokeWidth="2"/></svg>,
+  cam_ptz:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28"><circle cx="24" cy="20" r="10" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="24" cy="20" r="4" fill={c} opacity=".3"/><path d="M18 30 L24 44 L30 30" fill="none" stroke={c} strokeWidth="2"/></svg>,
+  cam_fisheye:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28"><circle cx="24" cy="24" r="16" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="24" cy="24" r="6" fill={c} opacity=".3"/><circle cx="24" cy="24" r="11" fill="none" stroke={c} strokeWidth="1" strokeDasharray="3 3"/></svg>,
+  leitor_facial:(c='#8b5cf6')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="10" y="6" width="28" height="36" rx="4" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="24" cy="20" r="7" fill="none" stroke={c} strokeWidth="1.5"/><path d="M16 32 Q24 38 32 32" fill="none" stroke={c} strokeWidth="1.5"/></svg>,
+  controladora:(c='#8b5cf6')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="16" cy="24" r="3" fill={c} opacity=".4"/><circle cx="24" cy="24" r="3" fill={c} opacity=".4"/><circle cx="32" cy="24" r="3" fill={c} opacity=".4"/><line x1="6" y1="16" x2="42" y2="16" stroke={c} strokeWidth="1"/></svg>,
+  fechadura:(c='#8b5cf6')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="14" y="20" width="20" height="22" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><path d="M18 20 V14 Q18 6 24 6 Q30 6 30 14 V20" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="24" cy="30" r="3" fill={c} opacity=".5"/></svg>,
+  motor:(c='#ea580c')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="4" y="16" width="24" height="16" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><line x1="28" y1="24" x2="44" y2="24" stroke={c} strokeWidth="3"/><line x1="38" y1="18" x2="44" y2="24" stroke={c} strokeWidth="2"/><line x1="38" y1="30" x2="44" y2="24" stroke={c} strokeWidth="2"/></svg>,
+  sw_poe:(c='#2563eb')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="4" y="14" width="40" height="20" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><line x1="12" y1="20" x2="12" y2="28" stroke={c} strokeWidth="2"/><line x1="18" y1="20" x2="18" y2="28" stroke={c} strokeWidth="2"/><line x1="24" y1="20" x2="24" y2="28" stroke={c} strokeWidth="2"/><line x1="30" y1="20" x2="30" y2="28" stroke={c} strokeWidth="2"/><line x1="36" y1="20" x2="36" y2="28" stroke={c} strokeWidth="2"/><text x="4" y="12" fill={c} fontSize="7" fontWeight="700">PoE</text></svg>,
+  sw_normal:(c='#2563eb')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="4" y="14" width="40" height="20" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><line x1="12" y1="20" x2="12" y2="28" stroke={c} strokeWidth="2"/><line x1="18" y1="20" x2="18" y2="28" stroke={c} strokeWidth="2"/><line x1="24" y1="20" x2="24" y2="28" stroke={c} strokeWidth="2"/><line x1="30" y1="20" x2="30" y2="28" stroke={c} strokeWidth="2"/><line x1="36" y1="20" x2="36" y2="28" stroke={c} strokeWidth="2"/></svg>,
+  nvr:(c='#059669')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="4" y="12" width="40" height="24" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="36" cy="24" r="4" fill="none" stroke={c} strokeWidth="1.5"/><line x1="10" y1="20" x2="26" y2="20" stroke={c} strokeWidth="1.5"/><line x1="10" y1="24" x2="20" y2="24" stroke={c} strokeWidth="1.5"/><line x1="10" y1="28" x2="26" y2="28" stroke={c} strokeWidth="1.5"/></svg>,
+  router:(c='#059669')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="4" y="16" width="40" height="16" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="12" cy="24" r="2" fill={c}/><circle cx="18" cy="24" r="2" fill={c}/><line x1="24" y1="4" x2="24" y2="16" stroke={c} strokeWidth="2"/><line x1="20" y1="8" x2="28" y2="8" stroke={c} strokeWidth="1.5"/><line x1="22" y1="4" x2="26" y2="4" stroke={c} strokeWidth="1.5"/></svg>,
+  rack:(c='#6b7280')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="10" y="4" width="28" height="40" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><line x1="14" y1="12" x2="34" y2="12" stroke={c} strokeWidth="1.5"/><line x1="14" y1="20" x2="34" y2="20" stroke={c} strokeWidth="1.5"/><line x1="14" y1="28" x2="34" y2="28" stroke={c} strokeWidth="1.5"/><line x1="14" y1="36" x2="34" y2="36" stroke={c} strokeWidth="1.5"/></svg>,
+  nobreak:(c='#dc2626')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="8" y="10" width="32" height="28" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><path d="M24 16 L20 26 L28 26 L24 36" fill="none" stroke={c} strokeWidth="2.5" strokeLinejoin="round"/></svg>,
+  nobreak_dc:(c='#ea580c')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="8" y="10" width="32" height="28" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><text x="24" y="32" textAnchor="middle" fill={c} fontSize="8" fontWeight="700">DC</text></svg>,
+  bateria_ext:(c='#eab308')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="10" y="10" width="28" height="24" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><rect x="38" y="16" width="4" height="12" rx="1" fill={c}/><line x1="16" y1="18" x2="32" y2="18" stroke={c} strokeWidth="1.5"/><line x1="16" y1="24" x2="32" y2="24" stroke={c} strokeWidth="1.5"/><line x1="16" y1="30" x2="32" y2="30" stroke={c} strokeWidth="1.5"/></svg>,
+  modulo_bat:(c='#9333ea')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="8" width="36" height="32" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><rect x="12" y="14" width="10" height="8" rx="1" fill={c} opacity=".3"/><rect x="26" y="14" width="10" height="8" rx="1" fill={c} opacity=".3"/><line x1="12" y1="26" x2="36" y2="26" stroke={c} strokeWidth="1.5"/><line x1="12" y1="32" x2="36" y2="32" stroke={c} strokeWidth="1.5"/></svg>,
+  cabo_engate:(c='#dc2626')=><svg viewBox="0 0 48 48" width="28" height="28"><path d="M6 24 L16 24" stroke={c} strokeWidth="3"/><circle cx="22" cy="24" r="4" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="26" cy="24" r="2" fill={c}/><path d="M32 24 L42 24" stroke={c} strokeWidth="3"/></svg>,
+  quadro:(c='#374151')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="6" width="36" height="36" rx="4" fill="none" stroke={c} strokeWidth="2.5"/><rect x="12" y="12" width="10" height="8" rx="1" fill={c} opacity=".2"/><rect x="26" y="12" width="10" height="8" rx="1" fill={c} opacity=".2"/><rect x="12" y="24" width="24" height="4" rx="1" fill={c} opacity=".15"/><rect x="12" y="32" width="24" height="4" rx="1" fill={c} opacity=".15"/></svg>,
+  fonte:(c='#eab308')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="8" y="12" width="32" height="24" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><text x="24" y="28" textAnchor="middle" fill={c} fontSize="10" fontWeight="700">12V</text></svg>,
+  dio:(c='#0ea5e9')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="8" y="14" width="32" height="20" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="16" cy="24" r="3" fill={c} opacity=".4"/><circle cx="24" cy="24" r="3" fill={c} opacity=".4"/><circle cx="32" cy="24" r="3" fill={c} opacity=".4"/></svg>,
+  alarme_central:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><path d="M24 4 L24 10" stroke={c} strokeWidth="2"/><circle cx="18" cy="24" r="2" fill={c}/><circle cx="24" cy="24" r="2" fill={c}/><circle cx="30" cy="24" r="2" fill={c}/></svg>,
+  sensor_presenca:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28"><path d="M16 36 Q24 8 32 36" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="24" cy="20" r="4" fill={c} opacity=".3"/><line x1="12" y1="36" x2="36" y2="36" stroke={c} strokeWidth="2"/></svg>,
+  sensor_abertura:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="14" width="16" height="20" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><rect x="26" y="14" width="16" height="20" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><line x1="22" y1="24" x2="26" y2="24" stroke={c} strokeWidth="2" strokeDasharray="2 2"/></svg>,
+  sirene:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28"><path d="M16 30 L16 18 Q24 6 32 18 L32 30" fill="none" stroke={c} strokeWidth="2.5"/><line x1="12" y1="30" x2="36" y2="30" stroke={c} strokeWidth="2.5"/><path d="M10 18 L6 14" stroke={c} strokeWidth="1.5"/><path d="M38 18 L42 14" stroke={c} strokeWidth="1.5"/><path d="M24 6 L24 2" stroke={c} strokeWidth="1.5"/></svg>,
+  // LPR Camera
+  cam_lpr:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="6" y="16" width="30" height="14" rx="7" fill="none" stroke={c} strokeWidth="2.5"/><circle cx="36" cy="23" r="5" fill={c} opacity=".3"/><rect x="10" y="34" width="20" height="8" rx="2" fill="none" stroke={c} strokeWidth="1.5"/><text x="20" y="40" textAnchor="middle" fill={c} fontSize="5" fontWeight="700">LPR</text></svg>,
+  // Tag Reader (UHF/Veicular)
+  leitor_tag:(c='#8b5cf6')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="10" y="10" width="28" height="20" rx="3" fill="none" stroke={c} strokeWidth="2.5"/><path d="M20 16 L24 14 L28 16" fill="none" stroke={c} strokeWidth="1.5"/><path d="M18 20 L24 17 L30 20" fill="none" stroke={c} strokeWidth="1" opacity=".5"/><line x1="24" y1="30" x2="24" y2="38" stroke={c} strokeWidth="2"/><line x1="18" y1="38" x2="30" y2="38" stroke={c} strokeWidth="2.5"/><text x="24" y="27" textAnchor="middle" fill={c} fontSize="5" fontWeight="700">TAG</text></svg>,
+  // Borne SAK
+  borne_sak:(c='#78716c')=><svg viewBox="0 0 48 48" width="28" height="28"><rect x="8" y="12" width="32" height="24" rx="2" fill="none" stroke={c} strokeWidth="2.5"/><line x1="16" y1="12" x2="16" y2="36" stroke={c} strokeWidth="1.5"/><line x1="24" y1="12" x2="24" y2="36" stroke={c} strokeWidth="1.5"/><line x1="32" y1="12" x2="32" y2="36" stroke={c} strokeWidth="1.5"/><circle cx="12" cy="18" r="2" fill={c} opacity=".4"/><circle cx="20" cy="18" r="2" fill={c} opacity=".4"/><circle cx="28" cy="18" r="2" fill={c} opacity=".4"/><circle cx="36" cy="18" r="2" fill={c} opacity=".4"/><circle cx="12" cy="30" r="2" fill={c} opacity=".4"/><circle cx="20" cy="30" r="2" fill={c} opacity=".4"/><circle cx="28" cy="30" r="2" fill={c} opacity=".4"/><circle cx="36" cy="30" r="2" fill={c} opacity=".4"/></svg>,
+};
+
+// ====================================================================
+// DEVICE LIBRARY - Categories for Security
+// ====================================================================
+const DEVICE_LIB = [
+  {cat:'CFTV IP',color:'#f59e0b',items:[
+    {key:'cam_dome',name:'Câmera Dome IP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'30m',fov:'2.8mm',ip:'IP67'}},
+    {key:'cam_bullet',name:'Câmera Bullet IP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'50m',fov:'2.8-12mm',ip:'IP67'}},
+    {key:'cam_ptz',name:'Câmera PTZ IP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,props:{resolucao:'4MP',zoom:'25x',ir:'150m',ip:'IP66'}},
+    {key:'cam_fisheye',name:'Câmera Fisheye',icon:'cam_fisheye',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'12MP',fov:'360°',ir:'15m',ip:'IP67'}},
+  ]},
+  {cat:'Controle de Acesso',color:'#8b5cf6',items:[
+    {key:'leitor_facial',name:'Leitor Facial',icon:'leitor_facial',poe:false,ports:1,ampDC:0.5,props:{faces:'50.000',tela:'4.3"',temp:'Sim',ip:'IP65'}},
+    {key:'controladora',name:'Controladora Acesso',icon:'controladora',poe:false,ports:1,props:{portas:'4',wiegand:'Sim',relay:'4'}},
+    {key:'fechadura',name:'Fechadura Eletromagnética',icon:'fechadura',poe:false,ampDC:0.3,ports:0,props:{forca:'280kg',tipo:'Fail-safe'}},
+    {key:'motor',name:'Motor Portão',icon:'motor',poe:false,ports:0,props:{tipo:'Deslizante',peso:'até 600kg'}},
+    {key:'cam_lpr',name:'Câmera LPR',icon:'cam_lpr',poe:true,poeW:15,ports:1,nvrCh:1,props:{resolucao:'2MP',ir:'12m',lente:'2.8-12mm',funcao:'Reconhecimento Placa'}},
+    {key:'leitor_tag',name:'Leitor Tag UHF',icon:'leitor_tag',poe:false,ports:0,ampDC:0.3,props:{frequencia:'915MHz',alcance:'até 8m',protocolo:'Wiegand/RS485'}},
+  ]},
+  {cat:'Alarme',color:'#ef4444',items:[
+    {key:'alarme_central',name:'Central de Alarme',icon:'alarme_central',poe:false,ports:1,props:{zonas:'64',partições:'4',com:'TCP/IP+GPRS'}},
+    {key:'sensor_presenca',name:'Sensor de Presença IVP',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',angulo:'90°',petFriendly:'Sim'}},
+    {key:'sensor_abertura',name:'Sensor de Abertura',icon:'sensor_abertura',poe:false,ports:0,props:{tipo:'Magnético',gap:'25mm'}},
+    {key:'sirene',name:'Sirene Audiovisual',icon:'sirene',poe:false,ports:0,ampDC:0.5,props:{db:'110dB',flash:'Sim'}},
+  ]},
+  {cat:'Rede',color:'#2563eb',items:[
+    {key:'sw_poe',name:'Switch PoE Gerenciável',icon:'sw_poe',poe:false,ports:0,props:{portas:'8+2',poeTotal:'120W',vlan:'Sim',sfp:'2'}},
+    {key:'sw_normal',name:'Switch Não-PoE',icon:'sw_normal',poe:false,ports:0,props:{portas:'8',velocidade:'1Gbps'}},
+    {key:'nvr',name:'NVR / Gravador',icon:'nvr',poe:false,ports:1,props:{canais:'16',hd:'até 2x 10TB',raid:'Sim'}},
+    {key:'router',name:'Gateway / Router',icon:'router',poe:false,ports:0,props:{wan:'2',lan:'4',vpn:'Sim',firewall:'Sim'}},
+  ]},
+  {cat:'Infraestrutura',color:'#6b7280',items:[
+    {key:'quadro',name:'Quadro Conectividade',icon:'quadro',poe:false,ports:0,props:{material:'PVC IP65',trilho:'DIN'}},
+    {key:'rack',name:'Rack',icon:'rack',poe:false,ports:0,isContainer:true,
+     configurable:true,configFields:['alturaU','profundidade','acessorios'],
+     props:{altura:'5U-42U',profundidade:'450-600mm'}},
+    {key:'nobreak_ac',name:'Nobreak AC',icon:'nobreak',poe:false,ports:0,configurable:true,
+     configFields:['snmp','tomadas_10a','tomadas_20a','potenciaVA','batExterna'],
+     props:{potencia:'600-3000VA',tipo:'AC Interativo/Senoidal'}},
+    {key:'nobreak_dc',name:'Nobreak DC',icon:'nobreak_dc',poe:false,ports:0,configurable:true,
+     configFields:['correnteSaida','batInterna','batExterna'],
+     props:{potencia:'60-120W',tipo:'DC 12V',saida:'12.8Vcc'}},
+    {key:'bateria_ext',name:'Bateria Externa',icon:'bateria_ext',poe:false,ports:0,configurable:true,
+     configFields:['tensao','capacidade','modelo'],props:{tensao:'12V',tipo:'Estacionária VRLA'}},
+    {key:'modulo_bat',name:'Módulo de Baterias',icon:'modulo_bat',poe:false,ports:0,configurable:true,
+     configFields:['qtdBaterias','tensaoBarramento'],props:{tipo:'Gabinete com baterias'}},
+    {key:'cabo_engate',name:'Cabo Engate Rápido',icon:'cabo_engate',poe:false,ports:0,
+     props:{conector:'SB 50 Anderson Power'}},
+    {key:'fonte',name:'Fonte 12V',icon:'fonte',poe:false,ports:0,props:{corrente:'10A',entrada:'90-240Vac'}},
+    {key:'dio',name:'DIO / Roseta Óptica',icon:'dio',poe:false,ports:0,props:{fibras:'6-12',tipo:'SC/APC'}},
+    {key:'borne_sak',name:'Borne SAK',icon:'borne_sak',poe:false,ports:0,props:{tipo:'Trilho DIN',vias:'2-16',uso:'Emenda automação/sinal'}},
+  ]},
+];
+
+// Cable types — data + power
+const CABLE_TYPES = [
+  // Data cables
+  {id:'cat5e',name:'CAT5E',color:'#3b82f6',speed:'1Gbps',maxLen:90,group:'data'},
+  {id:'cat6',name:'CAT6',color:'#2563eb',speed:'10Gbps',maxLen:55,group:'data'},
+  {id:'cat6a',name:'CAT6A',color:'#1d4ed8',speed:'10Gbps',maxLen:90,group:'data'},
+  {id:'smf',name:'SM Fibra',color:'#f59e0b',speed:'100Gbps+',maxLen:40000,group:'data'},
+  {id:'mmf',name:'MM Fibra',color:'#ef4444',speed:'10Gbps',maxLen:300,group:'data'},
+  {id:'2pares',name:'2 Pares (alarme)',color:'#6b7280',speed:'RS485',maxLen:1200,group:'signal'},
+  {id:'coaxial',name:'Coaxial RG59',color:'#374151',speed:'Analógico',maxLen:300,group:'signal'},
+  {id:'wireless',name:'Wireless/Mesh',color:'#8b5cf6',speed:'WiFi6',maxLen:100,group:'data'},
+  // Power cables
+  {id:'ac_power',name:'Cabo Força AC',color:'#dc2626',speed:'110/220V',maxLen:100,group:'power'},
+  {id:'pp_flex',name:'PP/Flex 3x1.5mm²',color:'#b91c1c',speed:'AC',maxLen:50,group:'power'},
+  {id:'dc_power',name:'Cabo DC 12V',color:'#f97316',speed:'12VDC',maxLen:30,group:'power'},
+  {id:'dc_par',name:'Par DC (P4)',color:'#ea580c',speed:'12VDC',maxLen:20,group:'power'},
+  // Automation
+  {id:'auto_2v',name:'Cabo Automação 2 vias',color:'#a855f7',speed:'Contato seco',maxLen:100,group:'automation'},
+  {id:'auto_4v',name:'Cabo Automação 4 vias',color:'#9333ea',speed:'Contato seco+GND',maxLen:100,group:'automation'},
+  // Cable engate (Anderson connectors)
+  {id:'sb50_48v',name:'Cabo Engate SB50 (48V)',color:'#dc2626',speed:'48VDC',maxLen:3,group:'power'},
+  {id:'sb50_12v',name:'Cabo Engate SB50 (12V)',color:'#ea580c',speed:'12VDC',maxLen:3,group:'power'},
+];
+
+// ====================================================================
+// MODEL CATALOG (PRESETS) - Real products from datasheets
+// ====================================================================
+const MODEL_CATALOG = {
+  nobreak_ac: [
+    {id:'intelbras_snb3000',brand:'Intelbras',model:'SNB 3000 VA BI',potenciaVA:3000,potenciaW:2100,
+     topologia:'Interativo Senoidal',entrada:'120/220V~',saida:'120V~',
+     tomadas:{t10A:6,t20A:2,total:8},batInterna:{qty:4,tipo:'12V 9Ah VRLA'},
+     batExterna:{suporta:true,conector:'SB 50 (Anderson Power)',barramento:'48V',maxBat:'4x 12V até 45Ah em série'},
+     snmp:false,gerenciamento:'USB+RS232',dimensoes:'196×342×415mm',peso:'26.3kg',
+     cabosRelacionados:['sb50_48v'],modulosBateria:['intelbras_mb0445']},
+    {id:'intelbras_attiv_seg',brand:'Intelbras',model:'ATTIV SEG BI+',potenciaVA:600,potenciaW:180,
+     topologia:'Interativo',entrada:'120/220V~',saida:'120V~',formOnda:'Semissenoidal',
+     tomadas:{t10A:4,total:4},batInterna:{qty:1,tipo:'12V 7Ah VRLA'},
+     batExterna:{suporta:true,conector:'SB 50 (Anderson Power)',barramento:'12V',maxBat:'1x 12V até 45Ah'},
+     snmp:false,gerenciamento:'Não',dimensoes:'124×214×269mm',peso:'5.0kg',
+     cabosRelacionados:['sb50_12v'],modulosBateria:['intelbras_mb0145']},
+  ],
+  nobreak_dc: [
+    {id:'mcm_fon1407',brand:'MCM',model:'Nobreak DC Gabinete FON1407',potenciaW:60,
+     tipo:'DC Gabinete',entradaAC:'100-240Vca',saidaDC:'12.8Vcc',correnteSaida:'5A',
+     batInterna:{suporta:true,tipo:'12V/7Ah selada',inclusa:false},
+     batExterna:{suporta:true,tipo:'12V estacionária/selada/automotiva'},
+     dimensoes:'125×225×385mm',peso:'886g'},
+    {id:'mcm_fon1388',brand:'MCM',model:'Nobreak DC Gabinete FON1388',potenciaW:120,
+     tipo:'DC Gabinete',entradaAC:'100-240Vca',saidaDC:'12.8Vcc',correnteSaida:'10A',
+     batInterna:{suporta:true,tipo:'12V/7Ah selada',inclusa:false},
+     batExterna:{suporta:true,tipo:'12V estacionária/selada/automotiva'},
+     dimensoes:'125×225×385mm',peso:'886g'},
+    {id:'mcm_fon1358',brand:'MCM',model:'Nobreak DC Desktop FON1358',potenciaW:120,
+     tipo:'DC Desktop',entradaAC:'100-240Vca',saidaDC:'12.8Vcc',correnteSaida:'10A',
+     batInterna:{suporta:false},
+     batExterna:{suporta:true,tipo:'12V estacionária/selada/automotiva'},
+     dimensoes:'188.5×77×51.6mm',peso:'485g'},
+    {id:'mcm_fon1385',brand:'MCM',model:'Nobreak DC Desktop FON1385',potenciaW:60,
+     tipo:'DC Desktop',entradaAC:'100-240Vca',saidaDC:'12.8Vcc',correnteSaida:'5A',
+     batInterna:{suporta:false},
+     batExterna:{suporta:true,tipo:'12V estacionária/selada/automotiva'},
+     dimensoes:'66×33×133mm',peso:'282g'},
+  ],
+  bateria: [
+    {id:'intelbras_eb1245',brand:'Intelbras',model:'EB 1245',tipo:'Estacionária VRLA',
+     tensao:'12Vdc',capacidade:'45Ah (C20)',peso:'11.6kg',dimensoes:'208×175×175mm'},
+    {id:'intelbras_eb1236',brand:'Intelbras',model:'EB 1236',tipo:'Estacionária VRLA',
+     tensao:'12Vdc',capacidade:'36Ah (C20)',peso:'11.0kg',dimensoes:'208×175×175mm'},
+  ],
+  modulo_bat: [
+    {id:'intelbras_mb0445',brand:'Intelbras',model:'MB 0445 48V',descricao:'Módulo baterias 48V (4×45Ah)',tipo:'Gabinete com baterias'},
+    {id:'intelbras_mb0145',brand:'Intelbras',model:'MB 0145 12V',descricao:'Módulo bateria estacionária 1×45Ah',tipo:'Gabinete com bateria'},
+  ],
+  rack_acessorio: [
+    {id:'bandeja_1u',name:'Bandeja Fixa 1U',tipo:'acessorio',unidades:1},
+    {id:'regua_tomadas',name:'Régua de Tomadas 8 posições',tipo:'acessorio',unidades:1},
+    {id:'patch_panel_24',name:'Patch Panel 24 portas CAT6',tipo:'acessorio',unidades:1},
+    {id:'patch_panel_48',name:'Patch Panel 48 portas CAT6',tipo:'acessorio',unidades:2},
+    {id:'guia_cabos_1u',name:'Guia de Cabos 1U',tipo:'acessorio',unidades:1},
+    {id:'ventilacao_1u',name:'Módulo Ventilação 1U',tipo:'acessorio',unidades:1},
+  ],
+};
+
+// ====================================================================
+// CONNECTION RULES ENGINE
+// Each device defines its "interfaces" — what types of connections it accepts.
+// The CONNECTION_RULES matrix defines valid device↔device combos + allowed cables.
+// ====================================================================
+
+// Device interface types
+const DEVICE_INTERFACES = {
+  // CFTV
+  cam_dome:     [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true}],
+  cam_bullet:   [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true}],
+  cam_ptz:      [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true}],
+  cam_fisheye:  [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true}],
+  // LPR Camera - PoE + saída automação (contato seco p/ abrir portão)
+  cam_lpr:      [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+  // Controle Acesso
+  leitor_facial:[{type:'data_in',cables:['cat5e','cat6','2pares'],label:'Rede/Wiegand',required:true},
+                 {type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+  leitor_tag:   [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
+                 {type:'data_in',cables:['2pares'],label:'Wiegand/RS485',required:true},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+  controladora: [{type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
+                 {type:'power_in',cables:['dc_power','ac_power'],label:'Alimentação',required:true},
+                 {type:'signal_out',cables:['2pares'],label:'Saída p/ leitores',required:false},
+                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída relay (automação)',required:false}],
+  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
+                 {type:'signal_in',cables:['2pares'],label:'Sinal controladora',required:true}],
+  motor:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'AC 110/220V',required:true},
+                 {type:'signal_in',cables:['2pares'],label:'Sinal central/controladora',required:false},
+                 {type:'automation_in',cables:['auto_2v','auto_4v','2pares'],label:'Entrada automação (botoeira/contato)',required:false}],
+  // Alarme
+  alarme_central:[{type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
+                  {type:'power_in',cables:['ac_power','dc_power'],label:'Alimentação',required:true},
+                  {type:'signal_in',cables:['2pares'],label:'Entrada zonas',required:false}],
+  sensor_presenca:[{type:'signal_out',cables:['2pares'],label:'Saída zona',required:true},
+                   {type:'power_in',cables:['dc_power','dc_par'],label:'12VDC (se ativo)',required:false}],
+  sensor_abertura:[{type:'signal_out',cables:['2pares'],label:'Saída zona',required:true}],
+  sirene:        [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
+                  {type:'signal_in',cables:['2pares'],label:'Acionamento',required:true}],
+  // Rede
+  sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
+  sw_normal:    [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
+  nvr:          [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'Rede p/ câmeras',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
+  router:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'WAN/LAN',required:true},
+                 {type:'power_in',cables:['ac_power'],label:'Alimentação AC',required:true}],
+  // Infraestrutura
+  quadro:       [{type:'passthrough',cables:['cat5e','cat6','cat6a','2pares','dc_power','ac_power','smf','mmf','auto_2v','auto_4v'],label:'Passagem/organização'}],
+  rack:         [{type:'passthrough',cables:['cat5e','cat6','cat6a','2pares','dc_power','ac_power','smf','mmf'],label:'Rack organização'}],
+  nobreak_ac:   [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (rede elétrica)',required:true},
+                 {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC (tomadas)',required:true}],
+  nobreak_dc:   [{type:'power_in',cables:['ac_power'],label:'Entrada AC',required:true},
+                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída DC 12V',required:true}],
+  bateria_ext:  [{type:'power_out',cables:['dc_power'],label:'Fornecimento DC',required:true}],
+  modulo_bat:   [{type:'power_out',cables:['dc_power','ac_power'],label:'Fornecimento energia',required:true}],
+  cabo_engate:  [{type:'passthrough',cables:['dc_power','ac_power'],label:'Conexão nobreak↔bateria'}],
+  fonte:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC',required:true},
+                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída 12VDC',required:true}],
+  dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra',required:true}],
+  // Borne SAK - emenda/passagem de cabos de automação e sinal no quadro
+  borne_sak:    [{type:'passthrough',cables:['auto_2v','auto_4v','2pares','dc_power','dc_par'],label:'Emenda/passagem automação (trilho DIN)'}],
+};
+
+// Validate if a connection between two device types with a given cable is valid
+// Returns: {valid:bool, cable:suggestedCable, reason:string, purpose:string}
+// Note: fromKey/toKey can be a string OR a device object. If device, uses getDeviceInterfaces.
+const validateConnection = (fromKey, toKey, cableId) => {
+  // Support both string keys and device objects
+  let fromIfaces = DEVICE_INTERFACES[fromKey] || [];
+  let toIfaces = DEVICE_INTERFACES[toKey] || [];
+
+  // If device objects were passed, use getDeviceInterfaces
+  if (typeof fromKey === 'object' && fromKey !== null) {
+    fromIfaces = getDeviceInterfaces(fromKey);
+    fromKey = fromKey.key;
+  }
+  if (typeof toKey === 'object' && toKey !== null) {
+    toIfaces = getDeviceInterfaces(toKey);
+    toKey = toKey.key;
+  }
+
+  // Collect all valid cable options between these two devices
+  const validCombos = [];
+
+  fromIfaces.forEach(fi => {
+    toIfaces.forEach(ti => {
+      // Check interface compatibility
+      const compatible = (
+        // data_io connects to anything data
+        (fi.type === 'data_io' && (ti.type === 'data_in' || ti.type === 'data_io')) ||
+        (ti.type === 'data_io' && (fi.type === 'data_in' || fi.type === 'data_io')) ||
+        // power_out connects to power_in
+        (fi.type === 'power_out' && ti.type === 'power_in') ||
+        (ti.type === 'power_out' && fi.type === 'power_in') ||
+        // signal_out connects to signal_in
+        (fi.type === 'signal_out' && ti.type === 'signal_in') ||
+        (ti.type === 'signal_out' && fi.type === 'signal_in') ||
+        // automation_out connects to automation_in
+        (fi.type === 'automation_out' && ti.type === 'automation_in') ||
+        (ti.type === 'automation_out' && fi.type === 'automation_in') ||
+        // passthrough connects to anything
+        fi.type === 'passthrough' || ti.type === 'passthrough'
+      );
+      if (!compatible) return;
+
+      // Check target restrictions (e.g., nobreak SNMP only connects to switches)
+      if (fi.targets && !fi.targets.includes(toKey)) return;
+      if (ti.targets && !ti.targets.includes(fromKey)) return;
+
+      // Find common cables between the two interfaces
+      const commonCables = fi.cables.filter(c => ti.cables.includes(c));
+      if (commonCables.length === 0) return;
+
+      const purpose = fi.type.includes('power') || ti.type.includes('power') ? 'energia' :
+                      fi.type.includes('automation') || ti.type.includes('automation') ? 'automação' :
+                      fi.type.includes('signal') || ti.type.includes('signal') ? 'sinal' : 'dados';
+
+      commonCables.forEach(cab => {
+        validCombos.push({ cable: cab, purpose, fromIface: fi, toIface: ti });
+      });
+    });
+  });
+
+  if (validCombos.length === 0) {
+    return { valid: false, cables: [], reason: `Não há interface compatível entre ${fromKey} e ${toKey}`, purpose: null };
+  }
+
+  // If a specific cable was requested, check if it's in valid combos
+  if (cableId) {
+    const match = validCombos.find(vc => vc.cable === cableId);
+    if (match) {
+      return { valid: true, cables: [cableId], reason: `${match.purpose}: ${match.fromIface.label} ↔ ${match.toIface.label}`, purpose: match.purpose };
+    }
+    // Cable requested is invalid for this pair
+    const suggestedCables = [...new Set(validCombos.map(vc => vc.cable))];
+    const ct = CABLE_TYPES.find(c => c.id === cableId);
+    return {
+      valid: false,
+      cables: suggestedCables,
+      reason: `${ct?.name || cableId} não é válido para ${fromKey}↔${toKey}. Use: ${suggestedCables.map(c => CABLE_TYPES.find(t=>t.id===c)?.name).join(', ')}`,
+      purpose: validCombos[0]?.purpose
+    };
+  }
+
+  // No specific cable — return all valid options
+  const suggestedCables = [...new Set(validCombos.map(vc => vc.cable))];
+  return { valid: true, cables: suggestedCables, reason: validCombos.map(vc => `${vc.purpose}: ${vc.fromIface.label}↔${vc.toIface.label}`).join(' | '), purpose: validCombos[0]?.purpose };
+};
+
+// Get device interfaces dynamically based on config
+const getDeviceInterfaces = (device) => {
+  const base = DEVICE_INTERFACES[device.key] || [];
+  // For nobreak_ac, add SNMP interface only if config.snmp is true
+  if (device.key === 'nobreak_ac' && device.config?.snmp) {
+    return [...base, {type:'data_io',cables:['cat5e','cat6'],label:'SNMP (placa de rede)',required:false,
+      targets:['sw_poe','sw_normal','router']}];
+  }
+  return base;
+};
+
+// Get the best default cable for a device pair
+const getDefaultCable = (fromKey, toKey) => {
+  const result = validateConnection(fromKey, toKey, null);
+  if (!result.valid || result.cables.length === 0) return null;
+  // Priority: prefer data cables for data devices, power for power devices
+  const priority = ['cat6','cat6a','cat5e','smf','mmf','ac_power','pp_flex','dc_power','dc_par','2pares','coaxial','wireless'];
+  return result.cables.sort((a,b) => priority.indexOf(a) - priority.indexOf(b))[0];
+};
+
+// Scenarios
+const SCENARIOS = [
+  {id:'condominio',name:'Condomínio',icon:'🏘️',desc:'Residencial, comercial'},
+  {id:'empresa',name:'Empresa/Escritório',icon:'🏢',desc:'Corporativo'},
+  {id:'industria',name:'Indústria/Fábrica',icon:'🏭',desc:'Área fabril'},
+  {id:'comercio',name:'Comércio/Loja',icon:'🏪',desc:'Varejo'},
+  {id:'escola',name:'Escola/Campus',icon:'🎓',desc:'Educacional'},
+  {id:'hospital',name:'Hospital/Clínica',icon:'🏥',desc:'Saúde'},
+  {id:'hotel',name:'Hotel/Pousada',icon:'🏨',desc:'Hospitalidade'},
+  {id:'custom',name:'Personalizado',icon:'⚙️',desc:'Projeto livre'},
+];
+
+// Environment colors
+const ENV_COLORS = [
+  {name:'Recepção',color:'#3b82f6',bg:'rgba(59,130,246,.08)'},
+  {name:'Corredor',color:'#6b7280',bg:'rgba(107,114,128,.08)'},
+  {name:'Sala Técnica',color:'#ef4444',bg:'rgba(239,68,68,.08)'},
+  {name:'Estacionamento',color:'#f59e0b',bg:'rgba(245,158,11,.08)'},
+  {name:'Perímetro',color:'#10b981',bg:'rgba(16,185,129,.08)'},
+  {name:'Área Comum',color:'#8b5cf6',bg:'rgba(139,92,246,.08)'},
+  {name:'Escritório',color:'#06b6d4',bg:'rgba(6,182,212,.08)'},
+  {name:'Depósito',color:'#78716c',bg:'rgba(120,113,108,.08)'},
+];
+
+// ====================================================================
+// VALIDATION RULES
+// ====================================================================
+const REGRAS=[
+  {cat:'Elétrica',regra:'Consumo PoE total vs capacidade do switch',sev:'CRÍTICA',
+    check:(devices)=>{
+      const sws=devices.filter(d=>d.key==='sw_poe');
+      if(!sws.length) return null;
+      const totalPoe=devices.filter(d=>{const def=findDevDef(d.key);return def?.poe}).reduce((a,d)=>{const def=findDevDef(d.key);return a+(def?.poeW||15)},0);
+      const swCap=sws.length*120;
+      if(totalPoe>swCap) return `Consumo PoE ${totalPoe}W > Capacidade ${swCap}W`;
+      if(totalPoe>swCap*0.8) return `Consumo PoE ${totalPoe}W > 80% da capacidade (${swCap}W)`;
+      return null;
+    }},
+  {cat:'Infraestrutura',regra:'Nobreak AC deve ter bateria externa ou módulo',sev:'OBRIGATÓRIA',
+    check:(devices)=>{
+      const nbAcs=devices.filter(d=>d.key==='nobreak_ac');
+      if(!nbAcs.length) return null;
+      const needsBat=nbAcs.filter(nb=>!nb.config?.batExterna);
+      if(needsBat.length) return `${needsBat.length} Nobreak AC requer bateria externa configurada`;
+      return null;
+    }},
+  {cat:'Rede',regra:'Portas: dispositivos + uplink + 20% reserva',sev:'ALTA',
+    check:(devices)=>{
+      const sws=devices.filter(d=>d.key==='sw_poe'||d.key==='sw_normal');
+      if(!sws.length) return null;
+      const ports=sws.reduce((a,d)=>a+parseInt(findDevDef(d.key)?.props?.portas?.split('+')[0]||'8'),0);
+      const needed=devices.filter(d=>{const def=findDevDef(d.key);return (def?.ports||0)>0}).length;
+      const total=Math.ceil(needed*1.2)+sws.length;
+      if(total>ports) return `${needed} dispositivos (+20%+uplinks) = ${total} portas necessárias > ${ports} disponíveis`;
+      return null;
+    }},
+  {cat:'CFTV',regra:'NVR: canais vs câmeras',sev:'CRÍTICA',
+    check:(devices)=>{
+      const cams=devices.filter(d=>d.key.startsWith('cam_')).length;
+      const nvrs=devices.filter(d=>d.key==='nvr');
+      if(!cams||!nvrs.length) return null;
+      const ch=nvrs.reduce((a,d)=>a+parseInt(findDevDef(d.key)?.props?.canais||'16'),0);
+      if(cams>ch) return `${cams} câmeras > ${ch} canais NVR`;
+      return null;
+    }},
+  {cat:'Acesso',regra:'Leitor facial precisa de switch/rede',sev:'ALTA',
+    check:(devices)=>{
+      const lf=devices.filter(d=>d.key==='leitor_facial').length;
+      const sw=devices.filter(d=>d.key.startsWith('sw_')).length;
+      if(lf>0&&sw===0) return `${lf} leitor(es) facial sem switch de rede`;
+      return null;
+    }},
+  {cat:'Infra',regra:'Nobreak obrigatório para sistemas críticos',sev:'ALTA',
+    check:(devices)=>{
+      const nb=devices.filter(d=>d.key==='nobreak_ac'||d.key==='nobreak_dc').length;
+      const cams=devices.filter(d=>d.key.startsWith('cam_')).length;
+      if(cams>0&&nb===0) return `${cams} câmeras sem nobreak = sem gravação no blackout`;
+      return null;
+    }},
+  {cat:'Arquitetura',regra:'> 2 switches: avaliar rack',sev:'ALTA',
+    check:(devices)=>{
+      const sw=devices.filter(d=>d.key.startsWith('sw_')).length;
+      if(sw>2) return `${sw} switches. Considerar rack 5U+ em vez de quadro`;
+      return null;
+    }},
+  {cat:'Energia',regra:'Dispositivos sem alimentação elétrica',sev:'CRÍTICA',
+    check:(devices,connections)=>{
+      const needsPower=['sw_poe','sw_normal','nvr','router','alarme_central','controladora'];
+      const issues=[];
+      needsPower.forEach(key=>{
+        const devs=devices.filter(d=>d.key===key);
+        devs.forEach(dev=>{
+          const hasPowerConn=connections?.some(c=>{
+            const otherId=c.from===dev.id?c.to:c.from;
+            const otherDev=devices.find(d=>d.id===otherId);
+            if(!otherDev) return false;
+            const ct=CABLE_TYPES.find(t=>t.id===c.type);
+            return ct?.group==='power';
+          });
+          if(!hasPowerConn) issues.push(dev.name);
+        });
+      });
+      if(issues.length>0) return `Sem cabo de energia: ${issues.slice(0,3).join(', ')}${issues.length>3?` +${issues.length-3}`:''}`;
+      return null;
+    }},
+  {cat:'Alimentação',regra:'Dispositivo DC sem fonte 12V',sev:'ALTA',
+    check:(devices,connections)=>{
+      const needsDC=['leitor_facial','fechadura','sirene'];
+      const fontes=devices.filter(d=>d.key==='fonte');
+      if(!fontes.length){
+        const dcDevs=devices.filter(d=>needsDC.includes(d.key));
+        if(dcDevs.length>0) return `${dcDevs.length} dispositivo(s) DC sem fonte 12V no projeto`;
+      }
+      return null;
+    }},
+];
+
+function findDevDef(key){
+  for(const cat of DEVICE_LIB) for(const item of cat.items) if(item.key===key) return item;
+  return null;
+}
+
+// ====================================================================
+// UNIQUE ID GENERATOR
+// ====================================================================
+let _uid=0;
+const uid=()=>'d'+(++_uid);
+
+// ====================================================================
+// MAIN APP COMPONENT
+// ====================================================================
+function App(){
+  const [screen,setScreen]=useState('landing'); // landing | project
+  const [project,setProject]=useState(null);
+
+  if(screen==='landing') return <Landing onStart={(scenario)=>{
+    setProject({
+      name:'Novo Projeto',
+      scenario,
+      floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[]}],
+      activeFloor:'f1',
+      settings:{taxRate:0,additionalFees:[]},
+    });
+    setScreen('project');
+  }}/>;
+
+  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('landing')}/>;
+}
+
+// ====================================================================
+// LANDING - Scenario Selection (inspired by Omada)
+// ====================================================================
+function Landing({onStart}){
+  return (
+    <div className="landing">
+      <div className="landing-logo">PROTECTOR SISTEMAS</div>
+      <div className="landing-title">BIM Segurança Eletrônica</div>
+      <div style={{fontSize:11,color:'var(--cinza)',marginTop:-8,marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
+      <div className="landing-sub">Selecione o cenário do projeto</div>
+      <div className="scenario-grid">
+        {SCENARIOS.map(s=>(
+          <div key={s.id} className="scenario-card" onClick={()=>onStart(s.id)}>
+            <div className="sc-icon">{s.icon}</div>
+            <h4>{s.name}</h4>
+            <p>{s.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// PROJECT APP
+// ====================================================================
+function ProjectApp({project,setProject,onBack}){
+  const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
+  const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
+  const [selectedDevice,setSelectedDevice]=useState(null);
+  const [tool,setTool]=useState('select'); // select | device | cable | env | measure
+  const [pendingDevice,setPendingDevice]=useState(null);
+  const [cableType,setCableType]=useState('cat6');
+  const [cableMode,setCableMode]=useState(null); // null | {from:deviceId}
+  const [showExport,setShowExport]=useState(false);
+  const [search,setSearch]=useState('');
+  const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
+  const canvasRef=useRef(null);
+  const [zoom,setZoom]=useState(1);
+  const [pan,setPan]=useState({x:0,y:0});
+  const [dragging,setDragging]=useState(null);
+
+  const floor=project.floors.find(f=>f.id===project.activeFloor);
+  const devices=floor?.devices||[];
+  const connections=floor?.connections||[];
+  const environments=floor?.environments||[];
+
+  // Update floor data helper
+  const updateFloor=(updater)=>{
+    setProject(p=>({...p,floors:p.floors.map(f=>f.id===p.activeFloor?updater(f):f)}));
+  };
+
+  // All devices across all floors
+  const allDevices=useMemo(()=>project.floors.flatMap(f=>f.devices),[project.floors]);
+
+  // Add device to canvas
+  const addDevice=(deviceKey,x,y,selectedModel=null)=>{
+    const def=findDevDef(deviceKey);
+    if(!def) return;
+
+    // If configurable and has catalog models, show modal for model selection
+    const catalogMap={nobreak_ac:'nobreak_ac',nobreak_dc:'nobreak_dc',bateria_ext:'bateria',modulo_bat:'modulo_bat'};
+    const hasCatalog=MODEL_CATALOG[catalogMap[deviceKey]];
+    if(def.configurable && !selectedModel && hasCatalog){
+      setModelSelectorModal({deviceKey,x:x||200+Math.random()*400,y:y||150+Math.random()*300});
+      return;
+    }
+
+    // Build config object if model was selected
+    let config={};
+    if(selectedModel && selectedModel.id){
+      config={modelId:selectedModel.id,modelData:selectedModel};
+    }
+
+    const newDev={id:uid(),key:deviceKey,name:def.name,x:x||200+Math.random()*400,y:y||150+Math.random()*300,
+      model:selectedModel?.model||'',envId:null,config,props:{...def.props}};
+    updateFloor(f=>({...f,devices:[...f.devices,newDev]}));
+    setSelectedDevice(newDev.id);
+    setRightTab('props');
+    setPendingDevice(null);
+    setModelSelectorModal(null);
+    setTool('select');
+  };
+
+  // Move device
+  const moveDevice=(devId,x,y)=>{
+    updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,x,y}:d)}));
+  };
+
+  // Delete device
+  const deleteDevice=(devId)=>{
+    updateFloor(f=>({
+      ...f,
+      devices:f.devices.filter(d=>d.id!==devId),
+      connections:f.connections.filter(c=>c.from!==devId&&c.to!==devId)
+    }));
+    if(selectedDevice===devId) setSelectedDevice(null);
+  };
+
+  // Update device properties
+  const updateDevice=(devId,updates)=>{
+    updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,...updates}:d)}));
+  };
+
+  // Copy device
+  const copyDevice=(devId)=>{
+    const dev=devices.find(d=>d.id===devId);
+    if(!dev) return;
+    const newDev={...dev,id:uid(),x:dev.x+40,y:dev.y+40,name:dev.name+' (cópia)'};
+    updateFloor(f=>({...f,devices:[...f.devices,newDev]}));
+    setSelectedDevice(newDev.id);
+  };
+
+  // Connection validation toast state
+  const [connToast,setConnToast]=React.useState(null);
+  const showConnToast=(msg,type='error')=>{
+    setConnToast({msg,type});
+    setTimeout(()=>setConnToast(null),4000);
+  };
+
+  // Cable picker state for multi-option connections
+  const [cablePicker,setCablePicker]=React.useState(null);
+
+  // Add connection with validation
+  const addConnection=(fromId,toId,type)=>{
+    if(fromId===toId){setCableMode(null);return}
+    const exists=connections.some(c=>(c.from===fromId&&c.to===toId)||(c.from===toId&&c.to===fromId));
+    if(exists){showConnToast('Conexão já existe entre estes dispositivos','warn');setCableMode(null);return}
+    const fromDev=devices.find(d=>d.id===fromId);
+    const toDev=devices.find(d=>d.id===toId);
+    if(!fromDev||!toDev) return;
+
+    const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
+    const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
+
+    // Validate connection
+    const chosenCable=type||cableType;
+    const validation=validateConnection(fromDev.key,toDev.key,chosenCable);
+
+    if(!validation.valid && validation.cables.length===0){
+      // No valid connection at all
+      showConnToast(`✕ ${validation.reason}`,'error');
+      setCableMode(null);
+      return;
+    }
+
+    if(!validation.valid && validation.cables.length>0){
+      // Wrong cable but valid alternatives exist — show picker
+      setCablePicker({fromId,toId,dist,cables:validation.cables,reason:validation.reason});
+      setCableMode(null);
+      return;
+    }
+
+    // Valid — create connection
+    const purpose=validation.purpose||'dados';
+    updateFloor(f=>({...f,connections:[...f.connections,{
+      id:uid(),from:fromId,to:toId,type:chosenCable,distance:dist,purpose
+    }]}));
+    showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===chosenCable)?.name} · ${dist}m · ${purpose}`,'success');
+    setCableMode(null);
+  };
+
+  // Confirm cable from picker
+  const confirmCablePick=(cableId)=>{
+    if(!cablePicker) return;
+    const {fromId,toId,dist}=cablePicker;
+    const fromDev=devices.find(d=>d.id===fromId);
+    const toDev=devices.find(d=>d.id===toId);
+    const validation=validateConnection(fromDev.key,toDev.key,cableId);
+    updateFloor(f=>({...f,connections:[...f.connections,{
+      id:uid(),from:fromId,to:toId,type:cableId,distance:dist,purpose:validation.purpose||'dados'
+    }]}));
+    showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===cableId)?.name} · ${dist}m`,'success');
+    setCablePicker(null);
+  };
+
+  // Delete connection
+  const deleteConnection=(connId)=>{
+    updateFloor(f=>({...f,connections:f.connections.filter(c=>c.id!==connId)}));
+  };
+
+  // Add environment
+  const addEnvironment=(name,color,bg)=>{
+    const newEnv={id:uid(),name,color,bg,x:100,y:100,w:300,h:200};
+    updateFloor(f=>({...f,environments:[...f.environments,newEnv]}));
+  };
+
+  // Add floor
+  const addFloor=()=>{
+    const num=project.floors.length;
+    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[]};
+    setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
+  };
+
+  // Smart Auto Cable — uses CONNECTION_RULES engine
+  const autoCable=()=>{
+    const newConns=[...connections];
+    const connectedIds=new Set();
+    newConns.forEach(c=>{connectedIds.add(c.from);connectedIds.add(c.to)});
+
+    // Step 1: Network devices → connect to switches/router
+    const sws=devices.filter(d=>d.key==='sw_poe'||d.key==='sw_normal');
+    const routers=devices.filter(d=>d.key==='router');
+    const nvrs=devices.filter(d=>d.key==='nvr');
+    const nobreaks=devices.filter(d=>d.key==='nobreak_ac'||d.key==='nobreak_dc');
+    const fontes=devices.filter(d=>d.key==='fonte');
+    const centrais=devices.filter(d=>d.key==='alarme_central');
+    const controladoras=devices.filter(d=>d.key==='controladora');
+
+    const findNearest=(dev,targets)=>{
+      let best=null,bestDist=Infinity;
+      targets.forEach(t=>{
+        const dx=dev.x-t.x,dy=dev.y-t.y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<bestDist){bestDist=d;best=t}
+      });
+      return best?{device:best,dist:Math.round(bestDist/10)}:null;
+    };
+
+    const tryAdd=(fromId,toId,fromKey,toKey)=>{
+      const pairExists=newConns.some(c=>(c.from===fromId&&c.to===toId)||(c.from===toId&&c.to===fromId));
+      if(pairExists) return false;
+      const cable=getDefaultCable(fromKey,toKey);
+      if(!cable) return false;
+      const f=devices.find(d=>d.id===fromId),t=devices.find(d=>d.id===toId);
+      const dx=f.x-t.x,dy=f.y-t.y,dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
+      const validation=validateConnection(fromKey,toKey,cable);
+      newConns.push({id:uid(),from:fromId,to:toId,type:cable,distance:dist,purpose:validation.purpose||'dados'});
+      return true;
+    };
+
+    // Cameras/PoE devices → nearest PoE switch
+    devices.filter(d=>{const def=findDevDef(d.key);return def?.poe}).forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws.filter(s=>s.key==='sw_poe'));if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // NVR → nearest switch
+    nvrs.forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Central alarme → nearest switch (TCP/IP)
+    centrais.forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Controladora → nearest switch
+    controladoras.forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Leitores faciais → nearest controladora (2 pares) or switch
+    devices.filter(d=>d.key==='leitor_facial').forEach(dev=>{
+      if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+      else if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Sensores → central de alarme (2 pares)
+    devices.filter(d=>d.key==='sensor_presenca'||d.key==='sensor_abertura').forEach(dev=>{
+      if(centrais.length){const n=findNearest(dev,centrais);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Sirene → central de alarme
+    devices.filter(d=>d.key==='sirene').forEach(dev=>{
+      if(centrais.length){const n=findNearest(dev,centrais);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Fechadura → controladora
+    devices.filter(d=>d.key==='fechadura').forEach(dev=>{
+      if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Switch ↔ Router uplink
+    sws.forEach(sw=>{
+      if(routers.length){const n=findNearest(sw,routers);if(n) tryAdd(sw.id,n.device.id,sw.key,n.device.key)}
+    });
+
+    // Nobreak → power to switches, NVR, router (AC power)
+    nobreaks.forEach(nb=>{
+      [...sws,...nvrs,...routers].forEach(dev=>{
+        tryAdd(nb.id,dev.id,nb.key,dev.key);
+      });
+    });
+
+    // Fonte 12V → leitores, fechaduras, sirenes, sensores ativos (DC power)
+    fontes.forEach(ft=>{
+      devices.filter(d=>['leitor_facial','leitor_tag','fechadura','sirene','controladora'].includes(d.key)).forEach(dev=>{
+        tryAdd(ft.id,dev.id,ft.key,dev.key);
+      });
+    });
+
+    // Câmera LPR → nearest PoE switch (data) - already covered by PoE rule above
+    // Leitor Tag → nearest controladora (Wiegand/RS485)
+    devices.filter(d=>d.key==='leitor_tag').forEach(dev=>{
+      if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Automation: leitor_facial, cam_lpr, leitor_tag, controladora → nearest motor (auto cable)
+    const motors=devices.filter(d=>d.key==='motor');
+    if(motors.length){
+      devices.filter(d=>['leitor_facial','cam_lpr','leitor_tag','controladora'].includes(d.key)).forEach(dev=>{
+        const n=findNearest(dev,motors);
+        if(n){
+          const pairExists=newConns.some(c=>(c.from===dev.id&&c.to===n.device.id)||(c.from===n.device.id&&c.to===dev.id));
+          if(!pairExists){
+            const dist=Math.round(n.dist);
+            newConns.push({id:uid(),from:dev.id,to:n.device.id,type:'auto_2v',distance:dist,purpose:'automação'});
+          }
+        }
+      });
+    }
+
+    updateFloor(f=>({...f,connections:newConns}));
+    showConnToast(`⚡ Auto-cabeamento: ${newConns.length - connections.length} conexões criadas`,'success');
+  };
+
+  // Validation (now passes connections too for power/cable checks)
+  const validations=useMemo(()=>{
+    return REGRAS.map(r=>{
+      const msg=r.check(devices,connections);
+      return msg?{...r,msg}:null;
+    }).filter(Boolean);
+  },[devices,connections]);
+
+  // BOM / Equipment list
+  const bom=useMemo(()=>{
+    const counts={};
+    allDevices.forEach(d=>{
+      if(!counts[d.key]) counts[d.key]={key:d.key,name:d.name,qty:0,model:d.model||'',def:findDevDef(d.key),unit:'pç'};
+      counts[d.key].qty++;
+    });
+
+    // Add cables to BOM
+    const cableCounts={};
+    connections.forEach(c=>{
+      const cableType=CABLE_TYPES.find(ct=>ct.id===c.type);
+      if(!cableType) return;
+      if(!cableCounts[c.type]) cableCounts[c.type]={key:c.type,name:cableType.name,qty:0,totalMeters:0,def:cableType,unit:'m'};
+      cableCounts[c.type].qty++;
+      cableCounts[c.type].totalMeters+=c.distance||1;
+    });
+
+    // Add batteries if configured on nobreak_ac (external battery support)
+    allDevices.filter(d=>d.key==='nobreak_ac'&&d.config?.batExterna).forEach(nb=>{
+      if(!counts['bateria_ext']) counts['bateria_ext']={key:'bateria_ext',name:'Bateria Externa',qty:0,unit:'pç',model:''};
+      counts['bateria_ext'].qty++;
+    });
+
+    // Add rack accessories to BOM
+    const accCounts={};
+    allDevices.filter(d=>d.key==='rack'&&d.config?.acessorios?.length).forEach(rack=>{
+      rack.config.acessorios.forEach(acc=>{
+        const accKey='acc_'+acc.id;
+        if(!accCounts[accKey]) accCounts[accKey]={key:accKey,name:acc.name||acc.id,qty:0,unit:'pç',rack:rack.name};
+        accCounts[accKey].qty++;
+      });
+    });
+
+    return [...Object.values(counts),...Object.values(cableCounts),...Object.values(accCounts)];
+  },[allDevices,connections]);
+
+  // Topology tree
+  const topology=useMemo(()=>{
+    const roots=devices.filter(d=>d.key==='router'||d.key==='sw_poe'||d.key==='sw_normal');
+    if(!roots.length) return devices.map(d=>({device:d,children:[],disconnected:true}));
+    const connected=new Set();
+    const buildTree=(dev)=>{
+      connected.add(dev.id);
+      const children=connections
+        .filter(c=>c.from===dev.id||c.to===dev.id)
+        .map(c=>c.from===dev.id?c.to:c.from)
+        .filter(id=>!connected.has(id))
+        .map(id=>devices.find(d=>d.id===id))
+        .filter(Boolean)
+        .map(d=>buildTree(d));
+      return {device:dev,children,cable:connections.find(c=>(c.from===dev.id||c.to===dev.id))};
+    };
+    const tree=roots.map(r=>buildTree(r));
+    const disconnected=devices.filter(d=>!connected.has(d.id)).map(d=>({device:d,children:[],disconnected:true}));
+    return [...tree,...disconnected];
+  },[devices,connections]);
+
+  // Canvas mouse handlers
+  const handleCanvasClick=(e)=>{
+    if(tool==='device'&&pendingDevice){
+      const rect=canvasRef.current?.getBoundingClientRect();
+      if(!rect) return;
+      const x=(e.clientX-rect.left-pan.x)/zoom;
+      const y=(e.clientY-rect.top-pan.y)/zoom;
+      addDevice(pendingDevice,x,y);
+    } else if(tool==='select'){
+      setSelectedDevice(null);
+    }
+  };
+
+  // Compute valid targets when in cable mode
+  const validTargets=React.useMemo(()=>{
+    if(!cableMode) return {};
+    const fromDev=devices.find(d=>d.id===cableMode.from);
+    if(!fromDev) return {};
+    const map={};
+    devices.forEach(dev=>{
+      if(dev.id===cableMode.from) return;
+      const result=validateConnection(fromDev.key,dev.key,null);
+      map[dev.id]=result.valid && result.cables.length>0 ? 'valid' : 'invalid';
+    });
+    return map;
+  },[cableMode,devices]);
+
+  const handleDeviceClick=(e,devId)=>{
+    e.stopPropagation();
+    if(cableMode){
+      addConnection(cableMode.from,devId,cableType);
+      return;
+    }
+    setSelectedDevice(devId);
+    setRightTab('props');
+  };
+
+  const handleDeviceMouseDown=(e,devId)=>{
+    if(tool!=='select'&&tool!=='device') return;
+    e.stopPropagation();
+    e.preventDefault();
+    setDragging({id:devId,startX:e.clientX,startY:e.clientY,
+      origX:devices.find(d=>d.id===devId)?.x||0,
+      origY:devices.find(d=>d.id===devId)?.y||0});
+  };
+
+  useEffect(()=>{
+    if(!dragging) return;
+    const onMove=(e)=>{
+      const dx=(e.clientX-dragging.startX)/zoom;
+      const dy=(e.clientY-dragging.startY)/zoom;
+      moveDevice(dragging.id,dragging.origX+dx,dragging.origY+dy);
+    };
+    const onUp=(e)=>{
+      // Check if device was dropped inside a rack
+      if(dragging){
+        const draggedDev=devices.find(d=>d.id===dragging.id);
+        if(draggedDev && draggedDev.key!=='rack'){
+          const rackDev=devices.find(r=>r.key==='rack'&&r.id!==dragging.id&&
+            draggedDev.x>=r.x-10&&draggedDev.x<=r.x+130&&
+            draggedDev.y>=r.y-10&&draggedDev.y<=r.y+170);
+          if(rackDev){
+            updateDevice(dragging.id,{parentRack:rackDev.id});
+          }else if(draggedDev.parentRack){
+            // Dragged out of rack
+            const rack=devices.find(r=>r.id===draggedDev.parentRack);
+            if(rack && !(draggedDev.x>=rack.x-10&&draggedDev.x<=rack.x+130&&
+              draggedDev.y>=rack.y-10&&draggedDev.y<=rack.y+170)){
+              updateDevice(dragging.id,{parentRack:null});
+            }
+          }
+        }
+      }
+      setDragging(null);
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+  },[dragging,zoom]);
+
+  // Keyboard shortcuts
+  useEffect(()=>{
+    const handler=(e)=>{
+      if(e.key==='Delete'&&selectedDevice) deleteDevice(selectedDevice);
+      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null)}
+      if(e.ctrlKey&&e.key==='z') e.preventDefault(); // placeholder undo
+    };
+    window.addEventListener('keydown',handler);
+    return ()=>window.removeEventListener('keydown',handler);
+  },[selectedDevice]);
+
+  // Wheel zoom
+  const handleWheel=(e)=>{
+    e.preventDefault();
+    const delta=e.deltaY>0?-0.1:0.1;
+    setZoom(z=>Math.max(0.3,Math.min(3,z+delta)));
+  };
+
+  const selectedDev=devices.find(d=>d.id===selectedDevice);
+
+  return (
+    <div className="app-shell">
+      {/* ===== TOP BAR ===== */}
+      <div className="app-topbar">
+        <span className="logo">PROTECTOR</span>
+        <span style={{fontSize:9,opacity:.4,marginLeft:-8}}>{APP_VERSION.full}</span>
+        <span style={{width:1,height:24,background:'rgba(255,255,255,.2)'}}/>
+        <input value={project.name} onChange={e=>setProject(p=>({...p,name:e.target.value}))}
+          style={{background:'transparent',border:'none',color:'#fff',fontSize:14,fontWeight:600,width:200,outline:'none'}}/>
+        <span style={{flex:1}}/>
+        <span style={{fontSize:10,opacity:.5}}>Cenário: {SCENARIOS.find(s=>s.id===project.scenario)?.name}</span>
+        <button className="tb-btn" onClick={()=>setShowExport(true)}>📋 Exportar</button>
+        <button className="tb-btn" onClick={onBack}>← Voltar</button>
+      </div>
+
+      {/* ===== FLOOR TABS ===== */}
+      <div className="floor-tabs">
+        {project.floors.map(f=>(
+          <div key={f.id} className={`floor-tab ${f.id===project.activeFloor?'active':''}`}
+            onClick={()=>setProject(p=>({...p,activeFloor:f.id}))}>
+            {f.name}
+          </div>
+        ))}
+        <button className="floor-add" onClick={addFloor}>+ Pavimento</button>
+      </div>
+
+      {/* ===== TOOLBAR ===== */}
+      <div className="toolbar">
+        <div className="tool-group">
+          <button className={`tool-btn ${tool==='select'?'active':''}`} title="Selecionar (V)"
+            onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null)}}>🖱️</button>
+          <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear"
+            onClick={()=>{setTool('cable');setPendingDevice(null)}}>🔗</button>
+          <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente"
+            onClick={()=>{setTool('env');setPendingDevice(null)}}>🏠</button>
+          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Medir"
+            onClick={()=>{setTool('measure');setPendingDevice(null)}}>📏</button>
+        </div>
+        <div className="tool-group">
+          <button className="tool-btn" title="Auto Cabear" onClick={autoCable}>⚡</button>
+          <span className="tool-label">Auto</span>
+        </div>
+        <div className="tool-group">
+          {tool==='cable'&&(
+            <select value={cableType} onChange={e=>setCableType(e.target.value)}
+              style={{padding:'4px 8px',border:'1px solid var(--cinzaM)',borderRadius:4,fontSize:10}}>
+              <optgroup label="🌐 Dados">
+                {CABLE_TYPES.filter(c=>c.group==='data').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              </optgroup>
+              <optgroup label="📡 Sinal">
+                {CABLE_TYPES.filter(c=>c.group==='signal').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              </optgroup>
+              <optgroup label="⚡ Energia">
+                {CABLE_TYPES.filter(c=>c.group==='power').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              </optgroup>
+              <optgroup label="🔧 Automação">
+                {CABLE_TYPES.filter(c=>c.group==='automation').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              </optgroup>
+            </select>
+          )}
+        </div>
+        <div className="sim-toggle">
+          <span className="tool-label">Dispositivos: {devices.length}</span>
+          <span className="tool-label">|</span>
+          <span className="tool-label">Conexões: {connections.length}</span>
+          <span className="tool-label">|</span>
+          <span className="tool-label">Alertas: {validations.length}</span>
+          {validations.length>0&&<span className="sb-dot sb-warn"/>}
+          {validations.length===0&&devices.length>0&&<span className="sb-dot sb-ok"/>}
+        </div>
+      </div>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="main-area">
+        {/* LEFT PANEL */}
+        <div className="left-panel">
+          <div className="lp-tabs">
+            <div className={`lp-tab ${leftTab==='devices'?'active':''}`} onClick={()=>setLeftTab('devices')}>Dispositivos</div>
+            <div className={`lp-tab ${leftTab==='environments'?'active':''}`} onClick={()=>setLeftTab('environments')}>Ambientes</div>
+            <div className={`lp-tab ${leftTab==='floors'?'active':''}`} onClick={()=>setLeftTab('floors')}>Piso</div>
+          </div>
+          <div className="lp-content">
+            {leftTab==='devices'&&<>
+              <input className="lp-search" placeholder="Buscar dispositivo..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              {DEVICE_LIB.map(cat=>{
+                const filtered=cat.items.filter(i=>!search||i.name.toLowerCase().includes(search.toLowerCase())||i.key.includes(search.toLowerCase()));
+                if(!filtered.length) return null;
+                return (
+                  <div key={cat.cat} className="dev-category">
+                    <div className="dev-cat-title" style={{color:cat.color}}>
+                      {cat.cat} <span className="cnt">{filtered.length}</span>
+                    </div>
+                    {filtered.map(item=>(
+                      <div key={item.key} className="dev-item"
+                        draggable
+                        onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
+                        onClick={()=>{setPendingDevice(item.key);setTool('device')}}
+                        style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
+                        <div className="di-icon">{ICONS[item.icon]?.(cat.color)}</div>
+                        <div className="di-info">
+                          <div className="di-name">{item.name}</div>
+                          <div className="di-spec">{item.props?.resolucao||item.props?.portas||item.props?.potencia||''}</div>
+                        </div>
+                        {item.poe&&<span className="di-tag tag-poe">PoE</span>}
+                        {item.ampDC&&<span className="di-tag tag-dc">DC</span>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </>}
+            {leftTab==='environments'&&<>
+              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Clique para adicionar ao piso:</div>
+              {ENV_COLORS.map(ec=>(
+                <div key={ec.name} className="env-badge" style={{background:ec.bg,color:ec.color,border:`1px solid ${ec.color}30`}}
+                  onClick={()=>addEnvironment(ec.name,ec.color,ec.bg)}>
+                  🏠 {ec.name}
+                </div>
+              ))}
+              <div style={{marginTop:12,fontSize:10,color:'var(--cinza)'}}>
+                Ambientes no piso atual:
+              </div>
+              {environments.map(env=>(
+                <div key={env.id} style={{padding:'6px 8px',margin:'4px 0',borderRadius:4,background:env.bg,
+                  borderLeft:`3px solid ${env.color}`,fontSize:11,display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{flex:1,fontWeight:600,color:env.color}}>{env.name}</span>
+                  <span style={{fontSize:9,color:'var(--cinza)'}}>
+                    {devices.filter(d=>d.envId===env.id).length} devices
+                  </span>
+                </div>
+              ))}
+            </>}
+            {leftTab==='floors'&&<>
+              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Pavimentos do projeto:</div>
+              {project.floors.map(f=>(
+                <div key={f.id} style={{padding:'8px 10px',margin:'4px 0',borderRadius:6,
+                  background:f.id===project.activeFloor?'#EBF5FB':'var(--cinzaL)',
+                  border:f.id===project.activeFloor?'1px solid var(--azul2)':'1px solid transparent',
+                  cursor:'pointer',fontSize:11}}
+                  onClick={()=>setProject(p=>({...p,activeFloor:f.id}))}>
+                  <div style={{fontWeight:600,color:'var(--azul)'}}>{f.name}</div>
+                  <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
+                    {f.devices.length} dispositivos · {f.connections.length} conexões · {f.environments.length} ambientes
+                  </div>
+                </div>
+              ))}
+            </>}
+          </div>
+        </div>
+
+        {/* CANVAS */}
+        <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onWheel={handleWheel}
+          onDragOver={(e)=>{e.preventDefault();e.dataTransfer.dropEffect='copy'}}
+          onDrop={(e)=>{
+            e.preventDefault();
+            const deviceKey=e.dataTransfer.getData('deviceKey');
+            if(!deviceKey) return;
+            const rect=canvasRef.current?.getBoundingClientRect();
+            if(!rect) return;
+            const x=(e.clientX-rect.left-pan.x)/zoom;
+            const y=(e.clientY-rect.top-pan.y)/zoom;
+            addDevice(deviceKey,x,y);
+          }}>
+          <div className="canvas-viewport">
+            <div className="canvas-transform" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`}}>
+              {/* Grid */}
+              <svg className="canvas-grid" width="2000" height="2000" style={{opacity:.15}}>
+                <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" strokeWidth="0.5"/>
+                </pattern></defs>
+                <rect width="2000" height="2000" fill="url(#grid)"/>
+              </svg>
+
+              {/* Environments */}
+              {environments.map(env=>(
+                <div key={env.id} className="env-rect" style={{left:env.x,top:env.y,width:env.w,height:env.h,
+                  borderColor:env.color,background:env.bg}}>
+                  <span className="env-label" style={{background:env.color}}>{env.name}</span>
+                </div>
+              ))}
+
+              {/* Connection lines */}
+              <svg className="conn-svg" width="2000" height="2000">
+                {connections.map(conn=>{
+                  const from=devices.find(d=>d.id===conn.from);
+                  const to=devices.find(d=>d.id===conn.to);
+                  if(!from||!to) return null;
+                  const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
+                  const mx=(from.x+to.x)/2;
+                  const my=(from.y+to.y)/2;
+                  const isPower=ct.group==='power';
+                  const isSignal=ct.group==='signal';
+                  const isAuto=ct.group==='automation';
+                  const isWireless=conn.type==='wireless';
+                  const dashArr=isWireless?'4 4':isPower?'8 3':isSignal?'2 2':isAuto?'6 2 2 2':'none';
+                  const sw=isPower?2.5:isAuto?2:1.5;
+                  const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
+                  return <g key={conn.id}>
+                    <line x1={from.x+20} y1={from.y+20} x2={to.x+20} y2={to.y+20}
+                      className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>
+                    <text x={mx+20} y={my+15} className="cable-label">
+                      {purposeIcon}{ct.name} · {conn.distance}m
+                    </text>
+                  </g>;
+                })}
+                {/* Cable mode preview */}
+                {cableMode&&selectedDevice&&(()=>{
+                  const from=devices.find(d=>d.id===cableMode.from);
+                  if(!from) return null;
+                  return <line x1={from.x+20} y1={from.y+20} x2={from.x+80} y2={from.y+20}
+                    stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 3" opacity=".5"/>;
+                })()}
+              </svg>
+
+              {/* Rack containers - render first (behind devices) */}
+              {devices.filter(d=>d.key==='rack').map(rack=>{
+                const rackU=rack.config?.alturaU||12;
+                const rackH=Math.max(100,rackU*5+40);
+                const rackW=120;
+                const childCount=devices.filter(d=>d.parentRack===rack.id).length;
+                const accCount=(rack.config?.acessorios||[]).length;
+                const usedU=childCount*2+accCount;
+                return (
+                  <div key={'rack-bg-'+rack.id}
+                    style={{position:'absolute',left:rack.x-10,top:rack.y-10,width:rackW,height:rackH,
+                      background:'rgba(107,114,128,.06)',border:`2px ${selectedDevice===rack.id?'solid':'dashed'} ${selectedDevice===rack.id?'var(--azul2)':'#9ca3af'}`,
+                      borderRadius:8,zIndex:0,pointerEvents:'none'}}>
+                    <div style={{position:'absolute',top:-18,left:0,fontSize:9,fontWeight:700,
+                      color:'#6b7280',background:'#f0f2f5',padding:'1px 6px',borderRadius:3}}>
+                      {rack.name} · {usedU}/{rackU}U
+                    </div>
+                    {childCount===0&&!cableMode&&<div style={{position:'absolute',top:'50%',left:'50%',
+                      transform:'translate(-50%,-50%)',fontSize:9,color:'#9ca3af',textAlign:'center',
+                      pointerEvents:'none',lineHeight:1.4}}>
+                      Arraste<br/>equipamentos<br/>para dentro
+                    </div>}
+                  </div>
+                );
+              })}
+
+              {/* Device nodes */}
+              {devices.map(dev=>{
+                const def=findDevDef(dev.key);
+                const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
+                const color=catInfo?.color||'#6b7280';
+                const targetStatus=cableMode?validTargets[dev.id]:null;
+                const isSource=cableMode?.from===dev.id;
+                const inRack=dev.parentRack?devices.find(r=>r.id===dev.parentRack):null;
+                return (
+                  <div key={dev.id}
+                    className={`device-on-canvas ${selectedDevice===dev.id?'selected':''}`}
+                    style={{left:dev.x,top:dev.y,
+                      ...(dev.key==='rack'?{zIndex:1}:{}),
+                      ...(inRack?{zIndex:2}:{}),
+                      ...(isSource?{outline:'2px solid #f59e0b',outlineOffset:2,borderRadius:10}:{}),
+                      ...(targetStatus==='valid'?{outline:'2px solid #22c55e',outlineOffset:2,borderRadius:10,boxShadow:'0 0 12px rgba(34,197,94,.4)'}:{}),
+                      ...(targetStatus==='invalid'?{opacity:.35,filter:'grayscale(0.8)'}:{}),
+                      cursor:cableMode?(targetStatus==='valid'?'crosshair':'not-allowed'):'pointer'
+                    }}
+                    onClick={(e)=>handleDeviceClick(e,dev.id)}
+                    onMouseDown={(e)=>handleDeviceMouseDown(e,dev.id)}
+                    onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
+                      setCableMode({from:dev.id});setTool('cable')}}>
+                    <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
+                      {ICONS[dev.key]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
+                    </div>
+                    <div className="doc-label">{dev.name}</div>
+                    {dev.model&&<div className="doc-model">{dev.model}</div>}
+                    {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
+                      fontSize:7,background:'var(--azul)',color:'#fff',padding:'0 4px',borderRadius:3,
+                      whiteSpace:'nowrap'}}>📦 {inRack.name}</div>}
+                    {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:14,height:14,
+                      borderRadius:'50%',background:'#22c55e',display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:8,color:'#fff',fontWeight:900}}>✓</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Empty state */}
+          {devices.length===0&&(
+            <div className="canvas-hint">
+              <div className="ch-icon">📐</div>
+              <p>Arraste um dispositivo da paleta para cá</p>
+              <div className="ch-sub">Ou clique no dispositivo e depois clique aqui</div>
+            </div>
+          )}
+
+          {/* Pending device indicator */}
+          {pendingDevice&&tool==='device'&&(
+            <div style={{position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',
+              background:'var(--laranja)',color:'#000',padding:'6px 16px',borderRadius:20,
+              fontSize:11,fontWeight:700,zIndex:20}}>
+              Clique no canvas para posicionar: {findDevDef(pendingDevice)?.name}
+              <span style={{marginLeft:8,opacity:.6}}>ESC para cancelar</span>
+            </div>
+          )}
+
+          {/* Cable mode indicator */}
+          {cableMode&&(
+            <div style={{position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',
+              background:'#3b82f6',color:'#fff',padding:'6px 16px',borderRadius:20,
+              fontSize:11,fontWeight:700,zIndex:20}}>
+              🔗 Clique num dispositivo <span style={{color:'#bbf7d0'}}>verde</span> para conectar
+              <span style={{marginLeft:8,opacity:.6}}>ESC para cancelar</span>
+            </div>
+          )}
+
+          {/* Connection toast */}
+          {connToast&&(
+            <div style={{position:'absolute',bottom:48,left:'50%',transform:'translateX(-50%)',
+              background:connToast.type==='error'?'#dc2626':connToast.type==='warn'?'#d97706':'#16a34a',
+              color:'#fff',padding:'8px 20px',borderRadius:8,fontSize:11,fontWeight:600,zIndex:30,
+              boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:480,textAlign:'center',
+              animation:'fadeIn .2s'}}>
+              {connToast.msg}
+            </div>
+          )}
+
+          {/* Cable picker modal */}
+          {cablePicker&&(
+            <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
+              background:'#fff',borderRadius:12,boxShadow:'0 8px 40px rgba(0,0,0,.25)',padding:20,
+              zIndex:40,minWidth:320,maxWidth:420}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--azul)',marginBottom:4}}>
+                Cabo Incompatível
+              </div>
+              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:12,lineHeight:1.5}}>
+                {cablePicker.reason}
+              </div>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                letterSpacing:.5,marginBottom:8}}>Cabos compatíveis:</div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                {cablePicker.cables.map(cabId=>{
+                  const ct=CABLE_TYPES.find(c=>c.id===cabId);
+                  return (
+                    <button key={cabId} onClick={()=>confirmCablePick(cabId)}
+                      style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',
+                        border:'1px solid #e5e7eb',borderRadius:8,background:'#fafafa',
+                        cursor:'pointer',transition:'.15s',fontSize:11,textAlign:'left'}}
+                      onMouseOver={e=>e.currentTarget.style.background='#EBF5FB'}
+                      onMouseOut={e=>e.currentTarget.style.background='#fafafa'}>
+                      <span style={{width:10,height:10,borderRadius:'50%',background:ct?.color,flexShrink:0}}/>
+                      <span style={{flex:1,fontWeight:600}}>{ct?.name}</span>
+                      <span style={{color:'var(--cinza)',fontSize:9}}>{ct?.speed} · max {ct?.maxLen}m</span>
+                      <span style={{color:'var(--cinza)',fontSize:9}}>
+                        {ct?.group==='power'?'⚡ Energia':ct?.group==='signal'?'📡 Sinal':'🌐 Dados'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={()=>setCablePicker(null)}
+                style={{marginTop:12,width:'100%',padding:'6px',border:'1px solid #e5e7eb',
+                  borderRadius:6,background:'transparent',color:'var(--cinza)',fontSize:10,cursor:'pointer'}}>
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {/* Zoom controls */}
+          <div className="canvas-controls">
+            <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom +">+</button>
+            <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom -">−</button>
+            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar">⟳</button>
+          </div>
+          <div className="scale-indicator">Zoom: {Math.round(zoom*100)}%</div>
+        </div>
+
+        {/* RIGHT PANEL */}
+        <div className="right-panel">
+          <div className="rp-tabs">
+            <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}>
+              {selectedDev?'Propriedades':'Info'}
+            </div>
+            <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}>
+              Topologia
+            </div>
+            <div className={`rp-tab ${rightTab==='equipment'?'active':''}`} onClick={()=>setRightTab('equipment')}>
+              Materiais
+            </div>
+            <div className={`rp-tab ${rightTab==='validation'?'active':''}`} onClick={()=>setRightTab('validation')}>
+              Validação {validations.length>0&&<span style={{background:'var(--vermelho)',color:'#fff',
+                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{validations.length}</span>}
+            </div>
+          </div>
+          <div className="rp-content">
+            {/* PROPERTIES */}
+            {rightTab==='props'&&selectedDev&&(()=>{
+              const def=findDevDef(selectedDev.key);
+              const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===selectedDev.key));
+              return (
+                <div>
+                  <div className="prop-header">
+                    <div className="ph-icon">{ICONS[selectedDev.key]?.(catInfo?.color)}</div>
+                    <div className="ph-info">
+                      <div className="ph-name">{selectedDev.name}</div>
+                      <div className="ph-model">{catInfo?.cat} · {selectedDev.key}</div>
+                    </div>
+                    <span className="ph-replace">Substituir</span>
+                  </div>
+                  <div className="prop-section">
+                    <div className="prop-row">
+                      <span className="pr-label">Nome:</span>
+                      <span className="pr-value">
+                        <input value={selectedDev.name} onChange={e=>updateDevice(selectedDev.id,{name:e.target.value})}/>
+                      </span>
+                    </div>
+                    <div className="prop-row">
+                      <span className="pr-label">Modelo:</span>
+                      <span className="pr-value">
+                        <input value={selectedDev.model||''} placeholder="Ex: DS-2CD2143G2-I"
+                          onChange={e=>updateDevice(selectedDev.id,{model:e.target.value})}/>
+                      </span>
+                    </div>
+                    <div className="prop-row">
+                      <span className="pr-label">Ambiente:</span>
+                      <span className="pr-value">
+                        <select value={selectedDev.envId||''} onChange={e=>updateDevice(selectedDev.id,{envId:e.target.value||null})}>
+                          <option value="">Nenhum</option>
+                          {environments.map(env=><option key={env.id} value={env.id}>{env.name}</option>)}
+                        </select>
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                    letterSpacing:.5,marginBottom:6,marginTop:12}}>Especificações</div>
+                  {def?.props&&Object.entries(def.props).map(([k,v])=>(
+                    <div key={k} className="prop-row">
+                      <span className="pr-label" style={{textTransform:'capitalize'}}>{k}:</span>
+                      <span className="pr-value" style={{fontWeight:600,color:'var(--azul)'}}>{v}</span>
+                    </div>
+                  ))}
+                  {def?.poe&&(
+                    <div className="prop-row">
+                      <span className="pr-label">PoE:</span>
+                      <span className="pr-value" style={{fontWeight:600,color:'var(--verde)'}}>{def.poeW}W</span>
+                    </div>
+                  )}
+
+                  {/* Configuration fields for nobreak_ac */}
+                  {selectedDev.key==='nobreak_ac'&&(
+                    <>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:12}}>Configuração</div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Modelo:</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.modelId||''}
+                            onChange={e=>{
+                              const model=MODEL_CATALOG.nobreak_ac.find(m=>m.id===e.target.value);
+                              updateDevice(selectedDev.id,{config:{...selectedDev.config,modelId:e.target.value,modelData:model},model:model?.model||''});
+                            }}>
+                            <option value="">Personalizado</option>
+                            {MODEL_CATALOG.nobreak_ac.map(m=><option key={m.id} value={m.id}>{m.brand} {m.model}</option>)}
+                          </select>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">SNMP:</span>
+                        <span className="pr-value">
+                          <input type="checkbox" checked={selectedDev.config?.snmp||false}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,snmp:e.target.checked}})}/>
+                          <span style={{marginLeft:6,fontSize:10}}>Com placa SNMP</span>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Tomadas 10A:</span>
+                        <span className="pr-value">
+                          <input type="number" min="0" max="20" value={selectedDev.config?.tomadas_10a||0}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,tomadas_10a:parseInt(e.target.value)||0}})}
+                            style={{width:'60px'}}/>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Tomadas 20A:</span>
+                        <span className="pr-value">
+                          <input type="number" min="0" max="20" value={selectedDev.config?.tomadas_20a||0}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,tomadas_20a:parseInt(e.target.value)||0}})}
+                            style={{width:'60px'}}/>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Potência VA:</span>
+                        <span className="pr-value">
+                          <input type="number" min="600" max="10000" step="100" value={selectedDev.config?.potenciaVA||3000}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,potenciaVA:parseInt(e.target.value)||3000}})}
+                            style={{width:'80px'}}/>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Bateria Ext:</span>
+                        <span className="pr-value">
+                          <input type="checkbox" checked={selectedDev.config?.batExterna||false}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,batExterna:e.target.checked}})}/>
+                          <span style={{marginLeft:6,fontSize:10}}>Módulo externo</span>
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Configuration fields for nobreak_dc */}
+                  {selectedDev.key==='nobreak_dc'&&(
+                    <>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:12}}>Configuração</div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Modelo:</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.modelId||''}
+                            onChange={e=>{
+                              const model=MODEL_CATALOG.nobreak_dc.find(m=>m.id===e.target.value);
+                              updateDevice(selectedDev.id,{config:{...selectedDev.config,modelId:e.target.value,modelData:model},model:model?.model||''});
+                            }}>
+                            <option value="">Personalizado</option>
+                            {MODEL_CATALOG.nobreak_dc.map(m=><option key={m.id} value={m.id}>{m.brand} {m.model}</option>)}
+                          </select>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Corrente (A):</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.correnteSaida||5}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,correnteSaida:parseInt(e.target.value)||5}})}>
+                            <option value="5">5A</option>
+                            <option value="10">10A</option>
+                          </select>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Bateria Interna:</span>
+                        <span className="pr-value">
+                          <input type="checkbox" checked={selectedDev.config?.batInterna||false}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,batInterna:e.target.checked}})}/>
+                          <span style={{marginLeft:6,fontSize:10}}>Compartimento interno</span>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Bateria Externa:</span>
+                        <span className="pr-value">
+                          <input type="checkbox" checked={selectedDev.config?.batExterna||false}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,batExterna:e.target.checked}})}/>
+                          <span style={{marginLeft:6,fontSize:10}}>Módulo externo</span>
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Configuration fields for rack */}
+                  {selectedDev.key==='rack'&&(
+                    <>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:12}}>Configuração Rack</div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Altura (U):</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.alturaU||12}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,alturaU:parseInt(e.target.value)||12}})}>
+                            {[5,7,9,12,16,20,24,28,32,36,42,44].map(u=><option key={u} value={u}>{u}U</option>)}
+                          </select>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Profundidade:</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.profundidade||450}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,profundidade:parseInt(e.target.value)||450}})}>
+                            <option value="300">300mm (mini)</option>
+                            <option value="450">450mm (padrão)</option>
+                            <option value="570">570mm</option>
+                            <option value="600">600mm (servidor)</option>
+                            <option value="800">800mm (data center)</option>
+                          </select>
+                        </span>
+                      </div>
+
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:10}}>
+                        Equipamentos no Rack ({devices.filter(d=>d.parentRack===selectedDev.id).length})
+                      </div>
+                      {devices.filter(d=>d.parentRack===selectedDev.id).length>0?(
+                        devices.filter(d=>d.parentRack===selectedDev.id).map(child=>{
+                          const childCat=DEVICE_LIB.find(c=>c.items.some(i=>i.key===child.key));
+                          return (
+                            <div key={child.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',
+                              fontSize:10,borderBottom:'1px solid #f0f0f0',cursor:'pointer'}}
+                              onClick={()=>{setSelectedDevice(child.id)}}>
+                              <span style={{width:8,height:8,borderRadius:'50%',background:childCat?.color||'#999',flexShrink:0}}/>
+                              <span style={{flex:1}}>{child.name}</span>
+                              <span style={{fontSize:8,color:'var(--cinza)'}}>2U</span>
+                              <span style={{cursor:'pointer',color:'var(--cinza)',fontSize:10}}
+                                onClick={e=>{e.stopPropagation();updateDevice(child.id,{parentRack:null})}}>↗</span>
+                            </div>
+                          );
+                        })
+                      ):(
+                        <div style={{fontSize:10,color:'#9ca3af',padding:'6px 0'}}>
+                          Arraste dispositivos para dentro do rack no canvas
+                        </div>
+                      )}
+
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:10}}>
+                        Acessórios ({(selectedDev.config?.acessorios||[]).length})
+                      </div>
+                      {(selectedDev.config?.acessorios||[]).map((acc,i)=>(
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
+                          fontSize:10,borderBottom:'1px solid #f0f0f0'}}>
+                          <span style={{flex:1}}>{acc.name}</span>
+                          <span style={{fontSize:8,color:'var(--cinza)'}}>{acc.unidades||1}U</span>
+                          <span style={{cursor:'pointer',color:'var(--vermelho)',fontSize:10}}
+                            onClick={()=>{
+                              const accs=[...(selectedDev.config?.acessorios||[])];
+                              accs.splice(i,1);
+                              updateDevice(selectedDev.id,{config:{...selectedDev.config,acessorios:accs}});
+                            }}>✕</span>
+                        </div>
+                      ))}
+                      <select style={{width:'100%',marginTop:6,fontSize:10,padding:4,border:'1px solid var(--cinzaM)',borderRadius:4}}
+                        value="" onChange={e=>{
+                          if(!e.target.value) return;
+                          const acc=MODEL_CATALOG.rack_acessorio.find(a=>a.id===e.target.value);
+                          if(acc){
+                            const accs=[...(selectedDev.config?.acessorios||[]),{...acc}];
+                            updateDevice(selectedDev.id,{config:{...selectedDev.config,acessorios:accs}});
+                          }
+                          e.target.value='';
+                        }}>
+                        <option value="">+ Adicionar acessório...</option>
+                        {MODEL_CATALOG.rack_acessorio.map(a=><option key={a.id} value={a.id}>{a.name} ({a.unidades||1}U)</option>)}
+                      </select>
+
+                      <div style={{marginTop:8,padding:'6px 8px',background:'#f0f2f5',borderRadius:4,fontSize:9,color:'var(--cinza)'}}>
+                        Uso: {devices.filter(d=>d.parentRack===selectedDev.id).length*2 + (selectedDev.config?.acessorios||[]).reduce((a,c)=>a+(c.unidades||1),0)}U
+                        / {selectedDev.config?.alturaU||12}U
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                    letterSpacing:.5,marginBottom:6,marginTop:12}}>Conexões</div>
+                  {connections.filter(c=>c.from===selectedDev.id||c.to===selectedDev.id).map(conn=>{
+                    const otherId=conn.from===selectedDev.id?conn.to:conn.from;
+                    const other=devices.find(d=>d.id===otherId);
+                    const ct=CABLE_TYPES.find(c=>c.id===conn.type);
+                    const purposeIcon=ct?.group==='power'?'⚡':ct?.group==='signal'?'📡':'🌐';
+                    return (
+                      <div key={conn.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',
+                        fontSize:10,borderBottom:'1px solid #f0f0f0'}}>
+                        <span style={{width:8,height:8,borderRadius:'50%',background:ct?.color||'#999',flexShrink:0}}/>
+                        <span style={{flex:1,lineHeight:1.3}}>
+                          <div style={{fontWeight:600}}>{other?.name||'?'}</div>
+                          <div style={{color:'var(--cinza)',fontSize:9}}>{purposeIcon} {ct?.name} · {conn.distance}m · {conn.purpose||'dados'}</div>
+                        </span>
+                        <span style={{cursor:'pointer',color:'var(--vermelho)',fontSize:12,flexShrink:0}}
+                          onClick={()=>deleteConnection(conn.id)}>✕</span>
+                      </div>
+                    );
+                  })}
+                  <button style={{marginTop:8,padding:'4px 10px',border:'1px solid var(--azul2)',background:'transparent',
+                    color:'var(--azul2)',borderRadius:4,fontSize:10,cursor:'pointer',fontWeight:600}}
+                    onClick={()=>{setCableMode({from:selectedDev.id});setTool('cable')}}>
+                    + Adicionar Conexão
+                  </button>
+                  <div className="prop-actions" style={{marginTop:16}}>
+                    <button className="btn-copy" onClick={()=>copyDevice(selectedDev.id)}>📋 Copiar</button>
+                    <button className="btn-delete" onClick={()=>deleteDevice(selectedDev.id)}>🗑️ Excluir</button>
+                  </div>
+                </div>
+              );
+            })()}
+            {rightTab==='props'&&!selectedDev&&(
+              <div style={{textAlign:'center',padding:'40px 20px',color:'var(--cinza)'}}>
+                <div style={{fontSize:32,opacity:.3,marginBottom:12}}>🖱️</div>
+                <p style={{fontSize:12}}>Selecione um dispositivo para ver propriedades</p>
+                <p style={{fontSize:10,opacity:.5,marginTop:4}}>Ou adicione dispositivos da paleta</p>
+              </div>
+            )}
+
+            {/* TOPOLOGY */}
+            {rightTab==='topology'&&(
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>
+                  Topologia de Rede — {floor.name}
+                </div>
+                {topology.map((node,i)=><TopoNode key={i} node={node} devices={devices} level={0}
+                  onSelect={(id)=>{setSelectedDevice(id);setRightTab('props')}}/>)}
+                {devices.length===0&&<div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
+                  Sem dispositivos no piso</div>}
+              </div>
+            )}
+
+            {/* EQUIPMENT LIST */}
+            {rightTab==='equipment'&&(
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>
+                  Lista de Materiais — Projeto Completo
+                </div>
+                {bom.length>0?(
+                  <>
+                    <table className="eq-table">
+                      <thead><tr><th>Equipamento</th><th>Qtd</th><th>Unidade</th><th>Total</th></tr></thead>
+                      <tbody>
+                        {bom.map(item=>(
+                          <tr key={item.key}>
+                            <td>
+                              <div style={{fontWeight:600,fontSize:11}}>{item.name}</div>
+                              <div style={{fontSize:9,color:'var(--cinza)'}}>{item.model||item.key}</div>
+                            </td>
+                            <td style={{textAlign:'center'}}>{item.unit==='m'?item.totalMeters||item.qty:item.qty}</td>
+                            <td style={{textAlign:'center',fontSize:9,color:'var(--cinza)'}}>{item.unit}</td>
+                            <td className="eq-total" style={{textAlign:'right'}}>{item.unit==='m'?item.totalMeters||item.qty:item.qty}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="eq-footer">
+                      <div className="ef-row"><span>Itens únicos:</span><span>{bom.length}</span></div>
+                      <div className="ef-row"><span>Total dispositivos:</span><span>{allDevices.length}</span></div>
+                      <div className="ef-row"><span>Cabos estimados:</span><span>
+                        {connections.reduce((a,c)=>a+c.distance,0)}m</span></div>
+                      <div className="ef-row total"><span>Subtotal:</span><span>Sem preços definidos</span></div>
+                    </div>
+                  </>
+                ):(
+                  <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
+                    Adicione dispositivos para gerar BOM</div>
+                )}
+              </div>
+            )}
+
+            {/* VALIDATION */}
+            {rightTab==='validation'&&(
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--azul)'}}>Validação IA</span>
+                  {validations.length===0&&devices.length>0&&
+                    <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:'#E8F8F0',
+                      color:'var(--verde)',fontWeight:700}}>✓ OK</span>}
+                  {validations.length>0&&
+                    <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:'#FEF5E7',
+                      color:'#E67E22',fontWeight:700}}>⚠ {validations.length} alerta(s)</span>}
+                </div>
+                {validations.map((v,i)=>(
+                  <div key={i} className={`val-card ${v.sev.toLowerCase()}`}>
+                    <div className="val-title">
+                      <span className={`val-sev sev-${v.sev.toLowerCase()}`}>{v.sev}</span>
+                      {v.cat}
+                    </div>
+                    <div className="val-body">{v.regra}</div>
+                    <div className="val-body" style={{fontWeight:600,marginTop:2}}>{v.msg}</div>
+                  </div>
+                ))}
+                {validations.length===0&&devices.length===0&&(
+                  <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
+                    Adicione dispositivos para validação</div>
+                )}
+                <div style={{marginTop:16,fontSize:10,color:'var(--cinza)',lineHeight:1.5}}>
+                  <strong>Regras ativas:</strong> {REGRAS.length}<br/>
+                  Categorias: Elétrica, Rede, CFTV, Acesso, Infra, Arquitetura
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* STATUS BAR */}
+      <div className="status-bar">
+        <div className="sb-item">
+          <span className={`sb-dot ${validations.length?'sb-warn':'sb-ok'}`}/>
+          {validations.length?`${validations.length} alertas`:'Sistema OK'}
+        </div>
+        <div className="sb-item">📐 Zoom: {Math.round(zoom*100)}%</div>
+        <div className="sb-item">🏗️ {floor?.name} — {devices.length} dispositivos</div>
+        <div className="sb-item">🔗 {connections.length} conexões</div>
+        <span style={{flex:1}}/>
+        <div className="sb-item">
+          <span className="shortcut">Delete</span> Excluir
+          <span className="shortcut" style={{marginLeft:8}}>Dbl-Click</span> Cabear
+          <span className="shortcut" style={{marginLeft:8}}>ESC</span> Cancelar
+        </div>
+      </div>
+
+      {/* MODEL SELECTOR MODAL */}
+      {modelSelectorModal&&<ModelSelectorModal deviceKey={modelSelectorModal.deviceKey}
+        onSelect={(model)=>addDevice(modelSelectorModal.deviceKey,modelSelectorModal.x,modelSelectorModal.y,model)}
+        onCancel={()=>setModelSelectorModal(null)}/>}
+
+      {/* EXPORT MODAL */}
+      {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
+        connections={project.floors.flatMap(f=>f.connections)} onClose={()=>setShowExport(false)}/>}
+    </div>
+  );
+}
+
+// ====================================================================
+// TOPOLOGY NODE (recursive)
+// ====================================================================
+function TopoNode({node,devices,level,onSelect}){
+  const def=findDevDef(node.device.key);
+  const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===node.device.key));
+  const isSwitch=node.device.key.startsWith('sw_');
+  const usedPorts=node.children.length;
+  const totalPorts=isSwitch?parseInt(def?.props?.portas?.split('+')[0]||'8'):0;
+
+  return (
+    <div>
+      <div className={`topo-node ${node.disconnected?'topo-disconnected':''}`}
+        style={{marginLeft:level*16,cursor:'pointer'}} onClick={()=>onSelect(node.device.id)}>
+        <div className="tn-icon">{ICONS[node.device.key]?.(catInfo?.color||'#999')}</div>
+        <div className="tn-info">
+          <div className="tn-name">{node.device.name}</div>
+          <div className="tn-detail">{node.device.model||node.device.key}</div>
+        </div>
+        {isSwitch&&(
+          <span className={`tn-ports ${usedPorts>=totalPorts?'ports-full':usedPorts>totalPorts*0.7?'ports-warn':'ports-ok'}`}>
+            {usedPorts}/{totalPorts}
+          </span>
+        )}
+        {node.disconnected&&<span style={{fontSize:9,color:'var(--vermelho)',fontWeight:700}}>⚠ Desconectado</span>}
+      </div>
+      {node.children.map((child,i)=>(
+        <TopoNode key={i} node={child} devices={devices} level={level+1} onSelect={onSelect}/>
+      ))}
+    </div>
+  );
+}
+
+// ====================================================================
+// MODEL SELECTOR MODAL
+// ====================================================================
+function ModelSelectorModal({deviceKey,onSelect,onCancel}){
+  const catalogMap={nobreak_ac:'nobreak_ac',nobreak_dc:'nobreak_dc',bateria_ext:'bateria',modulo_bat:'modulo_bat'};
+  const catalog=MODEL_CATALOG[catalogMap[deviceKey]];
+  if(!catalog) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:600}}>
+        <h3>Selecionar Modelo</h3>
+        <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
+          Escolha um modelo do catálogo ou configure manualmente.
+        </div>
+        <div style={{maxHeight:300,overflowY:'auto',marginBottom:16}}>
+          {catalog.map(model=>(
+            <button key={model.id} onClick={()=>onSelect(model)}
+              style={{display:'block',width:'100%',padding:10,marginBottom:6,border:'1px solid var(--cinzaM)',
+                background:'#fafbfc',borderRadius:6,cursor:'pointer',textAlign:'left',transition:'.15s',fontSize:11}}
+              onMouseOver={e=>e.currentTarget.style.background='#f0f7fd'}
+              onMouseOut={e=>e.currentTarget.style.background='#fafbfc'}>
+              <div style={{fontWeight:600,color:'var(--azul)'}}>{model.brand} {model.model}</div>
+              <div style={{fontSize:9,color:'var(--cinza)',marginTop:3}}>
+                {model.potenciaVA?`${model.potenciaVA}VA · `:model.potenciaW?`${model.potenciaW}W · `:''}
+                {model.topologia||model.tipo}
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="modal-card" style={{border:'1px solid var(--cinzaM)',padding:10,marginBottom:12,background:'#f8f9fa',borderRadius:6}}>
+          <button onClick={()=>onSelect({id:'custom',custom:true})}
+            style={{display:'block',width:'100%',padding:10,border:'1px dashed var(--azul2)',
+              background:'transparent',borderRadius:4,cursor:'pointer',color:'var(--azul2)',fontSize:11,fontWeight:600}}>
+            ⚙️ Configuração Personalizada
+          </button>
+        </div>
+        <div className="modal-card" style={{display:'flex',gap:8}}>
+          <button className="mc-btn mc-btn-secondary" onClick={onCancel} style={{flex:1}}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// EXPORT MODAL
+// ====================================================================
+function ExportModal({project,bom,allDevices,connections,onClose}){
+  const [checks,setChecks]=useState({equipment:true,topology:true,floorplan:true});
+  const toggle=(k)=>setChecks(c=>({...c,[k]:!c[k]}));
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()}>
+        <h3>📋 Exportar Relatório</h3>
+        <div style={{fontSize:12,color:'var(--cinza)',marginBottom:12}}>
+          Projeto: <strong>{project.name}</strong> · {allDevices.length} dispositivos · {connections.length} conexões
+        </div>
+        <div className="mc-row">
+          <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
+          <label onClick={()=>toggle('equipment')}>Lista de Materiais (BOM)</label>
+        </div>
+        <div className="mc-row">
+          <input type="checkbox" checked={checks.topology} onChange={()=>toggle('topology')}/>
+          <label onClick={()=>toggle('topology')}>Topologia de Rede</label>
+        </div>
+        <div className="mc-row">
+          <input type="checkbox" checked={checks.floorplan} onChange={()=>toggle('floorplan')}/>
+          <label onClick={()=>toggle('floorplan')}>Planta por Pavimento</label>
+        </div>
+        <div style={{marginTop:12}}>
+          <div className="prop-row">
+            <span className="pr-label">Autor:</span>
+            <span className="pr-value"><input defaultValue="Protector Sistemas"/></span>
+          </div>
+          <div className="prop-row">
+            <span className="pr-label">Empresa:</span>
+            <span className="pr-value"><input defaultValue="Protector Sistemas"/></span>
+          </div>
+        </div>
+        <div className="mc-actions">
+          <button className="mc-btn mc-btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="mc-btn mc-btn-primary" onClick={()=>{alert('Exportação será implementada com backend');onClose()}}>
+            Exportar PDF/XLSX
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// RENDER
+// ====================================================================
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
