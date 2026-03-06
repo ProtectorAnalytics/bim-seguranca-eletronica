@@ -279,11 +279,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 2, build: 0,
+  major: 2, minor: 2, build: 1,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.2.1',date:'2026-03-06',changes:['Busca automática de CNPJ via BrasilAPI — preenche razão social, nome fantasia, endereço, telefone, email','Busca automática de CEP via BrasilAPI — preenche endereço, cidade e UF','Auto-trigger ao completar 14 dígitos (CNPJ) ou 8 dígitos (CEP)','Botão de busca manual + status visual (✓ encontrado / ✕ erro)']},
     {ver:'2.2.0',date:'2026-03-06',changes:['Tela de cadastro do cliente (PJ/PF) antes da seleção de cenário','Dados: razão social, CNPJ/CPF, endereço, contato, referência do projeto','Máscaras automáticas: CNPJ, CPF, CEP, telefone','Fluxo: Cliente → Cenário → Projeto (3 etapas)','Dados do cliente salvos no projeto, exibidos na topbar e no export','Nome do cliente exibido na tela de seleção de cenário']},
     {ver:'2.1.4',date:'2026-03-06',changes:['Múltiplas conexões distintas entre mesmo par de dispositivos (ex: 12V + sensor facial→fechadura)','Conexões armazenam ifaceType e ifaceLabel (metadado de porta)','Offset visual perpendicular para cabos múltiplos entre mesmo par','Label da porta exibida no indicador de cable mode e no painel de propriedades','Auto-seleção de cabo compatível com a porta escolhida']},
     {ver:'2.1.3',date:'2026-03-06',changes:['Pop-up de portas no dispositivo (⚡) em vez de bolinhas — limpo e descritivo','Cada porta mostra: label, tipo, cabos compatíveis e se é obrigatória/opcional','Clique na porta inicia conexão do tipo correto','Interfaces reais: leitor facial 8 portas, controladora 6 portas, fechadura 2 portas']},
@@ -830,7 +831,57 @@ function App(){
 // ====================================================================
 function ClientForm({data,setData,onNext}){
   const upd=(k,v)=>setData(d=>({...d,[k]:v}));
+  const updMulti=(obj)=>setData(d=>({...d,...obj}));
   const canProceed=data.tipo==='pj'?(data.razaoSocial||data.nome):data.nome;
+  const [cnpjLoading,setCnpjLoading]=useState(false);
+  const [cnpjStatus,setCnpjStatus]=useState(null); // null | 'success' | 'error' | 'notfound'
+  const [cepLoading,setCepLoading]=useState(false);
+  const [cepStatus,setCepStatus]=useState(null);
+
+  // Busca CNPJ via BrasilAPI (gratuita)
+  const fetchCNPJ=async(cnpjRaw)=>{
+    const digits=cnpjRaw.replace(/\D/g,'');
+    if(digits.length!==14){setCnpjStatus(null);return}
+    setCnpjLoading(true);setCnpjStatus(null);
+    try{
+      const res=await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if(!res.ok) throw new Error(res.status===404?'notfound':'error');
+      const d=await res.json();
+      updMulti({
+        razaoSocial:d.razao_social||data.razaoSocial,
+        nome:d.nome_fantasia||data.nome,
+        endereco:[d.logradouro,d.numero,d.complemento].filter(Boolean).join(', ')||(d.logradouro||data.endereco),
+        cidade:d.municipio||data.cidade,
+        uf:d.uf||data.uf,
+        cep:d.cep?d.cep.replace(/(\d{5})(\d{3})/,'$1-$2'):data.cep,
+        email:d.email&&d.email!=='null'?d.email:data.email,
+        telefone:d.ddd_telefone_1?`(${d.ddd_telefone_1.slice(0,2)}) ${d.ddd_telefone_1.slice(2)}`:data.telefone,
+      });
+      setCnpjStatus('success');
+    }catch(err){
+      setCnpjStatus(err.message==='notfound'?'notfound':'error');
+    }finally{setCnpjLoading(false)}
+  };
+
+  // Busca CEP via BrasilAPI (gratuita)
+  const fetchCEP=async(cepRaw)=>{
+    const digits=cepRaw.replace(/\D/g,'');
+    if(digits.length!==8){setCepStatus(null);return}
+    setCepLoading(true);setCepStatus(null);
+    try{
+      const res=await fetch(`https://brasilapi.com.br/api/cep/v2/${digits}`);
+      if(!res.ok) throw new Error(res.status===404?'notfound':'error');
+      const d=await res.json();
+      updMulti({
+        endereco:[d.street,data.endereco?.match(/,\s*\d+/)?.[ 0]||''].filter(Boolean).join('')||d.street||data.endereco,
+        cidade:d.city||data.cidade,
+        uf:d.state||data.uf,
+      });
+      setCepStatus('success');
+    }catch(err){
+      setCepStatus(err.message==='notfound'?'notfound':'error');
+    }finally{setCepLoading(false)}
+  };
 
   // CNPJ mask
   const maskCNPJ=(v)=>{
@@ -900,10 +951,29 @@ function ClientForm({data,setData,onNext}){
             <input value={data.nome} onChange={e=>upd('nome',e.target.value)} placeholder={data.tipo==='pj'?'Nome fantasia':'Nome do cliente'}/>
           </div>
           <div className="cf-field">
-            <label>{data.tipo==='pj'?'CNPJ':'CPF'}</label>
-            <input value={data.tipo==='pj'?data.cnpj:data.cpf}
-              onChange={e=>upd(data.tipo==='pj'?'cnpj':'cpf',data.tipo==='pj'?maskCNPJ(e.target.value):maskCPF(e.target.value))}
-              placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
+            <label>{data.tipo==='pj'?'CNPJ':'CPF'}
+              {data.tipo==='pj'&&cnpjStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
+              {data.tipo==='pj'&&cnpjStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
+              {data.tipo==='pj'&&cnpjStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro na consulta</span>}
+            </label>
+            <div style={{display:'flex',gap:6}}>
+              <input value={data.tipo==='pj'?data.cnpj:data.cpf} style={{flex:1}}
+                onChange={e=>{
+                  const val=data.tipo==='pj'?maskCNPJ(e.target.value):maskCPF(e.target.value);
+                  upd(data.tipo==='pj'?'cnpj':'cpf',val);
+                  if(data.tipo==='pj'&&val.replace(/\D/g,'').length===14) fetchCNPJ(val);
+                }}
+                placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
+              {data.tipo==='pj'&&(
+                <button onClick={()=>fetchCNPJ(data.cnpj)} disabled={cnpjLoading||data.cnpj.replace(/\D/g,'').length!==14}
+                  style={{padding:'0 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.15)',
+                    background:cnpjLoading?'rgba(255,255,255,.05)':'rgba(241,196,15,.15)',
+                    color:cnpjLoading?'rgba(255,255,255,.3)':'var(--laranja)',fontSize:10,fontWeight:700,
+                    cursor:cnpjLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
+                  {cnpjLoading?'⏳':'🔍'} Buscar
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -927,8 +997,27 @@ function ClientForm({data,setData,onNext}){
             </select>
           </div>
           <div className="cf-field">
-            <label>CEP</label>
-            <input value={data.cep} onChange={e=>upd('cep',maskCEP(e.target.value))} placeholder="00000-000"/>
+            <label>CEP
+              {cepStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
+              {cepStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
+              {cepStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro</span>}
+            </label>
+            <div style={{display:'flex',gap:6}}>
+              <input value={data.cep} style={{flex:1}}
+                onChange={e=>{
+                  const val=maskCEP(e.target.value);
+                  upd('cep',val);
+                  if(val.replace(/\D/g,'').length===8) fetchCEP(val);
+                }}
+                placeholder="00000-000"/>
+              <button onClick={()=>fetchCEP(data.cep)} disabled={cepLoading||data.cep.replace(/\D/g,'').length!==8}
+                style={{padding:'0 10px',borderRadius:8,border:'1px solid rgba(255,255,255,.15)',
+                  background:cepLoading?'rgba(255,255,255,.05)':'rgba(241,196,15,.15)',
+                  color:cepLoading?'rgba(255,255,255,.3)':'var(--laranja)',fontSize:10,fontWeight:700,
+                  cursor:cepLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
+                {cepLoading?'⏳':'🔍'}
+              </button>
+            </div>
           </div>
         </div>
 
