@@ -261,11 +261,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 1, build: 3,
+  major: 2, minor: 1, build: 4,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.1.4',date:'2026-03-06',changes:['Múltiplas conexões distintas entre mesmo par de dispositivos (ex: 12V + sensor facial→fechadura)','Conexões armazenam ifaceType e ifaceLabel (metadado de porta)','Offset visual perpendicular para cabos múltiplos entre mesmo par','Label da porta exibida no indicador de cable mode e no painel de propriedades','Auto-seleção de cabo compatível com a porta escolhida']},
     {ver:'2.1.3',date:'2026-03-06',changes:['Pop-up de portas no dispositivo (⚡) em vez de bolinhas — limpo e descritivo','Cada porta mostra: label, tipo, cabos compatíveis e se é obrigatória/opcional','Clique na porta inicia conexão do tipo correto','Interfaces reais: leitor facial 8 portas, controladora 6 portas, fechadura 2 portas']},
     {ver:'2.1.2',date:'2026-03-06',changes:['Connection handles coloridos por tipo de interface','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)']},
     {ver:'2.1.1',date:'2026-03-06',changes:['Drag-and-drop da paleta para canvas','Nobreak AC/DC como dispositivo configurável com catálogo de modelos','Bateria externa + cabo de engate + módulo de baterias','Rack como container (arrastar equipamentos para dentro)','Acessórios de rack com gestão de U','BOM completa: dispositivos, cabos, baterias, acessórios','SNMP condicional no nobreak AC','7 modelos reais no catálogo (Intelbras + MCM)']},
@@ -829,7 +830,7 @@ function ProjectApp({project,setProject,onBack}){
   const [tool,setTool]=useState('select'); // select | device | cable | env | measure
   const [pendingDevice,setPendingDevice]=useState(null);
   const [cableType,setCableType]=useState('cat6');
-  const [cableMode,setCableMode]=useState(null); // null | {from:deviceId}
+  const [cableMode,setCableMode]=useState(null); // null | {from:deviceId, ifaceType?, ifaceLabel?}
   const [portPopup,setPortPopup]=useState(null); // null | {devId,x,y} - connection port selector popup
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
@@ -920,14 +921,28 @@ function ProjectApp({project,setProject,onBack}){
   // Cable picker state for multi-option connections
   const [cablePicker,setCablePicker]=React.useState(null);
 
-  // Add connection with validation
+  // Add connection with validation — supports multiple connections between same pair (different ifaceType)
   const addConnection=(fromId,toId,type)=>{
     if(fromId===toId){setCableMode(null);return}
-    const exists=connections.some(c=>(c.from===fromId&&c.to===toId)||(c.from===toId&&c.to===fromId));
-    if(exists){showConnToast('Conexão já existe entre estes dispositivos','warn');setCableMode(null);return}
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
     if(!fromDev||!toDev) return;
+
+    // Get ifaceType from cableMode (set by port popup) — allows multiple connections if different port types
+    const ifaceType=cableMode?.ifaceType||null;
+    const ifaceLabel=cableMode?.ifaceLabel||'';
+
+    // Check duplicate: block only if SAME pair + SAME ifaceType (or both null)
+    const dupExists=connections.some(c=>{
+      const samePair=(c.from===fromId&&c.to===toId)||(c.from===toId&&c.to===fromId);
+      if(!samePair) return false;
+      // If both have ifaceType, block only if same type
+      if(ifaceType && c.ifaceType) return c.ifaceType===ifaceType;
+      // If neither has ifaceType (legacy/auto), block duplicate
+      if(!ifaceType && !c.ifaceType) return true;
+      return false;
+    });
+    if(dupExists){showConnToast('Conexão deste tipo já existe entre estes dispositivos','warn');setCableMode(null);return}
 
     const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
     const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
@@ -937,37 +952,38 @@ function ProjectApp({project,setProject,onBack}){
     const validation=validateConnection(fromDev.key,toDev.key,chosenCable);
 
     if(!validation.valid && validation.cables.length===0){
-      // No valid connection at all
       showConnToast(`✕ ${validation.reason}`,'error');
       setCableMode(null);
       return;
     }
 
     if(!validation.valid && validation.cables.length>0){
-      // Wrong cable but valid alternatives exist — show picker
-      setCablePicker({fromId,toId,dist,cables:validation.cables,reason:validation.reason});
+      setCablePicker({fromId,toId,dist,cables:validation.cables,reason:validation.reason,ifaceType,ifaceLabel});
       setCableMode(null);
       return;
     }
 
-    // Valid — create connection
+    // Valid — create connection with ifaceType metadata
     const purpose=validation.purpose||'dados';
     updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:chosenCable,distance:dist,purpose
+      id:uid(),from:fromId,to:toId,type:chosenCable,distance:dist,purpose,
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||''
     }]}));
-    showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===chosenCable)?.name} · ${dist}m · ${purpose}`,'success');
+    const portInfo=ifaceLabel?` [${ifaceLabel}]`:'';
+    showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===chosenCable)?.name} · ${dist}m · ${purpose}${portInfo}`,'success');
     setCableMode(null);
   };
 
   // Confirm cable from picker
   const confirmCablePick=(cableId)=>{
     if(!cablePicker) return;
-    const {fromId,toId,dist}=cablePicker;
+    const {fromId,toId,dist,ifaceType,ifaceLabel}=cablePicker;
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
     const validation=validateConnection(fromDev.key,toDev.key,cableId);
     updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:cableId,distance:dist,purpose:validation.purpose||'dados'
+      id:uid(),from:fromId,to:toId,type:cableId,distance:dist,purpose:validation.purpose||'dados',
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||''
     }]}));
     showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===cableId)?.name} · ${dist}m`,'success');
     setCablePicker(null);
@@ -1208,7 +1224,20 @@ function ProjectApp({project,setProject,onBack}){
   const handleDeviceClick=(e,devId)=>{
     e.stopPropagation();
     if(cableMode){
-      addConnection(cableMode.from,devId,cableType);
+      // Use cable from ifaceType's allowed cables if available, fallback to selected cableType
+      const ifType=cableMode.ifaceType;
+      let preferredCable=cableType;
+      if(ifType){
+        const fromDev=devices.find(d=>d.id===cableMode.from);
+        if(fromDev){
+          const ifaces=getDeviceInterfaces(fromDev);
+          const matchIface=ifaces.find(i=>i.type===ifType);
+          if(matchIface?.cables?.length && !matchIface.cables.includes(cableType)){
+            preferredCable=matchIface.cables[0]; // auto-pick first compatible cable
+          }
+        }
+      }
+      addConnection(cableMode.from,devId,preferredCable);
       return;
     }
     setSelectedDevice(devId);
@@ -1466,8 +1495,23 @@ function ProjectApp({project,setProject,onBack}){
                   const to=devices.find(d=>d.id===conn.to);
                   if(!from||!to) return null;
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
-                  const mx=(from.x+to.x)/2;
-                  const my=(from.y+to.y)/2;
+
+                  // Calculate offset for multiple connections between same pair
+                  const pairKey=[conn.from,conn.to].sort().join('|');
+                  const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
+                  const pairIdx=pairConns.indexOf(conn);
+                  const pairTotal=pairConns.length;
+                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*8:0;
+
+                  // Perpendicular offset
+                  const dx=to.x-from.x;const dy=to.y-from.y;
+                  const len=Math.sqrt(dx*dx+dy*dy)||1;
+                  const nx=-dy/len*offsetAmt;const ny=dx/len*offsetAmt;
+
+                  const x1=from.x+20+nx;const y1=from.y+20+ny;
+                  const x2=to.x+20+nx;const y2=to.y+20+ny;
+                  const mx=(x1+x2)/2;const my=(y1+y2)/2;
+
                   const isPower=ct.group==='power';
                   const isSignal=ct.group==='signal';
                   const isAuto=ct.group==='automation';
@@ -1475,11 +1519,12 @@ function ProjectApp({project,setProject,onBack}){
                   const dashArr=isWireless?'4 4':isPower?'8 3':isSignal?'2 2':isAuto?'6 2 2 2':'none';
                   const sw=isPower?2.5:isAuto?2:1.5;
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
+                  const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
                   return <g key={conn.id}>
-                    <line x1={from.x+20} y1={from.y+20} x2={to.x+20} y2={to.y+20}
+                    <line x1={x1} y1={y1} x2={x2} y2={y2}
                       className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>
-                    <text x={mx+20} y={my+15} className="cable-label">
-                      {purposeIcon}{ct.name} · {conn.distance}m
+                    <text x={mx} y={my-3} className="cable-label">
+                      {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
                     </text>
                   </g>;
                 })}
@@ -1593,7 +1638,7 @@ function ProjectApp({project,setProject,onBack}){
                   <div className="pp-title">⚡ Portas — {ppDev.name}</div>
                   {ifaces.map((iface,i)=>(
                     <button key={i} className="port-btn" onClick={()=>{
-                      setCableMode({from:ppDev.id,ifaceType:iface.type});
+                      setCableMode({from:ppDev.id,ifaceType:iface.type,ifaceLabel:iface.label});
                       setTool('cable');
                       setPortPopup(null);
                     }}>
@@ -1634,7 +1679,8 @@ function ProjectApp({project,setProject,onBack}){
             <div style={{position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',
               background:'#3b82f6',color:'#fff',padding:'6px 16px',borderRadius:20,
               fontSize:11,fontWeight:700,zIndex:20}}>
-              🔗 Clique num dispositivo <span style={{color:'#bbf7d0'}}>verde</span> para conectar
+              🔗 {cableMode.ifaceLabel?<span style={{color:'#fde68a'}}>{cableMode.ifaceLabel.split('(')[0].trim()}</span>:null}
+              {cableMode.ifaceLabel?' → ':''}Clique num dispositivo <span style={{color:'#bbf7d0'}}>verde</span> para conectar
               <span style={{marginLeft:8,opacity:.6}}>ESC para cancelar</span>
             </div>
           )}
@@ -1995,7 +2041,7 @@ function ProjectApp({project,setProject,onBack}){
                         <span style={{width:8,height:8,borderRadius:'50%',background:ct?.color||'#999',flexShrink:0}}/>
                         <span style={{flex:1,lineHeight:1.3}}>
                           <div style={{fontWeight:600}}>{other?.name||'?'}</div>
-                          <div style={{color:'var(--cinza)',fontSize:9}}>{purposeIcon} {ct?.name} · {conn.distance}m · {conn.purpose||'dados'}</div>
+                          <div style={{color:'var(--cinza)',fontSize:9}}>{purposeIcon} {ct?.name} · {conn.distance}m · {conn.purpose||'dados'}{conn.ifaceLabel?` · ${conn.ifaceLabel.split('(')[0].trim()}`:''}</div>
                         </span>
                         <span style={{cursor:'pointer',color:'var(--vermelho)',fontSize:12,flexShrink:0}}
                           onClick={()=>deleteConnection(conn.id)}>✕</span>
