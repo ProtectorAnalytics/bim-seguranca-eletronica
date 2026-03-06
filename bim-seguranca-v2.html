@@ -279,11 +279,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 2, build: 1,
+  major: 2, minor: 2, build: 2,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.2.2',date:'2026-03-06',changes:['Fix: busca CNPJ corrigida — só sobrescreve campos com dados reais da API','Fix: telefone com DDD tratado corretamente (formato DDD+número junto)','Fix: campos vazios da API não apagam dados já preenchidos','Fix: stale closure resolvido — usa setData(prev=>) para merge seguro']},
     {ver:'2.2.1',date:'2026-03-06',changes:['Busca automática de CNPJ via BrasilAPI — preenche razão social, nome fantasia, endereço, telefone, email','Busca automática de CEP via BrasilAPI — preenche endereço, cidade e UF','Auto-trigger ao completar 14 dígitos (CNPJ) ou 8 dígitos (CEP)','Botão de busca manual + status visual (✓ encontrado / ✕ erro)']},
     {ver:'2.2.0',date:'2026-03-06',changes:['Tela de cadastro do cliente (PJ/PF) antes da seleção de cenário','Dados: razão social, CNPJ/CPF, endereço, contato, referência do projeto','Máscaras automáticas: CNPJ, CPF, CEP, telefone','Fluxo: Cliente → Cenário → Projeto (3 etapas)','Dados do cliente salvos no projeto, exibidos na topbar e no export','Nome do cliente exibido na tela de seleção de cenário']},
     {ver:'2.1.4',date:'2026-03-06',changes:['Múltiplas conexões distintas entre mesmo par de dispositivos (ex: 12V + sensor facial→fechadura)','Conexões armazenam ifaceType e ifaceLabel (metadado de porta)','Offset visual perpendicular para cabos múltiplos entre mesmo par','Label da porta exibida no indicador de cable mode e no painel de propriedades','Auto-seleção de cabo compatível com a porta escolhida']},
@@ -847,16 +848,22 @@ function ClientForm({data,setData,onNext}){
       const res=await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
       if(!res.ok) throw new Error(res.status===404?'notfound':'error');
       const d=await res.json();
-      updMulti({
-        razaoSocial:d.razao_social||data.razaoSocial,
-        nome:d.nome_fantasia||data.nome,
-        endereco:[d.logradouro,d.numero,d.complemento].filter(Boolean).join(', ')||(d.logradouro||data.endereco),
-        cidade:d.municipio||data.cidade,
-        uf:d.uf||data.uf,
-        cep:d.cep?d.cep.replace(/(\d{5})(\d{3})/,'$1-$2'):data.cep,
-        email:d.email&&d.email!=='null'?d.email:data.email,
-        telefone:d.ddd_telefone_1?`(${d.ddd_telefone_1.slice(0,2)}) ${d.ddd_telefone_1.slice(2)}`:data.telefone,
-      });
+      // Build update object — only overwrite if API returns real data
+      const updates={};
+      if(d.razao_social) updates.razaoSocial=d.razao_social;
+      if(d.nome_fantasia) updates.nome=d.nome_fantasia;
+      const addr=[d.logradouro,d.numero,d.complemento].filter(Boolean).join(', ');
+      if(addr) updates.endereco=addr;
+      if(d.municipio) updates.cidade=d.municipio;
+      if(d.uf) updates.uf=d.uf;
+      if(d.cep) updates.cep=d.cep.replace(/(\d{5})(\d{3})/,'$1-$2');
+      if(d.email && d.email!=='null' && d.email.includes('@')) updates.email=d.email;
+      // Telefone: ddd_telefone_1 vem como "7133xxx" (DDD+numero junto) ou vazio
+      if(d.ddd_telefone_1 && d.ddd_telefone_1.length>=10){
+        const t=d.ddd_telefone_1.replace(/\D/g,'');
+        if(t.length>=10) updates.telefone=`(${t.slice(0,2)}) ${t.length>10?t.slice(2,7)+'-'+t.slice(7):t.slice(2,6)+'-'+t.slice(6)}`;
+      }
+      setData(prev=>({...prev,...updates}));
       setCnpjStatus('success');
     }catch(err){
       setCnpjStatus(err.message==='notfound'?'notfound':'error');
@@ -872,11 +879,12 @@ function ClientForm({data,setData,onNext}){
       const res=await fetch(`https://brasilapi.com.br/api/cep/v2/${digits}`);
       if(!res.ok) throw new Error(res.status===404?'notfound':'error');
       const d=await res.json();
-      updMulti({
-        endereco:[d.street,data.endereco?.match(/,\s*\d+/)?.[ 0]||''].filter(Boolean).join('')||d.street||data.endereco,
-        cidade:d.city||data.cidade,
-        uf:d.state||data.uf,
-      });
+      const updates={};
+      if(d.street) updates.endereco=d.street;
+      if(d.city) updates.cidade=d.city;
+      if(d.state) updates.uf=d.state;
+      if(d.neighborhood) updates.bairro=d.neighborhood;
+      setData(prev=>({...prev,...updates}));
       setCepStatus('success');
     }catch(err){
       setCepStatus(err.message==='notfound'?'notfound':'error');
