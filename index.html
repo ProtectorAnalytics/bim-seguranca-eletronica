@@ -27,6 +27,24 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .scenario-card .sc-icon{font-size:32px;margin-bottom:10px}
 .scenario-card h4{font-size:13px;margin-bottom:4px;font-weight:600}
 .scenario-card p{font-size:10px;opacity:.5;line-height:1.3}
+/* Client form */
+.client-form{width:100%;max-width:520px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:32px;animation:portPopIn .2s ease-out}
+.client-form .cf-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.client-form .cf-sub{font-size:11px;color:rgba(255,255,255,.45);margin-bottom:24px}
+.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cf-grid.full{grid-template-columns:1fr}
+.cf-field{display:flex;flex-direction:column;gap:3px}
+.cf-field label{font-size:10px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.cf-field input,.cf-field select,.cf-field textarea{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:12px;outline:none;transition:.2s;font-family:inherit}
+.cf-field input:focus,.cf-field select:focus,.cf-field textarea:focus{border-color:var(--laranja);background:rgba(255,255,255,.12)}
+.cf-field input::placeholder{color:rgba(255,255,255,.25)}
+.cf-field textarea{resize:vertical;min-height:50px}
+.cf-field select option{background:#1B4F72;color:#fff}
+.cf-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.cf-btn{padding:10px 28px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.cf-btn.primary{background:var(--laranja);color:#000}.cf-btn.primary:hover{background:#e5a817;transform:translateY(-1px)}
+.cf-btn.secondary{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6)}.cf-btn.secondary:hover{border-color:rgba(255,255,255,.4);color:#fff}
+.cf-section{font-size:10px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-top:16px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
 
 /* ===== APP SHELL ===== */
 .app-shell{display:flex;flex-direction:column;height:100vh}
@@ -261,11 +279,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 1, build: 4,
+  major: 2, minor: 2, build: 0,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'2.2.0',date:'2026-03-06',changes:['Tela de cadastro do cliente (PJ/PF) antes da seleção de cenário','Dados: razão social, CNPJ/CPF, endereço, contato, referência do projeto','Máscaras automáticas: CNPJ, CPF, CEP, telefone','Fluxo: Cliente → Cenário → Projeto (3 etapas)','Dados do cliente salvos no projeto, exibidos na topbar e no export','Nome do cliente exibido na tela de seleção de cenário']},
     {ver:'2.1.4',date:'2026-03-06',changes:['Múltiplas conexões distintas entre mesmo par de dispositivos (ex: 12V + sensor facial→fechadura)','Conexões armazenam ifaceType e ifaceLabel (metadado de porta)','Offset visual perpendicular para cabos múltiplos entre mesmo par','Label da porta exibida no indicador de cable mode e no painel de propriedades','Auto-seleção de cabo compatível com a porta escolhida']},
     {ver:'2.1.3',date:'2026-03-06',changes:['Pop-up de portas no dispositivo (⚡) em vez de bolinhas — limpo e descritivo','Cada porta mostra: label, tipo, cabos compatíveis e se é obrigatória/opcional','Clique na porta inicia conexão do tipo correto','Interfaces reais: leitor facial 8 portas, controladora 6 portas, fechadura 2 portas']},
     {ver:'2.1.2',date:'2026-03-06',changes:['Connection handles coloridos por tipo de interface','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)']},
@@ -780,13 +799,22 @@ const uid=()=>'d'+(++_uid);
 // MAIN APP COMPONENT
 // ====================================================================
 function App(){
-  const [screen,setScreen]=useState('landing'); // landing | project
+  const [screen,setScreen]=useState('client'); // client | scenario | project
   const [project,setProject]=useState(null);
+  const [clientData,setClientData]=useState({
+    nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
+    endereco:'',cidade:'',uf:'',cep:'',
+    contato:'',telefone:'',email:'',
+    projetoNome:'',projetoRef:'',obs:''
+  });
 
-  if(screen==='landing') return <Landing onStart={(scenario)=>{
+  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} />;
+
+  if(screen==='scenario') return <ScenarioSelect clientData={clientData} onBack={()=>setScreen('client')} onStart={(scenario)=>{
     setProject({
-      name:'Novo Projeto',
+      name:clientData.projetoNome||'Novo Projeto',
       scenario,
+      client:{...clientData},
       floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[]}],
       activeFloor:'f1',
       settings:{taxRate:0,additionalFees:[]},
@@ -794,18 +822,172 @@ function App(){
     setScreen('project');
   }}/>;
 
-  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('landing')}/>;
+  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('scenario')}/>;
 }
 
 // ====================================================================
-// LANDING - Scenario Selection (inspired by Omada)
+// CLIENT FORM - Client data entry (step 1)
 // ====================================================================
-function Landing({onStart}){
+function ClientForm({data,setData,onNext}){
+  const upd=(k,v)=>setData(d=>({...d,[k]:v}));
+  const canProceed=data.tipo==='pj'?(data.razaoSocial||data.nome):data.nome;
+
+  // CNPJ mask
+  const maskCNPJ=(v)=>{
+    const d=v.replace(/\D/g,'').slice(0,14);
+    if(d.length<=2) return d;
+    if(d.length<=5) return d.replace(/(\d{2})(\d)/,'$1.$2');
+    if(d.length<=8) return d.replace(/(\d{2})(\d{3})(\d)/,'$1.$2.$3');
+    if(d.length<=12) return d.replace(/(\d{2})(\d{3})(\d{3})(\d)/,'$1.$2.$3/$4');
+    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/,'$1.$2.$3/$4-$5');
+  };
+  // CPF mask
+  const maskCPF=(v)=>{
+    const d=v.replace(/\D/g,'').slice(0,11);
+    if(d.length<=3) return d;
+    if(d.length<=6) return d.replace(/(\d{3})(\d)/,'$1.$2');
+    if(d.length<=9) return d.replace(/(\d{3})(\d{3})(\d)/,'$1.$2.$3');
+    return d.replace(/(\d{3})(\d{3})(\d{3})(\d)/,'$1.$2.$3-$4');
+  };
+  // CEP mask
+  const maskCEP=(v)=>{
+    const d=v.replace(/\D/g,'').slice(0,8);
+    if(d.length<=5) return d;
+    return d.replace(/(\d{5})(\d)/,'$1-$2');
+  };
+  // Phone mask
+  const maskPhone=(v)=>{
+    const d=v.replace(/\D/g,'').slice(0,11);
+    if(d.length<=2) return d.length?`(${d}`:d;
+    if(d.length<=6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+    if(d.length<=10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  };
+
   return (
     <div className="landing">
       <div className="landing-logo">PROTECTOR SISTEMAS</div>
       <div className="landing-title">BIM Segurança Eletrônica</div>
       <div style={{fontSize:11,color:'var(--cinza)',marginTop:-8,marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
+
+      <div className="client-form">
+        <div className="cf-title">📋 Dados do Cliente</div>
+        <div className="cf-sub">Preencha as informações do cliente para o projeto</div>
+
+        {/* Tipo de pessoa */}
+        <div style={{display:'flex',gap:8,marginBottom:16}}>
+          {[{id:'pj',label:'Pessoa Jurídica'},{id:'pf',label:'Pessoa Física'}].map(t=>(
+            <button key={t.id} onClick={()=>upd('tipo',t.id)}
+              style={{flex:1,padding:'8px',borderRadius:8,border:`2px solid ${data.tipo===t.id?'var(--laranja)':'rgba(255,255,255,.12)'}`,
+                background:data.tipo===t.id?'rgba(241,196,15,.12)':'transparent',
+                color:data.tipo===t.id?'var(--laranja)':'rgba(255,255,255,.5)',
+                fontSize:11,fontWeight:700,cursor:'pointer',transition:'.2s'}}>
+              {t.id==='pj'?'🏢':'👤'} {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="cf-section">{data.tipo==='pj'?'Dados da Empresa':'Dados Pessoais'}</div>
+        <div className="cf-grid">
+          {data.tipo==='pj'&&(
+            <div className="cf-field" style={{gridColumn:'1/-1'}}>
+              <label>Razão Social *</label>
+              <input value={data.razaoSocial} onChange={e=>upd('razaoSocial',e.target.value)} placeholder="Nome da empresa"/>
+            </div>
+          )}
+          <div className="cf-field" style={data.tipo==='pf'?{gridColumn:'1/-1'}:{}}>
+            <label>{data.tipo==='pj'?'Nome Fantasia':'Nome Completo *'}</label>
+            <input value={data.nome} onChange={e=>upd('nome',e.target.value)} placeholder={data.tipo==='pj'?'Nome fantasia':'Nome do cliente'}/>
+          </div>
+          <div className="cf-field">
+            <label>{data.tipo==='pj'?'CNPJ':'CPF'}</label>
+            <input value={data.tipo==='pj'?data.cnpj:data.cpf}
+              onChange={e=>upd(data.tipo==='pj'?'cnpj':'cpf',data.tipo==='pj'?maskCNPJ(e.target.value):maskCPF(e.target.value))}
+              placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
+          </div>
+        </div>
+
+        <div className="cf-section">Endereço</div>
+        <div className="cf-grid">
+          <div className="cf-field" style={{gridColumn:'1/-1'}}>
+            <label>Endereço</label>
+            <input value={data.endereco} onChange={e=>upd('endereco',e.target.value)} placeholder="Rua, número, complemento"/>
+          </div>
+          <div className="cf-field">
+            <label>Cidade</label>
+            <input value={data.cidade} onChange={e=>upd('cidade',e.target.value)} placeholder="Cidade"/>
+          </div>
+          <div className="cf-field">
+            <label>UF</label>
+            <select value={data.uf} onChange={e=>upd('uf',e.target.value)}>
+              <option value="">Selecione</option>
+              {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(u=>(
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+          </div>
+          <div className="cf-field">
+            <label>CEP</label>
+            <input value={data.cep} onChange={e=>upd('cep',maskCEP(e.target.value))} placeholder="00000-000"/>
+          </div>
+        </div>
+
+        <div className="cf-section">Contato</div>
+        <div className="cf-grid">
+          <div className="cf-field">
+            <label>Pessoa de Contato</label>
+            <input value={data.contato} onChange={e=>upd('contato',e.target.value)} placeholder="Nome do responsável"/>
+          </div>
+          <div className="cf-field">
+            <label>Telefone</label>
+            <input value={data.telefone} onChange={e=>upd('telefone',maskPhone(e.target.value))} placeholder="(00) 00000-0000"/>
+          </div>
+          <div className="cf-field" style={{gridColumn:'1/-1'}}>
+            <label>E-mail</label>
+            <input value={data.email} onChange={e=>upd('email',e.target.value)} placeholder="email@empresa.com" type="email"/>
+          </div>
+        </div>
+
+        <div className="cf-section">Projeto</div>
+        <div className="cf-grid">
+          <div className="cf-field">
+            <label>Nome do Projeto</label>
+            <input value={data.projetoNome} onChange={e=>upd('projetoNome',e.target.value)} placeholder="Ex: CFTV Matriz 2026"/>
+          </div>
+          <div className="cf-field">
+            <label>Referência / Proposta</label>
+            <input value={data.projetoRef} onChange={e=>upd('projetoRef',e.target.value)} placeholder="Ex: PROP-2026-042"/>
+          </div>
+        </div>
+        <div className="cf-grid full" style={{marginTop:8}}>
+          <div className="cf-field">
+            <label>Observações</label>
+            <textarea value={data.obs} onChange={e=>upd('obs',e.target.value)} placeholder="Notas adicionais sobre o projeto..." rows="2"/>
+          </div>
+        </div>
+
+        <div className="cf-actions">
+          <button className="cf-btn primary" onClick={onNext} disabled={!canProceed}
+            style={{opacity:canProceed?1:.4,cursor:canProceed?'pointer':'not-allowed'}}>
+            Avançar →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// SCENARIO SELECT - Scenario Selection (step 2)
+// ====================================================================
+function ScenarioSelect({clientData,onBack,onStart}){
+  const displayName=clientData.razaoSocial||clientData.nome||'Cliente';
+  return (
+    <div className="landing">
+      <div className="landing-logo">PROTECTOR SISTEMAS</div>
+      <div className="landing-title">BIM Segurança Eletrônica</div>
+      <div style={{fontSize:11,color:'var(--cinza)',marginTop:-8,marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
+      <div style={{fontSize:13,color:'var(--laranja)',marginBottom:4,fontWeight:600}}>📋 {displayName}</div>
       <div className="landing-sub">Selecione o cenário do projeto</div>
       <div className="scenario-grid">
         {SCENARIOS.map(s=>(
@@ -816,6 +998,12 @@ function Landing({onStart}){
           </div>
         ))}
       </div>
+      <button onClick={onBack} style={{marginTop:24,background:'transparent',border:'1px solid rgba(255,255,255,.2)',
+        color:'rgba(255,255,255,.5)',padding:'8px 20px',borderRadius:8,fontSize:11,cursor:'pointer',transition:'.2s'}}
+        onMouseOver={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.4)'}
+        onMouseOut={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.2)'}>
+        ← Voltar aos dados do cliente
+      </button>
     </div>
   );
 }
@@ -1317,6 +1505,9 @@ function ProjectApp({project,setProject,onBack}){
         <input value={project.name} onChange={e=>setProject(p=>({...p,name:e.target.value}))}
           style={{background:'transparent',border:'none',color:'#fff',fontSize:14,fontWeight:600,width:200,outline:'none'}}/>
         <span style={{flex:1}}/>
+        {project.client&&(project.client.razaoSocial||project.client.nome)&&(
+          <span style={{fontSize:10,opacity:.5}}>👤 {project.client.razaoSocial||project.client.nome}</span>
+        )}
         <span style={{fontSize:10,opacity:.5}}>Cenário: {SCENARIOS.find(s=>s.id===project.scenario)?.name}</span>
         <button className="tb-btn" onClick={()=>setShowExport(true)}>📋 Exportar</button>
         <button className="tb-btn" onClick={onBack}>← Voltar</button>
@@ -2276,6 +2467,13 @@ function ExportModal({project,bom,allDevices,connections,onClose}){
         <h3>📋 Exportar Relatório</h3>
         <div style={{fontSize:12,color:'var(--cinza)',marginBottom:12}}>
           Projeto: <strong>{project.name}</strong> · {allDevices.length} dispositivos · {connections.length} conexões
+          {project.client&&(project.client.razaoSocial||project.client.nome)&&(
+            <div style={{marginTop:4}}>Cliente: <strong>{project.client.razaoSocial||project.client.nome}</strong>
+              {project.client.cnpj&&` · CNPJ: ${project.client.cnpj}`}
+              {project.client.cpf&&` · CPF: ${project.client.cpf}`}
+            </div>
+          )}
+          {project.client?.projetoRef&&<div>Ref: {project.client.projetoRef}</div>}
         </div>
         <div className="mc-row">
           <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
