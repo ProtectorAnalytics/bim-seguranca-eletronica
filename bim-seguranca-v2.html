@@ -268,6 +268,48 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Keyboard shortcut hints */
 .shortcut{font-size:9px;background:var(--cinzaL);padding:1px 4px;border-radius:2px;color:var(--cinza);border:1px solid var(--cinzaM);font-family:monospace}
+
+/* ===== DASHBOARD ===== */
+.dashboard-container{height:100vh;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%);color:#fff;overflow-y:auto;padding:24px}
+.dashboard-content{max-width:1400px;margin:0 auto}
+.dashboard-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
+.dh-left h1{font-size:28px;font-weight:800;margin-bottom:2px}
+.dh-left p{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px}
+.dh-version{font-size:10px;color:rgba(255,255,255,.35)}
+.dh-user{display:flex;align-items:center;gap:12px}
+.dh-avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,.3)}
+
+.dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.stat-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px;text-align:center}
+.stat-number{font-size:32px;font-weight:800;color:var(--laranja);margin-bottom:8px}
+.stat-label{font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px}
+
+.dashboard-modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.module-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;cursor:pointer;transition:.3s;display:flex;flex-direction:column;align-items:flex-start;min-height:140px}
+.module-card:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.3)}
+.module-card.primary{border-color:var(--laranja);background:rgba(243,156,18,.12)}
+.module-card.primary:hover{border-color:var(--laranja);background:rgba(243,156,18,.2);box-shadow:0 0 32px rgba(243,156,18,.2)}
+.mc-icon{font-size:32px;margin-bottom:12px}
+.mc-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.mc-desc{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:16px;flex:1}
+.mc-badge{font-size:9px;background:rgba(255,255,255,.15);padding:4px 8px;border-radius:6px;color:rgba(255,255,255,.7);margin-top:auto}
+
+.dashboard-list{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px}
+.dashboard-list h3{color:#fff;margin-bottom:16px;font-size:14px}
+.list-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.2s}
+.list-item:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
+.list-item-info h4{color:#fff;font-size:12px;font-weight:600;margin-bottom:2px}
+.list-item-info p{font-size:10px;color:rgba(255,255,255,.5)}
+.list-actions{display:flex;gap:8px}
+.list-btn{padding:4px 12px;font-size:10px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;transition:.2s}
+.list-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
+
+.search-input{width:100%;padding:10px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-size:12px;margin-bottom:16px}
+.search-input::placeholder{color:rgba(255,255,255,.35)}
+.search-input:focus{outline:none;border-color:var(--laranja);background:rgba(255,255,255,.12)}
+
+.modal-back-btn{padding:10px 20px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);border-radius:8px;font-size:12px;cursor:pointer;transition:.2s;margin-bottom:20px;align-self:flex-start}
+.modal-back-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
 </style>
 </head>
 <body>
@@ -279,11 +321,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 2, minor: 3, build: 0,
+  major: 3, minor: 0, build: 0,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.0.0',date:'2026-03-06',changes:['Dashboard de Gerenciamento — hub central com stats, módulos e navegação SaaS','Persistência de Projetos — auto-save em localStorage, lista para reabrir projetos salvos','Gestão de Clientes — lista de clientes com histórico, reutilização em novos projetos','Configurações da Empresa — dados corporativos, taxa padrão, persistidos','Página de Assinatura — placeholder para integração com gerenciador de assinatura externo','Repositório de Equipamentos elevado a módulo do dashboard (acesso direto)','Fluxo refatorado: Dashboard → Cliente → Cenário → Projeto (4 etapas)','Novo fluxo: reabrir projetos salvos direto do dashboard']},
     {ver:'2.3.0',date:'2026-03-06',changes:['Repositório de Equipamentos — cadastro de dispositivos customizados com campos dinâmicos por tipo','Parser de datasheet — cola texto do datasheet e extrai specs automaticamente (tensão, corrente, resolução, portas, IP rating, etc)','Schemas por categoria: câmera, acesso, fechadura, alarme, sensor, switch, gravador, fonte, nobreak, infra','Equipamentos custom aparecem na paleta (📦 Customizados) com herança de ícone e interfaces','Persistência via localStorage — equipamentos salvos entre sessões','Fechadura eletroímã: adicionada saída sensor porta NF/C (vai pro facial, controladora ou fonte)','Fonte 12V: adicionada entrada alarme/aterramento para sensor de porta']},
     {ver:'2.2.3',date:'2026-03-06',changes:['Switch não-PoE (SG 800 Q+): alimentação DC 12-30V via fonte/nobreak como interface opcional','Switch não-PoE: PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-) como interface opcional','Labels atualizadas com especificações reais do datasheet Intelbras']},
     {ver:'2.2.2',date:'2026-03-06',changes:['Fix: busca CNPJ corrigida — só sobrescreve campos com dados reais da API','Fix: telefone com DDD tratado corretamente (formato DDD+número junto)','Fix: campos vazios da API não apagam dados já preenchidos','Fix: stale closure resolvido — usa setData(prev=>) para merge seguro']},
@@ -897,6 +940,28 @@ function getDeviceIconKey(deviceKey){
 }
 
 // ====================================================================
+// PERSISTENCE HELPERS
+// ====================================================================
+function getSavedProjects(){
+  try{ return JSON.parse(localStorage.getItem('bim_projects')||'[]'); }catch{ return []; }
+}
+function saveProjects(projects){
+  localStorage.setItem('bim_projects',JSON.stringify(projects));
+}
+function getSavedClients(){
+  try{ return JSON.parse(localStorage.getItem('bim_clients')||'[]'); }catch{ return []; }
+}
+function saveClients(clients){
+  localStorage.setItem('bim_clients',JSON.stringify(clients));
+}
+function getSettings(){
+  try{ return JSON.parse(localStorage.getItem('bim_settings')||'{}'); }catch{ return {}; }
+}
+function saveSettings(settings){
+  localStorage.setItem('bim_settings',JSON.stringify(settings));
+}
+
+// ====================================================================
 // UNIQUE ID GENERATOR
 // ====================================================================
 let _uid=0;
@@ -906,8 +971,9 @@ const uid=()=>'d'+(++_uid);
 // MAIN APP COMPONENT
 // ====================================================================
 function App(){
-  const [screen,setScreen]=useState('client'); // client | scenario | project
+  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription
   const [project,setProject]=useState(null);
+  const [editingProjectId,setEditingProjectId]=useState(null);
   const [clientData,setClientData]=useState({
     nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
     endereco:'',cidade:'',uf:'',cep:'',
@@ -915,27 +981,82 @@ function App(){
     projetoNome:'',projetoRef:'',obs:''
   });
 
-  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} />;
+  // Auto-save project to localStorage
+  useEffect(()=>{
+    if(project && editingProjectId){
+      const projects=getSavedProjects();
+      const idx=projects.findIndex(p=>p.id===editingProjectId);
+      const updated={
+        id:editingProjectId,
+        name:project.name,
+        client:{...project.client},
+        scenario:project.scenario,
+        floors:project.floors,
+        activeFloor:project.activeFloor,
+        settings:project.settings,
+        createdAt:idx>=0?projects[idx].createdAt:new Date().toISOString().split('T')[0],
+        updatedAt:new Date().toISOString().split('T')[0],
+        deviceCount:project.floors.flatMap(f=>f.devices).length,
+        status:'rascunho'
+      };
+      if(idx>=0) projects[idx]=updated;
+      else projects.push(updated);
+      saveProjects(projects);
+    }
+  },[project,editingProjectId]);
+
+  const onStartNewProject=()=>{ setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''}); setScreen('client'); };
+  const onOpenProject=(proj)=>{ setProject({name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors,activeFloor:proj.activeFloor,settings:proj.settings}); setEditingProjectId(proj.id); setScreen('project'); };
+
+  if(screen==='dashboard') return <Dashboard
+    onNewProject={onStartNewProject}
+    onOpenProject={()=>setScreen('projects')}
+    onClients={()=>setScreen('clients')}
+    onRepo={()=>setScreen('repo')}
+    onSettings={()=>setScreen('settings')}
+    onSubscription={()=>setScreen('subscription')}
+  />;
+
+  if(screen==='projects') return <ProjectListPage onBack={()=>setScreen('dashboard')} onOpenProject={onOpenProject}/>;
+
+  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} onBack={()=>setScreen('dashboard')} />;
 
   if(screen==='scenario') return <ScenarioSelect clientData={clientData} onBack={()=>setScreen('client')} onStart={(scenario)=>{
-    setProject({
+    const projId='proj_'+Date.now();
+    const newProj={
       name:clientData.projetoNome||'Novo Projeto',
       scenario,
       client:{...clientData},
       floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[]}],
       activeFloor:'f1',
       settings:{taxRate:0,additionalFees:[]},
-    });
+    };
+    setProject(newProj);
+    setEditingProjectId(projId);
+    // Save client
+    const clients=getSavedClients();
+    const existing=clients.findIndex(c=>c.id===clientData.id);
+    if(existing>=0) clients[existing]={...clientData,id:clientData.id||'cli_'+Date.now()};
+    else clients.push({...clientData,id:'cli_'+Date.now()});
+    saveClients(clients);
     setScreen('project');
   }}/>;
 
-  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('scenario')}/>;
+  if(screen==='clients') return <ClientListPage onBack={()=>setScreen('dashboard')} onSelectClient={(client)=>{ setClientData(client); setScreen('client'); }}/>;
+
+  if(screen==='repo') return <EquipmentRepoPage onBack={()=>setScreen('dashboard')} />;
+
+  if(screen==='settings') return <SettingsPage onBack={()=>setScreen('dashboard')} />;
+
+  if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} />;
+
+  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('dashboard')}/>;
 }
 
 // ====================================================================
 // CLIENT FORM - Client data entry (step 1)
 // ====================================================================
-function ClientForm({data,setData,onNext}){
+function ClientForm({data,setData,onNext,onBack}){
   const upd=(k,v)=>setData(d=>({...d,[k]:v}));
   const updMulti=(obj)=>setData(d=>({...d,...obj}));
   const canProceed=data.tipo==='pj'?(data.razaoSocial||data.nome):data.nome;
@@ -1169,6 +1290,7 @@ function ClientForm({data,setData,onNext}){
         </div>
 
         <div className="cf-actions">
+          {onBack&&<button className="cf-btn secondary" onClick={onBack}>← Voltar</button>}
           <button className="cf-btn primary" onClick={onNext} disabled={!canProceed}
             style={{opacity:canProceed?1:.4,cursor:canProceed?'pointer':'not-allowed'}}>
             Avançar →
@@ -1206,6 +1328,337 @@ function ScenarioSelect({clientData,onBack,onStart}){
         onMouseOut={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.2)'}>
         ← Voltar aos dados do cliente
       </button>
+    </div>
+  );
+}
+
+// ====================================================================
+// DASHBOARD
+// ====================================================================
+function Dashboard({onNewProject,onOpenProject,onClients,onRepo,onSettings,onSubscription}){
+  const projects=getSavedProjects();
+  const clients=getSavedClients();
+  const settings=getSettings();
+  const lastAccess=localStorage.getItem('bim_lastAccess')||'Nunca';
+
+  const customDeviceCount=getCustomDevices().length;
+  const activeProjectsCount=projects.filter(p=>p.status==='em_execucao').length;
+
+  localStorage.setItem('bim_lastAccess',new Date().toLocaleDateString('pt-BR'));
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <div className="dh-left">
+            <h1>PROTECTOR SISTEMAS</h1>
+            <p>BIM Segurança Eletrônica</p>
+            <div className="dh-version">{APP_VERSION.label}</div>
+          </div>
+          <div className="dh-user">
+            <div className="dh-avatar">👤</div>
+          </div>
+        </div>
+
+        <div className="dashboard-stats">
+          <div className="stat-card">
+            <div className="stat-number">{projects.length}</div>
+            <div className="stat-label">Projetos Ativos</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{clients.length}</div>
+            <div className="stat-label">Clientes Cadastrados</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{customDeviceCount}</div>
+            <div className="stat-label">Equipamentos Custom</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{lastAccess}</div>
+            <div className="stat-label">Último Acesso</div>
+          </div>
+        </div>
+
+        <div className="dashboard-modules">
+          <div className="module-card primary" onClick={onNewProject}>
+            <div className="mc-icon">📐</div>
+            <div className="mc-title">Novo Projeto</div>
+            <div className="mc-desc">Criar um novo projeto desde o início</div>
+            <div className="mc-badge">Ação primária</div>
+          </div>
+
+          <div className="module-card" onClick={onOpenProject}>
+            <div className="mc-icon">📂</div>
+            <div className="mc-title">Projetos</div>
+            <div className="mc-desc">{projects.length} projeto(s) salvo(s)</div>
+            <div className="mc-badge">Ver lista</div>
+          </div>
+
+          <div className="module-card" onClick={onClients}>
+            <div className="mc-icon">👥</div>
+            <div className="mc-title">Clientes</div>
+            <div className="mc-desc">{clients.length} cliente(s) cadastrado(s)</div>
+            <div className="mc-badge">Gerenciar</div>
+          </div>
+
+          <div className="module-card" onClick={onRepo}>
+            <div className="mc-icon">📦</div>
+            <div className="mc-title">Repositório</div>
+            <div className="mc-desc">Equipamentos customizados</div>
+            <div className="mc-badge">Abrir</div>
+          </div>
+
+          <div className="module-card" onClick={onSettings}>
+            <div className="mc-icon">⚙️</div>
+            <div className="mc-title">Configurações</div>
+            <div className="mc-desc">Dados da empresa</div>
+            <div className="mc-badge">Configurar</div>
+          </div>
+
+          <div className="module-card" onClick={onSubscription}>
+            <div className="mc-icon">💳</div>
+            <div className="mc-title">Assinatura</div>
+            <div className="mc-desc">Plano: Trial</div>
+            <div className="mc-badge">Informações</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// PROJECT LIST PAGE
+// ====================================================================
+function ProjectListPage({onBack,onOpenProject}){
+  const [projects,setProjects]=useState(getSavedProjects());
+  const [search,setSearch]=useState('');
+
+  const filtered=projects.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||(p.client?.nome||'').toLowerCase().includes(search.toLowerCase()));
+
+  const handleDelete=(id)=>{
+    if(confirm('Tem certeza que deseja deletar este projeto?')){
+      const updated=projects.filter(p=>p.id!==id);
+      setProjects(updated);
+      saveProjects(updated);
+    }
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+
+        <div className="dashboard-list" style={{maxWidth:'900px'}}>
+          <h3>Projetos Salvos</h3>
+          <input type="text" className="search-input" placeholder="Buscar por nome ou cliente..." value={search} onChange={e=>setSearch(e.target.value)}/>
+
+          {filtered.length===0?(
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum projeto encontrado</p>
+          ):(
+            filtered.map(p=>(
+              <div key={p.id} className="list-item">
+                <div className="list-item-info">
+                  <h4>{p.name}</h4>
+                  <p>Cliente: {p.client?.nome||'--'} · {p.deviceCount} dispositivos · {p.updatedAt}</p>
+                </div>
+                <div className="list-actions">
+                  <button className="list-btn" onClick={()=>onOpenProject(p)}>Abrir</button>
+                  <button className="list-btn" onClick={()=>handleDelete(p.id)}>Deletar</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// CLIENT LIST PAGE
+// ====================================================================
+function ClientListPage({onBack,onSelectClient}){
+  const [clients,setClients]=useState(getSavedClients());
+  const [search,setSearch]=useState('');
+
+  const filtered=clients.filter(c=>c.nome.toLowerCase().includes(search.toLowerCase())||c.razaoSocial.toLowerCase().includes(search.toLowerCase()));
+
+  const handleEdit=(client)=>{
+    onSelectClient(client);
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+
+        <div className="dashboard-list" style={{maxWidth:'900px'}}>
+          <h3>Clientes Cadastrados</h3>
+          <input type="text" className="search-input" placeholder="Buscar por nome..." value={search} onChange={e=>setSearch(e.target.value)}/>
+
+          {filtered.length===0?(
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum cliente cadastrado</p>
+          ):(
+            filtered.map(c=>(
+              <div key={c.id} className="list-item">
+                <div className="list-item-info">
+                  <h4>{c.razaoSocial||c.nome}</h4>
+                  <p>{c.cnpj||c.cpf} · {c.telefone}</p>
+                </div>
+                <div className="list-actions">
+                  <button className="list-btn" onClick={()=>handleEdit(c)}>Novo Projeto</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// SETTINGS PAGE
+// ====================================================================
+function SettingsPage({onBack}){
+  const [settings,setSettings]=useState(getSettings());
+
+  const upd=(k,v)=>{
+    const updated={...settings,[k]:v};
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+
+        <div className="dashboard-list" style={{maxWidth:'600px'}}>
+          <h3>Configurações da Empresa</h3>
+
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Nome da Empresa</label>
+              <input type="text" value={settings.nomeEmpresa||''} onChange={e=>upd('nomeEmpresa',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="Protector Sistemas"/>
+            </div>
+
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>CNPJ</label>
+              <input type="text" value={settings.cnpj||''} onChange={e=>upd('cnpj',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="XX.XXX.XXX/0001-XX"/>
+            </div>
+
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Endereço</label>
+              <input type="text" value={settings.endereco||''} onChange={e=>upd('endereco',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="Rua, número, complemento"/>
+            </div>
+
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Telefone</label>
+              <input type="text" value={settings.telefone||''} onChange={e=>upd('telefone',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="(XX) XXXXX-XXXX"/>
+            </div>
+
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>E-mail</label>
+              <input type="email" value={settings.email||''} onChange={e=>upd('email',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="contato@empresa.com"/>
+            </div>
+
+            <div>
+              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Taxa Padrão (%)</label>
+              <input type="number" value={settings.taxaPadrao||0} onChange={e=>upd('taxaPadrao',parseFloat(e.target.value))}
+                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                placeholder="0"/>
+            </div>
+          </div>
+
+          <p style={{marginTop:20,fontSize:11,color:'rgba(255,255,255,.4)'}}>As configurações são salvas automaticamente.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// SUBSCRIPTION PAGE
+// ====================================================================
+function SubscriptionPage({onBack}){
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+
+        <div className="dashboard-list" style={{maxWidth:'600px'}}>
+          <h3>Informações de Assinatura</h3>
+
+          <div style={{display:'grid',gap:16,marginTop:20}}>
+            <div>
+              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>PLANO ATUAL</p>
+              <p style={{fontSize:16,fontWeight:700}}>Trial</p>
+            </div>
+
+            <div>
+              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>VALIDADE</p>
+              <p style={{fontSize:14}}>--</p>
+            </div>
+
+            <div>
+              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>STATUS</p>
+              <p style={{fontSize:14,color:'rgba(255,255,255,.7)'}}>Aguardando integração com provedor</p>
+            </div>
+
+            <button style={{padding:'12px 20px',background:var(--laranja),color:'#000',border:'none',borderRadius:8,fontWeight:700,fontSize:12,cursor:'not-allowed',opacity:.5,marginTop:20}}>
+              Gerenciar Assinatura (desabilitado)
+            </button>
+          </div>
+
+          <p style={{marginTop:20,fontSize:11,color:'rgba(255,255,255,.4)'}}>Esta página será integrada com o provedor de pagamento em breve.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================
+// EQUIPMENT REPO PAGE
+// ====================================================================
+function EquipmentRepoPage({onBack}){
+  const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
+
+  const handleSave=(device)=>{
+    const updated=[...customDevices.filter(d=>d.key!==device.key),device];
+    setCustomDevices(updated);
+    saveCustomDevices(updated);
+  };
+
+  const handleDelete=(key)=>{
+    const updated=customDevices.filter(d=>d.key!==key);
+    setCustomDevices(updated);
+    saveCustomDevices(updated);
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+
+        <EquipmentRepoModal
+          customDevices={customDevices}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={onBack}
+        />
+      </div>
     </div>
   );
 }
