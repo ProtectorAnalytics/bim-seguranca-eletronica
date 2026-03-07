@@ -1701,6 +1701,7 @@ const validateConnection = (fromKey, toKey, cableId) => {
       if (ti.targets && !ti.targets.includes(fromKey)) return;
 
       // Find common cables between the two interfaces
+      if(!fi.cables?.length || !ti.cables?.length) return;
       const commonCables = fi.cables.filter(c => ti.cables.includes(c));
       if (commonCables.length === 0) return;
 
@@ -4136,9 +4137,11 @@ function ProjectApp({project,setProject,onBack}){
                     }).join(', '):'';
                     return (
                     <button key={i} className="port-btn" style={{opacity:isUsed?0.6:1,position:'relative'}} onClick={()=>{
-                      setCableMode({from:ppDev.id,ifaceType:iface.type,ifaceLabel:iface.label});
-                      setTool('cable');
-                      setPortPopup(null);
+                      try{
+                        setCableMode({from:ppDev.id,ifaceType:iface.type||'data_io',ifaceLabel:iface.label||''});
+                        setTool('cable');
+                        setPortPopup(null);
+                      }catch(err){console.error('Port select error',err);setPortPopup(null)}
                     }}>
                       <div className={`pb-dot ${getPortDotClass(iface.type)}`} style={isUsed?{boxShadow:'0 0 0 2px #f59e0b'}:{}}/>
                       <div className="pb-info">
