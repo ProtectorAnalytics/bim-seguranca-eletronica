@@ -328,11 +328,20 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 3, build: 2,
+  major: 3, minor: 4, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.4.0',date:'2026-03-07',changes:[
+      'Biblioteca expandida: 160 dispositivos genéricos em 22 categorias (baseado no catálogo Intelbras 12ª edição)',
+      'Novos ícones SVG: eletrificador, barreira, teclado, detectores incêndio, cancela, AP WiFi, luminária emergência e mais',
+      'Interfaces de conexão por padrão: resolução automática de interfaces para todos os novos tipos de dispositivo',
+      'Funções de classificação de dispositivos (isCamera, isGravador, isCentralAlarme, etc.) para validação robusta',
+      'Auto-cabeamento expandido: suporte a DVR+MHD, centrais incêndio, catracas, periféricos de alarme',
+      'Novas regras de validação: incêndio sem central, sensores sem central de alarme',
+      'Campo ref em cada dispositivo com modelos Intelbras de referência',
+    ]},
     {ver:'3.3.2',date:'2026-03-07',changes:[
       'Roteamento ortogonal estilo draw.io — cabos com ângulos retos e curvas suaves nas dobras',
       'Arraste segmentos inteiros para reposicionar trechos do cabo',
@@ -699,58 +708,391 @@ const ICONS={
     <circle cx="12" cy="36" r="1.5" fill="#22c55e" opacity=".6"/>
     <text x="36" y="38" textAnchor="middle" fill={c} fontSize="4" fontWeight="700" opacity=".5">AC</text>
   </svg>,
+  // ── NOVOS ÍCONES - CATÁLOGO EXPANDIDO ──
+  eletrificador:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <line x1="8" y1="6" x2="8" y2="42" stroke={c} strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="40" y1="6" x2="40" y2="42" stroke={c} strokeWidth="2.5" strokeLinecap="round"/>
+    {[12,18,24,30,36].map((y,i)=><line key={i} x1="8" y1={y} x2="40" y2={y} stroke={c} strokeWidth="1" opacity=".3"/>)}
+    <path d="M22 14 L18 22 L24 22 L20 30" fill="none" stroke={c} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+    <circle cx="24" cy="22" r="8" fill={c} opacity=".06"/>
+  </svg>,
+  sensor_barreira:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="4" y="8" width="8" height="32" rx="2" fill={c} opacity=".06" stroke={c} strokeWidth="2"/>
+    <rect x="36" y="8" width="8" height="32" rx="2" fill={c} opacity=".06" stroke={c} strokeWidth="2"/>
+    <circle cx="8" cy="18" r="2.5" fill={c} opacity=".3"/>
+    <circle cx="40" cy="18" r="2.5" fill={c} opacity=".3"/>
+    <circle cx="8" cy="30" r="2.5" fill={c} opacity=".3"/>
+    <circle cx="40" cy="30" r="2.5" fill={c} opacity=".3"/>
+    <line x1="12" y1="18" x2="36" y2="18" stroke={c} strokeWidth="1.5" strokeDasharray="3 2" opacity=".5"/>
+    <line x1="12" y1="30" x2="36" y2="30" stroke={c} strokeWidth="1.5" strokeDasharray="3 2" opacity=".5"/>
+  </svg>,
+  teclado_alarme:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="4" width="32" height="40" rx="4" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <rect x="12" y="8" width="24" height="10" rx="2" fill="none" stroke={c} strokeWidth="1" opacity=".4"/>
+    <text x="24" y="15" textAnchor="middle" fill={c} fontSize="5" fontWeight="700" opacity=".4">LCD</text>
+    {[22,28,34].map((y,i)=>[14,22,30].map((x,j)=><rect key={i+'_'+j} x={x} y={y} width="5" height="4" rx="1" fill={c} opacity=".1" stroke={c} strokeWidth=".6"/>))}
+  </svg>,
+  detector_fumaca:(c='#991b1b')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <circle cx="24" cy="24" r="16" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <circle cx="24" cy="24" r="10" fill="none" stroke={c} strokeWidth="1.2" opacity=".3"/>
+    <circle cx="24" cy="24" r="4" fill={c} opacity=".12" stroke={c} strokeWidth="1.5"/>
+    <circle cx="24" cy="24" r="1.5" fill={c} opacity=".4"/>
+    <path d="M20 14 Q22 10 24 14 Q26 18 28 14" fill="none" stroke={c} strokeWidth="1.2" opacity=".4"/>
+    <path d="M18 12 Q21 7 24 12 Q27 17 30 12" fill="none" stroke={c} strokeWidth=".8" opacity=".25"/>
+  </svg>,
+  acionador_manual:(c='#991b1b')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="8" width="32" height="32" rx="4" fill={c} opacity=".08" stroke={c} strokeWidth="2.2"/>
+    <rect x="12" y="12" width="24" height="24" rx="2" fill="none" stroke={c} strokeWidth="1.5" opacity=".5"/>
+    <circle cx="24" cy="24" r="6" fill="none" stroke={c} strokeWidth="2"/>
+    <text x="24" y="27" textAnchor="middle" fill={c} fontSize="7" fontWeight="900" opacity=".6">!</text>
+    <text x="24" y="9" textAnchor="middle" fill={c} fontSize="4" fontWeight="700" opacity=".5">FIRE</text>
+  </svg>,
+  cancela:(c='#ea580c')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="4" y="20" width="12" height="24" rx="2" fill={c} opacity=".06" stroke={c} strokeWidth="2"/>
+    <rect x="10" y="14" width="34" height="6" rx="2" fill={c} opacity=".08" stroke={c} strokeWidth="2"/>
+    {[20,28,36].map((x,i)=><line key={i} x1={x} y1="14" x2={x} y2="20" stroke={c} strokeWidth="1.5" opacity=".3"/>)}
+    <circle cx="10" cy="17" r="2" fill={c} opacity=".3"/>
+    <rect x="6" y="36" width="8" height="4" rx="1" fill={c} opacity=".15"/>
+  </svg>,
+  ap_wifi:(c='#2563eb')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <circle cx="24" cy="32" r="10" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <circle cx="24" cy="32" r="4" fill={c} opacity=".15"/>
+    <path d="M14 22 Q24 12 34 22" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+    <path d="M18 26 Q24 18 30 26" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" opacity=".6"/>
+    <path d="M10 18 Q24 6 38 18" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity=".3"/>
+  </svg>,
+  luminaria_emerg:(c='#be123c')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="4" width="32" height="16" rx="3" fill={c} opacity=".06" stroke={c} strokeWidth="2.2"/>
+    <rect x="14" y="8" width="8" height="8" rx="1" fill={c} opacity=".15"/>
+    <rect x="26" y="8" width="8" height="8" rx="1" fill={c} opacity=".15"/>
+    <path d="M18 20 L18 30" stroke={c} strokeWidth="2" strokeLinecap="round" opacity=".5"/>
+    <path d="M30 20 L30 30" stroke={c} strokeWidth="2" strokeLinecap="round" opacity=".5"/>
+    <text x="24" y="42" textAnchor="middle" fill={c} fontSize="5" fontWeight="700" opacity=".5">EXIT</text>
+  </svg>,
+  modulo_incendio:(c='#991b1b')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="10" width="32" height="28" rx="3" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <line x1="8" y1="16" x2="40" y2="16" stroke={c} strokeWidth="1" opacity=".3"/>
+    <circle cx="14" cy="13" r="1.5" fill="#22c55e" opacity=".6"/>
+    {[22,28,34].map((y,i)=><rect key={i} x="12" y={y} width="24" height="4" rx="1" fill={c} opacity=".06" stroke={c} strokeWidth=".6"/>)}
+    <text x="36" y="14" textAnchor="end" fill={c} fontSize="4" fontWeight="700" opacity=".5">MOD</text>
+  </svg>,
+  controle_remoto:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="14" y="4" width="20" height="40" rx="6" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <circle cx="24" cy="14" r="4" fill={c} opacity=".15" stroke={c} strokeWidth="1.2"/>
+    <circle cx="20" cy="24" r="3" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+    <circle cx="28" cy="24" r="3" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+    <circle cx="20" cy="32" r="3" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+    <circle cx="28" cy="32" r="3" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+  </svg>,
+  comunicador:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="6" y="10" width="36" height="28" rx="3" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <rect x="10" y="14" width="16" height="8" rx="1.5" fill="none" stroke={c} strokeWidth="1" opacity=".4"/>
+    <path d="M32 14 L36 10" stroke={c} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M34 16 L40 8" stroke={c} strokeWidth="1" strokeLinecap="round" opacity=".4"/>
+    {[10,16,22,28,34].map((x,i)=><rect key={i} x={x} y="26" width="3" height="6" rx=".5" fill={c} opacity=".1" stroke={c} strokeWidth=".5"/>)}
+    <circle cx="10" cy="34" r="1" fill="#22c55e" opacity=".6"/>
+  </svg>,
+  receptor_rf:(c='#ef4444')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="14" width="32" height="24" rx="3" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <line x1="20" y1="14" x2="18" y2="4" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="18" cy="4" r="1.5" fill={c} opacity=".5"/>
+    <path d="M12 10 Q18 2 24 10" fill="none" stroke={c} strokeWidth="1" opacity=".3"/>
+    {[14,20,26,32].map((x,i)=><circle key={i} cx={x} cy="26" r="2" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>)}
+    <circle cx="36" cy="18" r="1" fill="#22c55e" opacity=".6"/>
+  </svg>,
+  dvr:(c='#d97706')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="2" y="10" width="44" height="28" rx="3" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
+    <rect x="6" y="14" width="20" height="6" rx="1" fill={c} opacity=".06" stroke={c} strokeWidth=".8"/>
+    <rect x="6" y="22" width="20" height="6" rx="1" fill={c} opacity=".06" stroke={c} strokeWidth=".8"/>
+    <circle cx="36" cy="20" r="5" fill="none" stroke={c} strokeWidth="1.5"/>
+    <circle cx="36" cy="20" r="2" fill={c} opacity=".2"/>
+    <text x="36" y="32" textAnchor="middle" fill={c} fontSize="5" fontWeight="800" opacity=".5">HD</text>
+  </svg>,
+  cam_wifi:(c='#f59e0b')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="4" y="8" width="8" height="14" rx="1" fill={c} opacity=".1" stroke={c} strokeWidth="1.5"/>
+    <rect x="8" y="14" width="28" height="14" rx="7" fill="none" stroke={c} strokeWidth="2.2"/>
+    <circle cx="30" cy="21" r="4" fill={c} opacity=".2"/>
+    <circle cx="30" cy="21" r="1.2" fill={c} opacity=".5"/>
+    <path d="M36 6 Q40 2 44 6" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M38 9 Q40 6 42 9" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity=".5"/>
+    <circle cx="40" cy="11" r="1" fill={c} opacity=".4"/>
+  </svg>,
 };
 
 // ====================================================================
-// DEVICE LIBRARY - Categories for Security
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (160 dispositivos)
+// Ref: Catálogo Intelbras 12ª Edição 2025 + mercado geral
 // ====================================================================
 const DEVICE_LIB = [
+  // ================================================================
+  // CFTV IP - CÂMERAS (20 tipos)
+  // ================================================================
   {cat:'CFTV IP',color:'#f59e0b',items:[
-    {key:'cam_dome',name:'Câmera Dome IP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'30m',fov:'2.8mm',ip:'IP67'}},
-    {key:'cam_bullet',name:'Câmera Bullet IP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'50m',fov:'2.8-12mm',ip:'IP67'}},
-    {key:'cam_ptz',name:'Câmera PTZ IP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,props:{resolucao:'4MP',zoom:'25x',ir:'150m',ip:'IP66'}},
-    {key:'cam_fisheye',name:'Câmera Fisheye',icon:'cam_fisheye',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'12MP',fov:'360°',ir:'15m',ip:'IP67'}},
+    {key:'cam_ip_bullet_2mp',name:'Câmera IP Bullet 2MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'3.6mm',ip:'IP67',compressao:'H.265+'},ref:'VIP 1220 B G4, VIP 1230 B G5, VIP 3230 B G3, VIPC 1230 B G2'},
+    {key:'cam_ip_bullet_2mp_fc',name:'Câmera IP Bullet 2MP Full Color',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:'VIP 1220 B Full Color G4'},
+    {key:'cam_ip_bullet_3mp',name:'Câmera IP Bullet 3MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'3MP (2304x1296)',ir:'30m',lente:'2.8mm',ip:'IP67',compressao:'H.265+'},ref:'VIP 1230 B G5'},
+    {key:'cam_ip_bullet_4mp',name:'Câmera IP Bullet 4MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP (2560x1440)',ir:'30m',lente:'2.8mm',ip:'IP67',ia:'Sim'},ref:'VIP 3430 B IA'},
+    {key:'cam_ip_bullet_8mp',name:'Câmera IP Bullet 8MP (4K)',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,props:{resolucao:'8MP (3840x2160)',ir:'50m',lente:'2.8mm',ip:'IP67',ia:'Sim'},ref:'VIP 3830 IA'},
+    {key:'cam_ip_dome_2mp',name:'Câmera IP Dome 2MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'2.8mm',ip:'IP67',compressao:'H.265+'},ref:'VIP 1220 D G4, VIP 3230 D G3, VIPC 1230 D G2'},
+    {key:'cam_ip_dome_2mp_fc',name:'Câmera IP Dome 2MP Full Color',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:'VIP 1220 D FC+'},
+    {key:'cam_ip_dome_4mp',name:'Câmera IP Dome 4MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP (2560x1440)',ir:'30m',lente:'2.8mm',ip:'IP67/IK10',ia:'Sim'},ref:'VIP 1430 D G2, VIP 3430 D IA'},
+    {key:'cam_ip_dome_vf_2mp',name:'Câmera IP Dome VF 2MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'40m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:'VIP 3240 D Z G3'},
+    {key:'cam_ip_dome_vf_4mp',name:'Câmera IP Dome VF 4MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'50m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:'VIP 3240 D IA G2, VIP 5440 D Z IA'},
+    {key:'cam_ip_bullet_vf_2mp',name:'Câmera IP Bullet VF 2MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'60m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:'VIP 3250 AL IA'},
+    {key:'cam_ip_bullet_vf_4mp',name:'Câmera IP Bullet VF 4MP',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,props:{resolucao:'4MP',ir:'60m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:'VIP 5460 Z IA'},
+    {key:'cam_ip_speed_2mp',name:'Câmera IP Speed Dome 2MP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',zoom:'16x',ir:'100m',ip:'IP66',ptz:'Pan 360°/Tilt 90°'},ref:'VIP 3216 SD IR IA'},
+    {key:'cam_ip_speed_4mp',name:'Câmera IP Speed Dome 4MP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,props:{resolucao:'4MP',zoom:'25x',ir:'150m',ip:'IP66',ia:'Sim'},ref:'VIP 3225 SD IR IA G2, VIP 5232 SD IA G2'},
+    {key:'cam_ip_mini_2mp',name:'Câmera IP Mini 2MP',icon:'cam_dome',poe:true,poeW:6,ports:1,nvrCh:1,props:{resolucao:'2MP (1080p)',ir:'10m',lente:'2.8mm',ip:'IP67',compacta:'Sim'},ref:'VIP 1300 MINI SD'},
+    {key:'cam_ip_fisheye_5mp',name:'Câmera IP Fisheye 5MP',icon:'cam_fisheye',poe:true,poeW:12,ports:1,nvrCh:1,props:{resolucao:'5MP',fov:'360°',ir:'15m',ip:'IP67',ia:'Sim'},ref:'VIP 5500 F IA'},
+    {key:'cam_ip_wifi_bullet_2mp',name:'Câmera IP Wi-Fi Bullet 2MP',icon:'cam_wifi',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'3.6mm',wifi:'2.4GHz',ip:'IP67'},ref:'VIPW 1230 B'},
+    {key:'cam_ip_wifi_bullet_4mp',name:'Câmera IP Wi-Fi Bullet 4MP',icon:'cam_wifi',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'4MP',ir:'30m',lente:'2.8mm',wifi:'2.4/5GHz',ip:'IP67'},ref:'VIPW 1430 B'},
+    {key:'cam_ip_wifi_dome_2mp',name:'Câmera IP Wi-Fi Dome 2MP',icon:'cam_wifi',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'2.8mm',wifi:'2.4GHz',ip:'IP67'},ref:'VIPW 1230 D'},
+    {key:'cam_ip_wifi_dome_4mp',name:'Câmera IP Wi-Fi Dome 4MP',icon:'cam_wifi',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'4MP',ir:'30m',lente:'2.8mm',wifi:'2.4/5GHz',ip:'IP67'},ref:'VIPW 1430 D'},
   ]},
+  // ================================================================
+  // CFTV IP - GRAVADORES NVR (6 tipos)
+  // ================================================================
+  {cat:'CFTV IP - NVR',color:'#059669',items:[
+    {key:'nvr_4ch',name:'NVR IP 4 Canais',icon:'nvr',poe:false,ports:1,props:{canais:'4 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:'NVD 1404'},
+    {key:'nvr_8ch',name:'NVR IP 8 Canais',icon:'nvr',poe:false,ports:1,props:{canais:'8 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:'NVD 1408'},
+    {key:'nvr_8ch_poe',name:'NVR IP 8 Canais PoE',icon:'nvr',poe:false,ports:1,props:{canais:'8 IP',resolMax:'4K',hd:'1 SATA',poePorts:'8 PoE'},ref:'NVD 1408-P, NVD 3308-P'},
+    {key:'nvr_16ch',name:'NVR IP 16 Canais',icon:'nvr',poe:false,ports:1,props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA (até 20TB)',saida:'1 HDMI + 1 VGA'},ref:'NVD 1416, iNVD 3016'},
+    {key:'nvr_16ch_poe',name:'NVR IP 16 Canais PoE',icon:'nvr',poe:false,ports:1,props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA',poePorts:'16 PoE'},ref:'NVD 3316-P'},
+    {key:'nvr_32ch',name:'NVR IP 32 Canais',icon:'nvr',poe:false,ports:1,props:{canais:'32 IP',resolMax:'4K',hd:'2 SATA',saida:'2 HDMI + 1 VGA',ia:'Sim'},ref:'NVD 1432, iNVD 3032, iNVD 5232'},
+  ]},
+  // ================================================================
+  // CFTV MULTI HD - CÂMERAS (12 tipos)
+  // ================================================================
+  {cat:'CFTV Multi HD',color:'#d97706',items:[
+    {key:'cam_mhd_bullet_1mp',name:'Câmera Multi HD Bullet 1MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'1MP (720p)',ir:'20m',lente:'3.6mm',tech:'HDCVI/AHD/TVI/CVBS'},ref:'VHD 1120 B Full Color'},
+    {key:'cam_mhd_bullet_2mp',name:'Câmera Multi HD Bullet 2MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'3.6mm',tech:'Multi HD'},ref:'VHD 1220 B G8, VHD 1230 B G7, VHD 3230 B G7'},
+    {key:'cam_mhd_bullet_2mp_fc',name:'Câmera Multi HD Bullet 2MP FC',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'2MP',ir:'20m LED',lente:'2.8mm',visao:'Full Color'},ref:'VHD 1220 B FC G8, VHD 3240 FC G6'},
+    {key:'cam_mhd_bullet_3mp',name:'Câmera Multi HD Bullet 3MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'3MP',ir:'30m',lente:'2.8mm',tech:'Multi HD'},ref:'VHD 3130 B G7'},
+    {key:'cam_mhd_dome_1mp',name:'Câmera Multi HD Dome 1MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'1MP (720p)',ir:'20m',lente:'2.8mm',tech:'Multi HD'},ref:'VHD 1120 D FC, VHD 1120 D G7'},
+    {key:'cam_mhd_dome_2mp',name:'Câmera Multi HD Dome 2MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP (1080p)',ir:'30m',lente:'2.8mm',tech:'Multi HD'},ref:'VHD 1220 D G7, VHD 3230 D G7'},
+    {key:'cam_mhd_dome_2mp_fc',name:'Câmera Multi HD Dome 2MP FC',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'20m LED',visao:'Full Color'},ref:'VHD 1220 D FC G8, VHD 3240 FC G6+'},
+    {key:'cam_mhd_mini_2mp',name:'Câmera Multi HD Mini Dome 2MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'20m',compacta:'Sim'},ref:'VHD 3200 MINI SD, VHD 3220 MINI D'},
+    {key:'cam_mhd_vf_2mp',name:'Câmera Multi HD VF 2MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'2MP',ir:'40m',lente:'2.7-12mm'},ref:'VHD 3250 VF G7'},
+    {key:'cam_mhd_speed_2mp',name:'Câmera Multi HD Speed Dome 2MP',icon:'cam_ptz',poe:false,ports:0,nvrCh:1,ampDC:1.5,props:{resolucao:'2MP',zoom:'20x',ir:'100m'},ref:'VHD 5220 SD, VHD 5225 SD IR'},
+    {key:'cam_mhd_bullet_4k',name:'Câmera Multi HD Bullet 4K',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'8MP (4K)',ir:'30m',lente:'2.8mm'},ref:'VHD 5830 B 4K'},
+    {key:'cam_mhd_dome_4k',name:'Câmera Multi HD Dome 4K',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.5,props:{resolucao:'8MP (4K)',ir:'30m',lente:'2.8mm'},ref:'VHD 5820 D 4K'},
+  ]},
+  // ================================================================
+  // CFTV MULTI HD - DVR (4 tipos)
+  // ================================================================
+  {cat:'CFTV Multi HD - DVR',color:'#b45309',items:[
+    {key:'dvr_4ch',name:'DVR Multi HD 4 Canais',icon:'dvr',poe:false,ports:1,props:{canais:'4 BNC + 2 IP',resolMax:'5MP',hd:'1 SATA',tech:'HDCVI/AHD/TVI/CVBS/IP'},ref:'MHDX 1104-C, MHDX 1304, MHDX 3104-C'},
+    {key:'dvr_8ch',name:'DVR Multi HD 8 Canais',icon:'dvr',poe:false,ports:1,props:{canais:'8 BNC + 4 IP',resolMax:'5MP',hd:'1 SATA'},ref:'MHDX 1108-C, MHDX 1308, MHDX 3108-C, iMHDX 3108'},
+    {key:'dvr_16ch',name:'DVR Multi HD 16 Canais',icon:'dvr',poe:false,ports:1,props:{canais:'16 BNC + 8 IP',resolMax:'5MP',hd:'2 SATA'},ref:'MHDX 1116-C, MHDX 1316, MHDX 3116-C, iMHDX 3116'},
+    {key:'dvr_32ch',name:'DVR Multi HD 32 Canais',icon:'dvr',poe:false,ports:1,props:{canais:'32 BNC + 16 IP',resolMax:'5MP',hd:'2 SATA',ia:'Sim'},ref:'iMHDX 3132, iMHDX 5108, iMHDX 5116'},
+  ]},
+  // ================================================================
+  // CFTV HDCVI (6 tipos)
+  // ================================================================
+  {cat:'CFTV HDCVI',color:'#92400e',items:[
+    {key:'cam_hdcvi_bullet_1mp',name:'Câmera HDCVI Bullet 1MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'1MP (720p)',ir:'20m',tech:'HDCVI'},ref:'VHL 1120 B, VHL 1120 B G2'},
+    {key:'cam_hdcvi_bullet_2mp',name:'Câmera HDCVI Bullet 2MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'30m',tech:'HDCVI'},ref:'VHL 1220 B G2, VHD 3520 B'},
+    {key:'cam_hdcvi_dome_1mp',name:'Câmera HDCVI Dome 1MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'1MP (720p)',ir:'20m',tech:'HDCVI'},ref:'VHL 1120 D, VHL 1120 D G2'},
+    {key:'cam_hdcvi_dome_2mp',name:'Câmera HDCVI Dome 2MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'30m',tech:'HDCVI'},ref:'VHL 1220 D G2'},
+    {key:'cam_hdcvi_dome_5mp',name:'Câmera HDCVI Dome 5MP',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.4,props:{resolucao:'5MP',ir:'20m',tech:'HDCVI'},ref:'VHD 1520 D'},
+    {key:'cam_hdcvi_bullet_3mp',name:'Câmera HDCVI Bullet 3MP',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'3MP',ir:'30m',tech:'HDCVI'},ref:'VHD 3530 B'},
+  ]},
+  // ================================================================
+  // SOLUÇÃO VEICULAR (3 tipos)
+  // ================================================================
+  {cat:'Solução Veicular',color:'#78350f',items:[
+    {key:'gravador_veicular',name:'Gravador Veicular (MVD)',icon:'nvr',poe:false,ports:1,props:{canais:'4-8',armazenamento:'SD/SSD',gps:'Sim','4g':'Sim'},ref:'MVD 1104, MVD 1108'},
+    {key:'cam_veicular_int',name:'Câmera Veicular Interna',icon:'cam_dome',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'10m',audio:'Sim'},ref:'DC 3102'},
+    {key:'cam_veicular_ext',name:'Câmera Veicular Externa',icon:'cam_bullet',poe:false,ports:0,nvrCh:1,ampDC:0.3,props:{resolucao:'2MP',ir:'20m',ip:'IP67'},ref:'DC 3101'},
+  ]},
+  // ================================================================
+  // CONTROLE DE ACESSO (9 tipos)
+  // ================================================================
   {cat:'Controle de Acesso',color:'#8b5cf6',items:[
-    {key:'leitor_facial',name:'Leitor Facial',icon:'leitor_facial',poe:false,ports:1,ampDC:0.5,props:{faces:'50.000',tela:'4.3"',temp:'Sim',ip:'IP65'}},
-    {key:'controladora',name:'Controladora Acesso',icon:'controladora',poe:false,ports:1,props:{portas:'4',wiegand:'Sim',relay:'4'}},
-    {key:'fechadura',name:'Fechadura Eletromagnética',icon:'fechadura',poe:false,ampDC:0.3,ports:0,props:{forca:'280kg',tipo:'Fail-safe'}},
-    {key:'motor',name:'Motor Portão',icon:'motor',poe:false,ports:0,props:{tipo:'Deslizante',peso:'até 600kg'}},
-    {key:'cam_lpr',name:'Câmera LPR',icon:'cam_lpr',poe:true,poeW:15,ports:1,nvrCh:1,props:{resolucao:'2MP',ir:'12m',lente:'2.8-12mm',funcao:'Reconhecimento Placa'}},
-    {key:'leitor_tag',name:'Leitor Tag UHF',icon:'leitor_tag',poe:false,ports:0,ampDC:0.3,props:{frequencia:'915MHz',alcance:'até 8m',protocolo:'Wiegand/RS485'}},
+    {key:'leitor_facial',name:'Leitor Facial',icon:'leitor_facial',poe:false,ports:1,ampDC:0.5,props:{faces:'50.000',tela:'4.3"',temp:'Sim',ip:'IP65'},ref:'SS 3540 MF FACE, SS 3530 MF FACE'},
+    {key:'leitor_biometrico',name:'Leitor Biométrico',icon:'leitor_facial',poe:false,ports:1,ampDC:0.3,props:{digitais:'10.000',protocolo:'Wiegand/RS485',ip:'IP65'},ref:'SS 411 E, SS 420 MF'},
+    {key:'leitor_rfid',name:'Leitor RFID/Proximidade',icon:'leitor_tag',poe:false,ports:0,ampDC:0.15,props:{frequencia:'125kHz/13.56MHz',protocolo:'Wiegand 26/34'},ref:'LE 130 MF, LE 230 MF'},
+    {key:'controladora',name:'Controladora de Acesso',icon:'controladora',poe:false,ports:1,props:{portas:'4',wiegand:'Sim',relay:'4',rede:'TCP/IP'},ref:'CT 500 4PB, CT 500 2PB'},
+    {key:'fechadura',name:'Fechadura Eletromagnética',icon:'fechadura',poe:false,ampDC:0.3,ports:0,props:{forca:'280kg',tipo:'Fail-safe'},ref:'FE 20150, FE 20300'},
+    {key:'eletroima',name:'Eletroímã',icon:'fechadura',poe:false,ampDC:0.5,ports:0,props:{forca:'150-300kg',tipo:'Fail-safe'},ref:'EL 150, EL 300'},
+    {key:'motor',name:'Motor Portão/Acesso',icon:'motor',poe:false,ports:0,props:{tipo:'Deslizante',peso:'até 600kg'},ref:'DR 400, DR 600'},
+    {key:'cam_lpr',name:'Câmera LPR',icon:'cam_lpr',poe:true,poeW:15,ports:1,nvrCh:1,props:{resolucao:'2MP',ir:'12m',lente:'2.8-12mm',funcao:'Reconhecimento Placa'},ref:'VIP 3240 D IA G2 (OCR)'},
+    {key:'leitor_tag',name:'Leitor Tag UHF',icon:'leitor_tag',poe:false,ports:0,ampDC:0.3,props:{frequencia:'915MHz',alcance:'até 8m',protocolo:'Wiegand/RS485'},ref:'LE 170, LR 100 UHF'},
   ]},
-  {cat:'Alarme',color:'#ef4444',items:[
-    {key:'alarme_central',name:'Central de Alarme',icon:'alarme_central',poe:false,ports:1,props:{zonas:'64',partições:'4',com:'TCP/IP+GPRS'}},
-    {key:'sensor_presenca',name:'Sensor de Presença IVP',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',angulo:'90°',petFriendly:'Sim'}},
-    {key:'sensor_abertura',name:'Sensor de Abertura',icon:'sensor_abertura',poe:false,ports:0,props:{tipo:'Magnético',gap:'25mm'}},
-    {key:'sirene',name:'Sirene Audiovisual',icon:'sirene',poe:false,ports:0,ampDC:0.5,props:{db:'110dB',flash:'Sim'}},
+  // ================================================================
+  // INTRUSÃO - CENTRAIS (5 tipos)
+  // ================================================================
+  {cat:'Intrusão - Centrais',color:'#ef4444',items:[
+    {key:'alarme_nao_monit',name:'Central Alarme Não Monitorada',icon:'alarme_central',poe:false,ports:1,props:{zonas:'24 (8+16 sem fio)',com:'Ethernet/Wi-Fi',tipo:'Não monitorada'},ref:'ANM 24 NET G2'},
+    {key:'alarme_monit_basica',name:'Central Alarme Monitorada Básica',icon:'alarme_central',poe:false,ports:1,props:{zonas:'até 36',particoes:'2',com:'TCP/IP + GSM'},ref:'AMT 1000 SMART'},
+    {key:'alarme_monit_inter',name:'Central Alarme Monitorada Intermediária',icon:'alarme_central',poe:false,ports:1,props:{zonas:'até 48',particoes:'4',com:'TCP/IP + GPRS'},ref:'AMT 2018 E, AMT 2018 EG, AMT 2018 E SMART'},
+    {key:'alarme_monit_avanc',name:'Central Alarme Monitorada Avançada',icon:'alarme_central',poe:false,ports:1,props:{zonas:'até 64',particoes:'4',com:'TCP/IP + GPRS + Wi-Fi'},ref:'AMT 4010 SMART'},
+    {key:'alarme_sem_fio',name:'Central Alarme Sem Fio (Sist. 8000)',icon:'alarme_central',poe:false,ports:1,props:{zonas:'até 64 sem fio',com:'TCP/IP + 4G + Wi-Fi',tipo:'100% sem fio'},ref:'AMT 8000, AMT 8000 PRO, AMT 8000 LITE'},
   ]},
+  // ================================================================
+  // INTRUSÃO - SENSORES PIR (11 tipos)
+  // ================================================================
+  {cat:'Intrusão - Sensores PIR',color:'#dc2626',items:[
+    {key:'pir_int_basico',name:'Sensor PIR Interno Básico',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',angulo:'90°',pet:'Não'},ref:'IVP 2000 SF'},
+    {key:'pir_int_pet',name:'Sensor PIR Interno Pet',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',angulo:'90°',pet:'Sim (20kg)'},ref:'IVP 1000 PET, IVP 1000 PET SF, IVP 3000 PET'},
+    {key:'pir_int_pet_smart',name:'Sensor PIR Interno Pet Smart',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',pet:'Sim',sem_fio:'433MHz'},ref:'IVP 1000 PET SMART, IVP 4101 PET SMART'},
+    {key:'pir_teto',name:'Sensor PIR de Teto',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'360° / 6m raio',instalacao:'Teto 2.4-3.6m'},ref:'IVP 3011 TETO'},
+    {key:'pir_cortina',name:'Sensor PIR Cortina',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'15m',angulo:'10°',instalacao:'Abertura'},ref:'IVP 3011 CORTINA'},
+    {key:'pir_dupla_tech',name:'Sensor PIR Dupla Tecnologia (MW)',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'15m',tecnologia:'PIR + Microondas',pet:'Sim'},ref:'IVP 3000 MW EX, IVP 5311 MW PET, IVP 5002 PET'},
+    {key:'pir_externo',name:'Sensor PIR Externo',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'15m',ip:'IP55',instalacao:'Externo'},ref:'IVP 7000 EX, IVP 7000 SMART EX'},
+    {key:'pir_ext_dupla',name:'Sensor PIR Externo Dupla Tecnologia',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'15m',ip:'IP55',tecnologia:'PIR + MW'},ref:'IVP 7000 MW EX, IVP 7001 MW PET'},
+    {key:'pir_longa_dist',name:'Sensor PIR Longa Distância',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'30m+',tipo:'Cortina longa'},ref:'IVP 5000 LD, IVP 5000 SMART LD'},
+    {key:'pir_ld_dupla',name:'Sensor PIR LD Dupla Tecnologia',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'30m+',tecnologia:'PIR + MW'},ref:'IVP 5000 MW LD, IVP 7000 MW MASK LD'},
+    {key:'pir_alta_perf',name:'Sensor PIR Alta Performance',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'18m',angulo:'110°',tecnologia:'PIR + MW',antimasking:'Sim'},ref:'IVP 9000 MW, IVP 9000 MW MASK'},
+  ]},
+  // ================================================================
+  // INTRUSÃO - BARREIRAS (5 tipos)
+  // ================================================================
+  {cat:'Intrusão - Barreiras',color:'#b91c1c',items:[
+    {key:'barreira_digital',name:'Barreira IR Digital',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 150m',feixes:'1',ip:'IP66'},ref:'IVA 5015 DIGITAL'},
+    {key:'barreira_ativa',name:'Barreira IR Ativa',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 100m',feixes:'2',ip:'IP66'},ref:'IVA 3070 X, IVA 3110 X'},
+    {key:'barreira_at',name:'Barreira IR Anti-Tamper',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 80m',feixes:'2',antitamper:'Sim'},ref:'IVA 5040 AT, IVA 5080 AT'},
+    {key:'barreira_multi',name:'Barreira IR Multi-Feixe',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 100m',feixes:'4/6/8'},ref:'IVA 7100 DUAL, QUAD, HEXA, OCTA'},
+    {key:'barreira_tripla',name:'Barreira IR Tripla Tecnologia',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 100m',tecnologia:'IR + MW + Lógica'},ref:'IVA 9100 TRI'},
+  ]},
+  // ================================================================
+  // INTRUSÃO - ELETRIFICADORES (4 tipos)
+  // ================================================================
+  {cat:'Intrusão - Eletrificadores',color:'#991b1b',items:[
+    {key:'eletri_basico',name:'Eletrificador Básico',icon:'eletrificador',poe:false,ports:0,props:{tensao:'8.000V',setores:'1',alarme:'Sirene + PGM'},ref:'ELC 5001'},
+    {key:'eletri_net',name:'Eletrificador com Monitoramento',icon:'eletrificador',poe:false,ports:1,props:{tensao:'12.000V',setores:'2',com:'TCP/IP'},ref:'ELC 6012, ELC 6012 NET'},
+    {key:'eletri_high',name:'Eletrificador High Power',icon:'eletrificador',poe:false,ports:0,props:{tensao:'18.000V',setores:'4',potencia:'Alta'},ref:'HIGH POWER ELC 5002, ELC 5003'},
+    {key:'eletri_extensor',name:'Extensor de Cerca Elétrica',icon:'eletrificador',poe:false,ports:0,props:{funcao:'Amplificador de sinal',bus:'Sim'},ref:'XEL 5001'},
+  ]},
+  // ================================================================
+  // INTRUSÃO - PERIFÉRICOS (10 tipos)
+  // ================================================================
+  {cat:'Intrusão - Periféricos',color:'#f87171',items:[
+    {key:'teclado_led',name:'Teclado LED para Central',icon:'teclado_alarme',poe:false,ports:0,ampDC:0.1,props:{tipo:'LED',bus:'Sim'},ref:'XAT 3000 LED'},
+    {key:'teclado_lcd',name:'Teclado LCD para Central',icon:'teclado_alarme',poe:false,ports:0,ampDC:0.1,props:{tipo:'LCD 16x2',programacao:'Sim'},ref:'XAT 4000 LCD'},
+    {key:'comunicador_eth',name:'Comunicador Ethernet',icon:'comunicador',poe:false,ports:1,props:{protocolo:'Contact ID via TCP/IP'},ref:'XEG 4000 SMART'},
+    {key:'comunicador_gprs',name:'Comunicador GPRS/4G',icon:'comunicador',poe:false,ports:0,props:{protocolo:'Contact ID via GPRS/4G'},ref:'XE 4000 SMART'},
+    {key:'receptor_rf',name:'Receptor RF',icon:'receptor_rf',poe:false,ports:0,ampDC:0.1,props:{frequencia:'433MHz',canais:'até 128'},ref:'XAR 3060 UN, XAR 4000 SMART'},
+    {key:'controle_remoto',name:'Controle Remoto',icon:'controle_remoto',poe:false,ports:0,props:{frequencia:'433MHz',botoes:'4',alcance:'50m'},ref:'XAC 4000 SMART, XAC 2000'},
+    {key:'sirene_int',name:'Sirene Interna',icon:'sirene',poe:false,ports:0,ampDC:0.3,props:{db:'85-100dB',flash:'Não'},ref:'SIR 1000'},
+    {key:'sirene_ext',name:'Sirene Externa',icon:'sirene',poe:false,ports:0,ampDC:0.5,props:{db:'110-120dB',flash:'Sim LED',ip:'IP54'},ref:'SIR 2000, SIR 3000'},
+    {key:'sensor_abertura',name:'Sensor de Abertura Magnético',icon:'sensor_abertura',poe:false,ports:0,props:{tipo:'Magnético NF',gap:'25mm'},ref:'XAS 4010 SMART, XAS 1001, XAS 8000'},
+    {key:'modulo_pgm',name:'Módulo PGM / Expansão',icon:'modulo_incendio',poe:false,ports:0,props:{saidas:'Relé NA/NF',funcao:'Automação/expansão'},ref:'XEP 4004 SMART'},
+  ]},
+  // ================================================================
+  // SISTEMA 8000 SEM FIO (7 tipos)
+  // ================================================================
+  {cat:'Sistema 8000 Sem Fio',color:'#fca5a5',items:[
+    {key:'s8k_central',name:'Central Sem Fio Sistema 8000',icon:'alarme_central',poe:false,ports:1,props:{zonas:'até 64 sem fio',com:'TCP/IP + 4G + Wi-Fi',painel:'Touch'},ref:'AMT 8000, AMT 8000 PRO'},
+    {key:'s8k_abertura',name:'Sensor Abertura SF 8000',icon:'sensor_abertura',poe:false,ports:0,props:{frequencia:'868MHz',bateria:'CR123A (3 anos)'},ref:'XAS 8000'},
+    {key:'s8k_pir',name:'Sensor PIR SF 8000',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'12m',pet:'Sim',frequencia:'868MHz'},ref:'IVP 8000 PET'},
+    {key:'s8k_pir_ext',name:'Sensor PIR Ext SF 8000',icon:'sensor_presenca',poe:false,ports:0,props:{alcance:'15m',ip:'IP55',frequencia:'868MHz'},ref:'IVP 8000 EX'},
+    {key:'s8k_barreira',name:'Barreira SF 8000',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 40m',feixes:'2',frequencia:'868MHz'},ref:'IVA 8040 AT'},
+    {key:'s8k_sirene',name:'Sirene SF 8000',icon:'sirene',poe:false,ports:0,props:{db:'95dB',flash:'Sim',frequencia:'868MHz'},ref:'XSS 8000'},
+    {key:'s8k_teclado',name:'Teclado SF 8000',icon:'teclado_alarme',poe:false,ports:0,props:{display:'LCD Touch',frequencia:'868MHz'},ref:'XAT 8000'},
+  ]},
+  // ================================================================
+  // AUTOMATIZADORES (7 tipos)
+  // ================================================================
+  {cat:'Automatizadores',color:'#ea580c',items:[
+    {key:'auto_desl_leve',name:'Automatizador Deslizante Leve',icon:'motor',poe:false,ports:0,props:{capacidade:'até 400kg',motor:'DC',receptor:'433MHz'},ref:'DR 300 NY, DR 350 FAST, DR 400 NY'},
+    {key:'auto_desl_pesado',name:'Automatizador Deslizante Pesado',icon:'motor',poe:false,ports:0,props:{capacidade:'até 800kg',motor:'DC'},ref:'DR 400 AL, DR 600, DC 800 FAST'},
+    {key:'auto_basc_leve',name:'Automatizador Basculante Leve',icon:'motor',poe:false,ports:0,props:{capacidade:'até 300kg',tipo:'Basculante'},ref:'BR 300, BR 300 FAST'},
+    {key:'auto_basc_pesado',name:'Automatizador Basculante Pesado',icon:'motor',poe:false,ports:0,props:{capacidade:'até 500kg',tipo:'Basculante'},ref:'BR 400, BR 400 FAST, BC 500, BC 500 FAST'},
+    {key:'cancela_veicular',name:'Cancela Veicular',icon:'cancela',poe:false,ports:0,props:{braco:'até 3m',velocidade:'1.5s'},ref:'AF 3000'},
+    {key:'auto_pivotante',name:'Automatizador Pivotante',icon:'motor',poe:false,ports:0,props:{capacidade:'até 200kg/folha',tipo:'Pivotante'},ref:'PP 200'},
+    {key:'auto_porta_desl',name:'Automatizador Porta Deslizante',icon:'motor',poe:false,ports:0,props:{capacidade:'até 300kg',tipo:'Porta deslizante'},ref:'PD 300'},
+  ]},
+  // ================================================================
+  // INCÊNDIO CONVENCIONAL (6 tipos)
+  // ================================================================
+  {cat:'Incêndio Convencional',color:'#7f1d1d',items:[
+    {key:'fogo_central_conv',name:'Central Incêndio Convencional',icon:'alarme_central',poe:false,ports:1,props:{lacos:'6/12/24',norma:'NBR 17240',bateria:'24V'},ref:'CIC 06L, CIC 12L, CIC 24L'},
+    {key:'fogo_det_fumaca_conv',name:'Detector Fumaça Óptico Conv.',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Óptico pontual',norma:'EN 54-7'},ref:'DFC 421 UN'},
+    {key:'fogo_det_temp_conv',name:'Detector Temperatura Conv.',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Termovelocimétrico',ativacao:'57°C'},ref:'DTC 421 UN'},
+    {key:'fogo_acionador_conv',name:'Acionador Manual Conv.',icon:'acionador_manual',poe:false,ports:0,props:{tipo:'Rearmável',norma:'EN 54-11'},ref:'AMC 421, AMC 422, AMC 466'},
+    {key:'fogo_sinalizador_conv',name:'Sinalizador Audiovisual Conv.',icon:'sirene',poe:false,ports:0,props:{db:'85dB+',flash:'LED Xenon'},ref:'SAV 420C'},
+    {key:'fogo_det_linear',name:'Detector Linear de Fumaça',icon:'sensor_barreira',poe:false,ports:0,props:{alcance:'até 100m',tipo:'Reflexivo',norma:'EN 54-12'},ref:'DFL 3100'},
+  ]},
+  // ================================================================
+  // INCÊNDIO ENDEREÇÁVEL (9 tipos)
+  // ================================================================
+  {cat:'Incêndio Endereçável',color:'#881337',items:[
+    {key:'fogo_central_end',name:'Central Incêndio Endereçável',icon:'alarme_central',poe:false,ports:1,props:{lacos:'1-4',dispositivos:'até 250/laço',norma:'NBR 17240 / EN 54'},ref:'CIE 1060, CIE 1125, CIE 1250, CIE 2500'},
+    {key:'fogo_det_fumaca_end',name:'Detector Fumaça Endereçável',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Óptico endereçável',norma:'EN 54-7'},ref:'DFE 521, DFE 522L'},
+    {key:'fogo_det_temp_end',name:'Detector Temp. Endereçável',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Termovelocimétrico end.',norma:'EN 54-5'},ref:'DTE 521, DTE 522L'},
+    {key:'fogo_acionador_end',name:'Acionador Manual Endereçável',icon:'acionador_manual',poe:false,ports:0,props:{tipo:'Rearmável endereçável',norma:'EN 54-11'},ref:'AME 521, AME 522, AME 566'},
+    {key:'fogo_mod_isolador',name:'Módulo Isolador de Laço',icon:'modulo_incendio',poe:false,ports:0,props:{funcao:'Isolar curto no laço SLC'},ref:'IDL 521'},
+    {key:'fogo_mod_entrada',name:'Módulo de Entrada (Monitor)',icon:'modulo_incendio',poe:false,ports:0,props:{funcao:'Monitorar zona conv.',entradas:'1-2'},ref:'MDI 521'},
+    {key:'fogo_mod_es',name:'Módulo de Entrada/Saída',icon:'modulo_incendio',poe:false,ports:0,props:{funcao:'Monitor + Acionamento',saidas:'1 relay'},ref:'MIO 521'},
+    {key:'fogo_mod_zona',name:'Módulo de Zona',icon:'modulo_incendio',poe:false,ports:0,props:{funcao:'Expandir zonas conv.',zonas:'2'},ref:'MDZ 521'},
+    {key:'fogo_gateway',name:'Gateway Comunicação Incêndio',icon:'controladora',poe:false,ports:1,props:{funcao:'RS-485 → TCP/IP'},ref:'GW 521'},
+  ]},
+  // ================================================================
+  // INCÊNDIO ESPECIAIS (5 tipos)
+  // ================================================================
+  {cat:'Incêndio Especiais',color:'#be123c',items:[
+    {key:'fogo_det_autonomo',name:'Detector Fumaça Autônomo',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Óptico autônomo',alimentacao:'Bateria',sirene:'85dB integrada'},ref:'DFA 623'},
+    {key:'fogo_det_gas',name:'Detector de Gás Autônomo',icon:'detector_fumaca',poe:false,ports:0,props:{gas:'GLP/Gás Natural',alimentacao:'220V AC'},ref:'DGA 623'},
+    {key:'fogo_det_chama_ir',name:'Detector de Chama IR',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Infravermelho',alcance:'até 10m',ip:'IP55'},ref:'DCH 7110'},
+    {key:'fogo_det_chama_uvir',name:'Detector de Chama UV/IR',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'UV + IR',alcance:'até 25m',ip:'IP55'},ref:'DCH 7210'},
+    {key:'fogo_aspiracao',name:'Sistema de Aspiração',icon:'modulo_incendio',poe:false,ports:1,props:{tipo:'ASD',tubulacao:'até 200m',pontos:'até 120'},ref:'CAS 7100, CAS 7200'},
+  ]},
+  // ================================================================
+  // LINHA MORLEY (2 tipos)
+  // ================================================================
+  {cat:'Incêndio Linha Morley',color:'#9f1239',items:[
+    {key:'morley_central',name:'Central Morley Analógica',icon:'alarme_central',poe:false,ports:1,props:{lacos:'2-8',norma:'EN 54-2/4',protocolo:'Morley-IAS'},ref:'MA 2000, MA 8000'},
+    {key:'morley_detector',name:'Detector Morley Multi-Sensor',icon:'detector_fumaca',poe:false,ports:0,props:{tipo:'Multi-sensor',norma:'EN 54-5/7'},ref:'Detectores Morley EN54'},
+  ]},
+  // ================================================================
+  // ILUMINAÇÃO EMERGÊNCIA (4 tipos)
+  // ================================================================
+  {cat:'Iluminação Emergência',color:'#e11d48',items:[
+    {key:'emerg_bloco',name:'Bloco Autônomo LED',icon:'luminaria_emerg',poe:false,ports:0,props:{lumens:'400-3000',autonomia:'3h',norma:'NBR 10898'},ref:'BLA 400, BLA 600, BLA 1202, BLA 2202, BLA 3000'},
+    {key:'emerg_luminaria',name:'Luminária de Emergência',icon:'luminaria_emerg',poe:false,ports:0,props:{lumens:'30 LEDs',autonomia:'6h'},ref:'LDE 30L'},
+    {key:'emerg_lum_potencia',name:'Luminária Emerg. Alta Potência',icon:'luminaria_emerg',poe:false,ports:0,props:{lumens:'1000-3000',ip:'IP65'},ref:'LEA 31, LEA 150'},
+    {key:'emerg_central_psa',name:'Central Iluminação PSA',icon:'modulo_incendio',poe:false,ports:1,props:{circuitos:'8-16',monitoramento:'TCP/IP',norma:'NBR 10898'},ref:'PSA 125, PSA 225'},
+  ]},
+  // ================================================================
+  // REDE / SWITCHES (6 tipos)
+  // ================================================================
   {cat:'Rede',color:'#2563eb',items:[
-    {key:'sw_poe',name:'Switch PoE Gerenciável',icon:'sw_poe',poe:false,ports:0,props:{portas:'8+2',poeTotal:'120W',vlan:'Sim',sfp:'2'}},
-    {key:'sw_normal',name:'Switch Não-PoE',icon:'sw_normal',poe:false,ports:0,props:{portas:'8',velocidade:'1Gbps'}},
-    {key:'nvr',name:'NVR / Gravador',icon:'nvr',poe:false,ports:1,props:{canais:'16',hd:'até 2x 10TB',raid:'Sim'}},
-    {key:'router',name:'Gateway / Router',icon:'router',poe:false,ports:0,props:{wan:'2',lan:'4',vpn:'Sim',firewall:'Sim'}},
+    {key:'sw_poe',name:'Switch PoE Gerenciável',icon:'sw_poe',poe:false,ports:0,props:{portas:'8+2 SFP',poeTotal:'120W',vlan:'Sim'},ref:'SG 1002 MR PoE, SF 910 PAC'},
+    {key:'sw_poe_16',name:'Switch PoE 16 Portas',icon:'sw_poe',poe:false,ports:0,props:{portas:'16+2 SFP',poeTotal:'240W',vlan:'Sim'},ref:'SG 1602 MR PoE, SF 1822 PoE'},
+    {key:'sw_poe_24',name:'Switch PoE 24 Portas',icon:'sw_poe',poe:false,ports:0,props:{portas:'24+2 SFP',poeTotal:'370W',gerenciavel:'Sim'},ref:'SG 2404 MR PoE'},
+    {key:'sw_normal',name:'Switch Não-PoE',icon:'sw_normal',poe:false,ports:0,props:{portas:'8',velocidade:'1Gbps'},ref:'SG 800 Q+, SF 800 Q+'},
+    {key:'sw_normal_16',name:'Switch Não-PoE 16 Portas',icon:'sw_normal',poe:false,ports:0,props:{portas:'16',velocidade:'1Gbps'},ref:'SG 1600 Q+'},
+    {key:'router',name:'Gateway / Router',icon:'router',poe:false,ports:0,props:{wan:'2',lan:'4',vpn:'Sim',firewall:'Sim'},ref:'RG 1200, SR 1041E'},
   ]},
+  // ================================================================
+  // WI-FI (6 tipos)
+  // ================================================================
+  {cat:'Wi-Fi',color:'#3b82f6',items:[
+    {key:'wifi_router_5',name:'Roteador Wi-Fi 5 (AC)',icon:'router',poe:false,ports:0,props:{padrao:'Wi-Fi 5 (802.11ac)',velocidade:'1200Mbps'},ref:'W5-1200GS, Twibi Force'},
+    {key:'wifi_router_6',name:'Roteador Wi-Fi 6 (AX)',icon:'router',poe:false,ports:0,props:{padrao:'Wi-Fi 6 (802.11ax)',velocidade:'1500Mbps'},ref:'W6-1500, RX 3000'},
+    {key:'wifi_mesh',name:'Sistema Mesh Wi-Fi',icon:'ap_wifi',poe:false,ports:0,props:{cobertura:'até 300m²/un.',seamless:'Sim'},ref:'Twibi Force, IH 3000, IH 3001'},
+    {key:'wifi_router_5g',name:'Roteador 5G',icon:'router',poe:false,ports:0,props:{padrao:'5G Sub-6GHz',wifi:'Wi-Fi 6'},ref:'GX 1001C, GX 3000'},
+    {key:'wifi_ap_interno',name:'Access Point Interno',icon:'ap_wifi',poe:true,poeW:15,ports:0,props:{velocidade:'1200-1800Mbps',gerenciavel:'Sim'},ref:'AP 1250 AC MAX, AP 1350 AC-S, AP 1800 AX'},
+    {key:'wifi_ap_externo',name:'Access Point Externo',icon:'ap_wifi',poe:true,poeW:15,ports:0,props:{ip:'IP65',velocidade:'1200Mbps'},ref:'AP 1250 AC Outdoor'},
+  ]},
+  // ================================================================
+  // INFRAESTRUTURA (13 tipos)
+  // ================================================================
   {cat:'Infraestrutura',color:'#6b7280',items:[
     {key:'quadro',name:'Quadro Conectividade',icon:'quadro',poe:false,ports:0,props:{material:'PVC IP65',trilho:'DIN'}},
-    {key:'rack',name:'Rack',icon:'rack',poe:false,ports:0,isContainer:true,
-     configurable:true,configFields:['alturaU','profundidade','acessorios'],
-     props:{altura:'5U-42U',profundidade:'450-600mm'}},
-    {key:'nobreak_ac',name:'Nobreak AC',icon:'nobreak_ac',poe:false,ports:0,configurable:true,
-     configFields:['snmp','tomadas_10a','tomadas_20a','potenciaVA','batExterna'],
-     props:{potencia:'600-3000VA',tipo:'AC Interativo/Senoidal'}},
-    {key:'nobreak_dc',name:'Nobreak DC',icon:'nobreak_dc',poe:false,ports:0,configurable:true,
-     configFields:['correnteSaida','batInterna','batExterna'],
-     props:{potencia:'60-120W',tipo:'DC 12V',saida:'12.8Vcc'}},
-    {key:'bateria_ext',name:'Bateria Externa',icon:'bateria_ext',poe:false,ports:0,configurable:true,
-     configFields:['tensao','capacidade','modelo'],props:{tensao:'12V',tipo:'Estacionária VRLA'}},
-    {key:'modulo_bat',name:'Módulo de Baterias',icon:'modulo_bat',poe:false,ports:0,configurable:true,
-     configFields:['qtdBaterias','tensaoBarramento'],props:{tipo:'Gabinete com baterias'}},
-    {key:'cabo_engate',name:'Cabo Engate Rápido',icon:'cabo_engate',poe:false,ports:0,
-     props:{conector:'SB 50 Anderson Power'}},
-    {key:'fonte',name:'Fonte 12V',icon:'fonte',poe:false,ports:0,props:{corrente:'10A',entrada:'90-240Vac'}},
+    {key:'rack',name:'Rack',icon:'rack',poe:false,ports:0,isContainer:true,configurable:true,configFields:['alturaU','profundidade','acessorios'],props:{altura:'5U-42U',profundidade:'450-600mm'}},
+    {key:'nobreak_ac',name:'Nobreak AC',icon:'nobreak_ac',poe:false,ports:0,configurable:true,configFields:['snmp','tomadas_10a','tomadas_20a','potenciaVA','batExterna'],props:{potencia:'600-3000VA',tipo:'AC Interativo/Senoidal'},ref:'SNB 3000 VA BI, ATTIV SEG BI+'},
+    {key:'nobreak_dc',name:'Nobreak DC',icon:'nobreak_dc',poe:false,ports:0,configurable:true,configFields:['correnteSaida','batInterna','batExterna'],props:{potencia:'60-120W',tipo:'DC 12V',saida:'12.8Vcc'},ref:'FON1407, FON1388, FON1358'},
+    {key:'bateria_ext',name:'Bateria Externa',icon:'bateria_ext',poe:false,ports:0,configurable:true,configFields:['tensao','capacidade','modelo'],props:{tensao:'12V',tipo:'Estacionária VRLA'},ref:'EB 1245, EB 1236'},
+    {key:'modulo_bat',name:'Módulo de Baterias',icon:'modulo_bat',poe:false,ports:0,configurable:true,configFields:['qtdBaterias','tensaoBarramento'],props:{tipo:'Gabinete com baterias'},ref:'MB 0445 48V, MB 0145 12V'},
+    {key:'cabo_engate',name:'Cabo Engate Rápido',icon:'cabo_engate',poe:false,ports:0,props:{conector:'SB 50 Anderson Power'}},
+    {key:'fonte',name:'Fonte 12V',icon:'fonte',poe:false,ports:0,props:{corrente:'10A',entrada:'90-240Vac'},ref:'EF 1210+, EF 1205'},
     {key:'dio',name:'DIO / Roseta Óptica',icon:'dio',poe:false,ports:0,props:{fibras:'6-12',tipo:'SC/APC'}},
     {key:'borne_sak',name:'Borne SAK',icon:'borne_sak',poe:false,ports:0,props:{tipo:'Trilho DIN',vias:'2-16',uso:'Emenda automação/sinal'}},
+    {key:'patch_panel',name:'Patch Panel',icon:'dio',poe:false,ports:0,props:{portas:'24/48',categoria:'CAT6'},ref:'Patch Panel CAT6 24P'},
+    {key:'conversor_midia',name:'Conversor de Mídia',icon:'dio',poe:false,ports:0,props:{entrada:'RJ45 Gbps',saida:'SFP/SC'},ref:'KGSD 1120 A, KGSD 1120 B'},
+    {key:'dps_rede',name:'DPS / Protetor de Surto',icon:'borne_sak',poe:false,ports:0,props:{tipo:'Proteção rede/energia'},ref:'SPD 204, iSPD 204'},
   ]},
 ];
 
@@ -957,6 +1299,139 @@ const DEVICE_INTERFACES = {
 };
 
 // ====================================================================
+// DEVICE KEY CLASSIFICATION HELPERS
+// ====================================================================
+const isCamera = k => k.startsWith('cam_');
+const isCameraIP = k => k.startsWith('cam_ip_') || k === 'cam_lpr';
+const isCameraMHD = k => k.startsWith('cam_mhd_') || k.startsWith('cam_hdcvi_');
+const isCameraWiFi = k => k.startsWith('cam_wifi_');
+const isCameraVeicular = k => k.startsWith('cam_veicular_');
+const isNVR = k => k.startsWith('nvr_') || k === 'nvr';
+const isDVR = k => k.startsWith('dvr_');
+const isGravador = k => isNVR(k) || isDVR(k);
+const isCentralAlarme = k => k.startsWith('alarme_');
+const isSensorPIR = k => k.startsWith('pir_');
+const isBarreira = k => k.startsWith('barreira_');
+const isSensorZona = k => isSensorPIR(k) || isBarreira(k) || k === 'sensor_abertura';
+const isSirene = k => k.startsWith('sirene_') && !k.startsWith('sirene_inc_');
+const isEletrificador = k => k.startsWith('eletrif_');
+const isTeclado = k => k.startsWith('teclado_');
+const isSwitch = k => k.startsWith('sw_');
+const isSwitchPoE = k => k === 'sw_poe' || k.startsWith('sw_poe_');
+const isControleAcesso = k => ['leitor_facial','controladora','fechadura','leitor_tag'].includes(k) || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_');
+const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_');
+const isCentralIncendio = k => k.startsWith('central_inc_');
+const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_');
+const isAutomatizador = k => k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor';
+const isAP = k => k.startsWith('ap_');
+const isLuminaria = k => k.startsWith('lumin_');
+const isComunicador = k => k.startsWith('comunicador_');
+const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
+const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
+const isNobreak = k => k === 'nobreak_ac' || k === 'nobreak_dc';
+const isFonte = k => k === 'fonte';
+const isInfra = k => ['rack','quadro','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate'].includes(k);
+const needsPoE = k => isCameraIP(k) || isAP(k);
+const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
+const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
+const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
+
+// Pattern-based interface resolution for expanded device library
+function getDeviceInterfaces(key) {
+  if (getDeviceInterfaces(key)) return getDeviceInterfaces(key);
+  // Camera IP → PoE + 12V alt + sensor
+  if (isCameraIP(key)) return DEVICE_INTERFACES.cam_dome;
+  // Camera Multi HD / HDCVI → Coaxial + 12VDC
+  if (isCameraMHD(key)) return [
+    {type:'data_in',cables:['coaxial'],label:'Vídeo HD (BNC/Coaxial)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true},
+    {type:'signal_in',cables:['pp2v_05'],label:'Entrada sensor alarme (NA/NF)',required:false},
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída contato seco (relay)',required:false}];
+  // Camera WiFi → WiFi + power
+  if (isCameraWiFi(key)) return [
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC/5VDC',required:true}];
+  // Camera veicular → Network + 12V
+  if (isCameraVeicular(key)) return [
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
+    {type:'power_in',cables:['pp2v_10'],label:'Alimentação 12VDC',required:true}];
+  // NVR → same as nvr
+  if (isNVR(key)) return DEVICE_INTERFACES.nvr;
+  // DVR → Coaxial + AC + Network
+  if (isDVR(key)) return [
+    {type:'data_in',cables:['coaxial'],label:'Entradas vídeo (BNC)',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}];
+  // Centrais alarme
+  if (isCentralAlarme(key)) return DEVICE_INTERFACES.alarme_central;
+  // Sensores PIR
+  if (isSensorPIR(key)) return DEVICE_INTERFACES.sensor_presenca;
+  // Barreiras IR
+  if (isBarreira(key)) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
+  // Eletrificadores
+  if (isEletrificador(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (tamper/disparo)',required:false},
+    {type:'signal_in',cables:['pp2v_05'],label:'Entrada zona (sensor setor)',required:false}];
+  // Teclados
+  if (isTeclado(key)) return [
+    {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central (4 fios)',required:true},
+    {type:'power_in',cables:['pp2v_05'],label:'Alimentação via barramento',required:false}];
+  // Sirenes
+  if (isSirene(key)) return DEVICE_INTERFACES.sirene;
+  // Controle acesso expandido
+  if (key.startsWith('biometrico_') || key.startsWith('tag_uhf_')) return DEVICE_INTERFACES.leitor_tag;
+  if (key.startsWith('catraca_') || key.startsWith('torniquete_')) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
+    {type:'signal_in',cables:['pp2v_05'],label:'Botoeira/acionamento',required:false}];
+  if (key.startsWith('cancela_')) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true},
+    {type:'signal_in',cables:['pp2v_05'],label:'Sinal abertura (botoeira/controle)',required:false},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (se IP)',required:false}];
+  // Automatizadores
+  if (isAutomatizador(key)) return DEVICE_INTERFACES.motor;
+  // Incêndio - centrais
+  if (isCentralIncendio(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 220V',required:true},
+    {type:'signal_in',cables:['pp2v_05','pp4v_10'],label:'Laço de detecção (zonas)',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (monitoramento)',required:false}];
+  // Incêndio - detectores/acionadores
+  if (isDetectorIncendio(key)) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
+  // Incêndio - módulos
+  if (key.startsWith('modulo_inc_')) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (endereçável)',required:true},
+    {type:'automation_out',cables:['pp2v_10','pp2v_05'],label:'Saída acionamento',required:false}];
+  // Incêndio - sirenes
+  if (key.startsWith('sirene_inc_')) return [
+    {type:'signal_in',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
+  // AP WiFi
+  if (isAP(key)) return [
+    {type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power (RJ45)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_15'],label:'Alimentação 12VDC (alternativa ao PoE)',required:false}];
+  // Switch PoE expandidos
+  if (isSwitchPoE(key)) return DEVICE_INTERFACES.sw_poe;
+  // Iluminação emergência
+  if (isLuminaria(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC (rede elétrica)',required:true}];
+  // Comunicadores
+  if (isComunicador(key)) return [
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
+    {type:'signal_in',cables:['pp2v_05'],label:'Entrada da central',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
+  // Periféricos alarme (controle remoto, receptor, expansor)
+  if (isExpansor(key)) return [
+    {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central',required:true},
+    {type:'signal_in',cables:['pp2v_05'],label:'Entrada zonas',required:false},
+    {type:'power_in',cables:['pp2v_05'],label:'Alimentação via barramento',required:false}];
+  if (key.startsWith('controle_')) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona/acionamento',required:true}];
+  return [];
+}
+
+// ====================================================================
 // EQUIPMENT SCHEMAS - Type-specific field definitions
 // ====================================================================
 const EQUIPMENT_SCHEMAS = {
@@ -1032,8 +1507,8 @@ const EQUIPMENT_SCHEMAS = {
 // Note: fromKey/toKey can be a string OR a device object. If device, uses getDeviceInterfaces.
 const validateConnection = (fromKey, toKey, cableId) => {
   // Support both string keys and device objects
-  let fromIfaces = DEVICE_INTERFACES[fromKey] || [];
-  let toIfaces = DEVICE_INTERFACES[toKey] || [];
+  let fromIfaces = getDeviceInterfaces(fromKey) || [];
+  let toIfaces = getDeviceInterfaces(toKey) || [];
 
   // If device objects were passed, use getDeviceInterfaces
   if (typeof fromKey === 'object' && fromKey !== null) {
@@ -1117,7 +1592,7 @@ const validateConnection = (fromKey, toKey, cableId) => {
 const getDeviceInterfaces = (device) => {
   // For custom devices, use the base device type's interfaces
   const key = device.key.startsWith('custom_') ? getDeviceIconKey(device.key) : device.key;
-  const base = [...(DEVICE_INTERFACES[key] || [])];
+  const base = [...(getDeviceInterfaces(key) || [])];
   // For nobreak_ac, add SNMP interface only if config.snmp is true
   if (key === 'nobreak_ac' && device.config?.snmp) {
     base.push({type:'data_io',cables:['cat5e','cat6'],label:'SNMP (placa de rede)',required:false,
@@ -1190,10 +1665,10 @@ const ENV_COLORS = [
 const REGRAS=[
   {cat:'Elétrica',regra:'Consumo PoE total vs capacidade do switch',sev:'CRÍTICA',
     check:(devices)=>{
-      const sws=devices.filter(d=>d.key==='sw_poe');
+      const sws=devices.filter(d=>isSwitchPoE(d.key));
       if(!sws.length) return null;
       const totalPoe=devices.filter(d=>{const def=findDevDef(d.key);return def?.poe}).reduce((a,d)=>{const def=findDevDef(d.key);return a+(def?.poeW||15)},0);
-      const swCap=sws.length*120;
+      const swCap=sws.reduce((a,d)=>{const def=findDevDef(d.key);return a+parseInt(def?.props?.poe_budget||'120')},0);
       if(totalPoe>swCap) return `Consumo PoE ${totalPoe}W > Capacidade ${swCap}W`;
       if(totalPoe>swCap*0.8) return `Consumo PoE ${totalPoe}W > 80% da capacidade (${swCap}W)`;
       return null;
@@ -1208,7 +1683,7 @@ const REGRAS=[
     }},
   {cat:'Rede',regra:'Portas: dispositivos + uplink + 20% reserva',sev:'ALTA',
     check:(devices)=>{
-      const sws=devices.filter(d=>d.key==='sw_poe'||d.key==='sw_normal');
+      const sws=devices.filter(d=>isSwitch(d.key));
       if(!sws.length) return null;
       const ports=sws.reduce((a,d)=>a+parseInt(findDevDef(d.key)?.props?.portas?.split('+')[0]||'8'),0);
       const needed=devices.filter(d=>{const def=findDevDef(d.key);return (def?.ports||0)>0}).length;
@@ -1216,63 +1691,70 @@ const REGRAS=[
       if(total>ports) return `${needed} dispositivos (+20%+uplinks) = ${total} portas necessárias > ${ports} disponíveis`;
       return null;
     }},
-  {cat:'CFTV',regra:'NVR: canais vs câmeras',sev:'CRÍTICA',
+  {cat:'CFTV',regra:'Gravador: canais vs câmeras',sev:'CRÍTICA',
     check:(devices)=>{
-      const cams=devices.filter(d=>d.key.startsWith('cam_')).length;
-      const nvrs=devices.filter(d=>d.key==='nvr');
-      if(!cams||!nvrs.length) return null;
-      const ch=nvrs.reduce((a,d)=>a+parseInt(findDevDef(d.key)?.props?.canais||'16'),0);
-      if(cams>ch) return `${cams} câmeras > ${ch} canais NVR`;
+      const cams=devices.filter(d=>isCamera(d.key)).length;
+      const gravadores=devices.filter(d=>isGravador(d.key));
+      if(!cams||!gravadores.length) return null;
+      const ch=gravadores.reduce((a,d)=>a+parseInt(findDevDef(d.key)?.props?.canais||findDevDef(d.key)?.nvrCh||'16'),0);
+      if(cams>ch) return `${cams} câmeras > ${ch} canais gravador(es)`;
       return null;
     }},
-  {cat:'Acesso',regra:'Leitor facial precisa de switch/rede',sev:'ALTA',
+  {cat:'Acesso',regra:'Dispositivo IP de acesso precisa de switch/rede',sev:'ALTA',
     check:(devices)=>{
-      const lf=devices.filter(d=>d.key==='leitor_facial').length;
-      const sw=devices.filter(d=>d.key.startsWith('sw_')).length;
-      if(lf>0&&sw===0) return `${lf} leitor(es) facial sem switch de rede`;
+      const accessIP=devices.filter(d=>d.key==='leitor_facial'||d.key==='controladora'||d.key.startsWith('catraca_')||d.key.startsWith('torniquete_')).length;
+      const sw=devices.filter(d=>isSwitch(d.key)).length;
+      if(accessIP>0&&sw===0) return `${accessIP} dispositivo(s) de acesso IP sem switch de rede`;
       return null;
     }},
   {cat:'Infra',regra:'Nobreak obrigatório para sistemas críticos',sev:'ALTA',
     check:(devices)=>{
-      const nb=devices.filter(d=>d.key==='nobreak_ac'||d.key==='nobreak_dc').length;
-      const cams=devices.filter(d=>d.key.startsWith('cam_')).length;
+      const nb=devices.filter(d=>isNobreak(d.key)).length;
+      const cams=devices.filter(d=>isCamera(d.key)).length;
       if(cams>0&&nb===0) return `${cams} câmeras sem nobreak = sem gravação no blackout`;
       return null;
     }},
   {cat:'Arquitetura',regra:'> 2 switches: avaliar rack',sev:'ALTA',
     check:(devices)=>{
-      const sw=devices.filter(d=>d.key.startsWith('sw_')).length;
+      const sw=devices.filter(d=>isSwitch(d.key)).length;
       if(sw>2) return `${sw} switches. Considerar rack 5U+ em vez de quadro`;
       return null;
     }},
   {cat:'Energia',regra:'Dispositivos sem alimentação elétrica',sev:'CRÍTICA',
     check:(devices,connections)=>{
-      const needsPower=['sw_poe','sw_normal','nvr','router','alarme_central','controladora'];
       const issues=[];
-      needsPower.forEach(key=>{
-        const devs=devices.filter(d=>d.key===key);
-        devs.forEach(dev=>{
-          const hasPowerConn=connections?.some(c=>{
-            const otherId=c.from===dev.id?c.to:c.from;
-            const otherDev=devices.find(d=>d.id===otherId);
-            if(!otherDev) return false;
-            const ct=CABLE_TYPES.find(t=>t.id===c.type);
-            return ct?.group==='power';
-          });
-          if(!hasPowerConn) issues.push(dev.name);
+      devices.filter(d=>needsACPower(d.key)).forEach(dev=>{
+        const hasPowerConn=connections?.some(c=>{
+          const otherId=c.from===dev.id?c.to:c.from;
+          const ct=CABLE_TYPES.find(t=>t.id===c.type);
+          return ct?.group==='power';
         });
+        if(!hasPowerConn) issues.push(dev.name);
       });
       if(issues.length>0) return `Sem cabo de energia: ${issues.slice(0,3).join(', ')}${issues.length>3?` +${issues.length-3}`:''}`;
       return null;
     }},
   {cat:'Alimentação',regra:'Dispositivo DC sem fonte 12V',sev:'ALTA',
     check:(devices,connections)=>{
-      const needsDC=['leitor_facial','fechadura','sirene'];
-      const fontes=devices.filter(d=>d.key==='fonte');
+      const fontes=devices.filter(d=>isFonte(d.key));
       if(!fontes.length){
-        const dcDevs=devices.filter(d=>needsDC.includes(d.key));
+        const dcDevs=devices.filter(d=>needsDCPower(d.key));
         if(dcDevs.length>0) return `${dcDevs.length} dispositivo(s) DC sem fonte 12V no projeto`;
       }
+      return null;
+    }},
+  {cat:'Incêndio',regra:'Detectores/acionadores sem central de incêndio',sev:'CRÍTICA',
+    check:(devices)=>{
+      const detectors=devices.filter(d=>isDetectorIncendio(d.key)||d.key.startsWith('sirene_inc_')||d.key.startsWith('modulo_inc_')).length;
+      const centrais=devices.filter(d=>isCentralIncendio(d.key)).length;
+      if(detectors>0&&centrais===0) return `${detectors} dispositivo(s) de incêndio sem central`;
+      return null;
+    }},
+  {cat:'Intrusão',regra:'Sensores/sirenes sem central de alarme',sev:'ALTA',
+    check:(devices)=>{
+      const sensores=devices.filter(d=>isSensorZona(d.key)||isSirene(d.key)).length;
+      const centrais=devices.filter(d=>isCentralAlarme(d.key)).length;
+      if(sensores>0&&centrais===0) return `${sensores} sensor(es)/sirene(s) sem central de alarme`;
       return null;
     }},
 ];
@@ -2450,19 +2932,21 @@ function ProjectApp({project,setProject,onBack}){
     setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
   };
 
-  // Smart Auto Cable — uses CONNECTION_RULES engine
+  // Smart Auto Cable — uses CONNECTION_RULES engine + device classification helpers
   const autoCable=()=>{
     const newConns=[...connections];
     const connectedIds=new Set();
     newConns.forEach(c=>{connectedIds.add(c.from);connectedIds.add(c.to)});
 
-    // Step 1: Network devices → connect to switches/router
-    const sws=devices.filter(d=>d.key==='sw_poe'||d.key==='sw_normal');
+    // Classify devices using helper functions
+    const sws=devices.filter(d=>isSwitch(d.key));
+    const swsPoe=devices.filter(d=>isSwitchPoE(d.key));
     const routers=devices.filter(d=>d.key==='router');
-    const nvrs=devices.filter(d=>d.key==='nvr');
-    const nobreaks=devices.filter(d=>d.key==='nobreak_ac'||d.key==='nobreak_dc');
-    const fontes=devices.filter(d=>d.key==='fonte');
-    const centrais=devices.filter(d=>d.key==='alarme_central');
+    const gravadores=devices.filter(d=>isGravador(d.key));
+    const nobreaks=devices.filter(d=>isNobreak(d.key));
+    const fontes=devices.filter(d=>isFonte(d.key));
+    const centraisAlarme=devices.filter(d=>isCentralAlarme(d.key));
+    const centraisIncendio=devices.filter(d=>isCentralIncendio(d.key));
     const controladoras=devices.filter(d=>d.key==='controladora');
 
     const findNearest=(dev,targets)=>{
@@ -2486,18 +2970,23 @@ function ProjectApp({project,setProject,onBack}){
       return true;
     };
 
-    // Cameras/PoE devices → nearest PoE switch
+    // PoE devices (IP cameras, APs) → nearest PoE switch
     devices.filter(d=>{const def=findDevDef(d.key);return def?.poe}).forEach(dev=>{
-      if(sws.length){const n=findNearest(dev,sws.filter(s=>s.key==='sw_poe'));if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+      if(swsPoe.length){const n=findNearest(dev,swsPoe);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // NVR → nearest switch
-    nvrs.forEach(dev=>{
+    // Gravadores (NVR/DVR) → nearest switch
+    gravadores.forEach(dev=>{
       if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // Central alarme → nearest switch (TCP/IP)
-    centrais.forEach(dev=>{
+    // Centrais alarme → nearest switch (TCP/IP)
+    centraisAlarme.forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Centrais incêndio → nearest switch (monitoramento IP)
+    centraisIncendio.forEach(dev=>{
       if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
@@ -2506,20 +2995,30 @@ function ProjectApp({project,setProject,onBack}){
       if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // Leitores faciais → nearest controladora (2 pares) or switch
-    devices.filter(d=>d.key==='leitor_facial').forEach(dev=>{
+    // Leitores faciais / biométricos → nearest controladora or switch
+    devices.filter(d=>d.key==='leitor_facial'||d.key.startsWith('biometrico_')).forEach(dev=>{
       if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
       else if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // Sensores → central de alarme (2 pares)
-    devices.filter(d=>d.key==='sensor_presenca'||d.key==='sensor_abertura').forEach(dev=>{
-      if(centrais.length){const n=findNearest(dev,centrais);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    // Sensores zona (PIR, barreira, abertura) → central de alarme
+    devices.filter(d=>isSensorZona(d.key)).forEach(dev=>{
+      if(centraisAlarme.length){const n=findNearest(dev,centraisAlarme);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // Sirene → central de alarme
-    devices.filter(d=>d.key==='sirene').forEach(dev=>{
-      if(centrais.length){const n=findNearest(dev,centrais);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    // Sirenes alarme → central de alarme
+    devices.filter(d=>isSirene(d.key)).forEach(dev=>{
+      if(centraisAlarme.length){const n=findNearest(dev,centraisAlarme);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Periféricos alarme (teclado, comunicador, expansor) → central de alarme
+    devices.filter(d=>isPerifericoAlarme(d.key)).forEach(dev=>{
+      if(centraisAlarme.length){const n=findNearest(dev,centraisAlarme);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
+    // Detectores/acionadores/sirenes incêndio → central de incêndio
+    devices.filter(d=>isDetectorIncendio(d.key)||d.key.startsWith('sirene_inc_')||d.key.startsWith('modulo_inc_')).forEach(dev=>{
+      if(centraisIncendio.length){const n=findNearest(dev,centraisIncendio);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
     // Fechadura → controladora
@@ -2527,35 +3026,39 @@ function ProjectApp({project,setProject,onBack}){
       if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
+    // Catracas/torniquetes → nearest switch (IP)
+    devices.filter(d=>d.key.startsWith('catraca_')||d.key.startsWith('torniquete_')).forEach(dev=>{
+      if(sws.length){const n=findNearest(dev,sws);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
+
     // Switch ↔ Router uplink
     sws.forEach(sw=>{
       if(routers.length){const n=findNearest(sw,routers);if(n) tryAdd(sw.id,n.device.id,sw.key,n.device.key)}
     });
 
-    // Nobreak → power to switches, NVR, router (AC power)
+    // Nobreak → power to switches, gravadores, router (AC power)
     nobreaks.forEach(nb=>{
-      [...sws,...nvrs,...routers].forEach(dev=>{
+      [...sws,...gravadores,...routers].forEach(dev=>{
         tryAdd(nb.id,dev.id,nb.key,dev.key);
       });
     });
 
-    // Fonte 12V → leitores, fechaduras, sirenes, sensores ativos (DC power)
+    // Fonte 12V → dispositivos DC (leitores, fechaduras, sirenes, tags)
     fontes.forEach(ft=>{
-      devices.filter(d=>['leitor_facial','leitor_tag','fechadura','sirene','controladora'].includes(d.key)).forEach(dev=>{
+      devices.filter(d=>needsDCPower(d.key)).forEach(dev=>{
         tryAdd(ft.id,dev.id,ft.key,dev.key);
       });
     });
 
-    // Câmera LPR → nearest PoE switch (data) - already covered by PoE rule above
-    // Leitor Tag → nearest controladora (Wiegand/RS485)
-    devices.filter(d=>d.key==='leitor_tag').forEach(dev=>{
+    // Leitor Tag / Tag UHF → nearest controladora (Wiegand/RS485)
+    devices.filter(d=>d.key==='leitor_tag'||d.key.startsWith('tag_uhf_')).forEach(dev=>{
       if(controladoras.length){const n=findNearest(dev,controladoras);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
     });
 
-    // Automation: leitor_facial, cam_lpr, leitor_tag, controladora → nearest motor (auto cable)
-    const motors=devices.filter(d=>d.key==='motor');
+    // Automation: controle acesso + cam_lpr → nearest motor/cancela (auto cable)
+    const motors=devices.filter(d=>isAutomatizador(d.key));
     if(motors.length){
-      devices.filter(d=>['leitor_facial','cam_lpr','leitor_tag','controladora'].includes(d.key)).forEach(dev=>{
+      devices.filter(d=>['leitor_facial','cam_lpr','leitor_tag','controladora'].includes(d.key)||d.key.startsWith('tag_uhf_')).forEach(dev=>{
         const n=findNearest(dev,motors);
         if(n){
           const pairExists=newConns.some(c=>(c.from===dev.id&&c.to===n.device.id)||(c.from===n.device.id&&c.to===dev.id));
@@ -2566,6 +3069,12 @@ function ProjectApp({project,setProject,onBack}){
         }
       });
     }
+
+    // Câmeras MHD/HDCVI → nearest DVR (coaxial)
+    devices.filter(d=>isCameraMHD(d.key)).forEach(dev=>{
+      const dvrs=devices.filter(d=>isDVR(d.key));
+      if(dvrs.length){const n=findNearest(dev,dvrs);if(n) tryAdd(dev.id,n.device.id,dev.key,n.device.key)}
+    });
 
     updateFloor(f=>({...f,connections:newConns}));
     showConnToast(`⚡ Auto-cabeamento: ${newConns.length - connections.length} conexões criadas`,'success');
@@ -2618,7 +3127,7 @@ function ProjectApp({project,setProject,onBack}){
 
   // Topology tree
   const topology=useMemo(()=>{
-    const roots=devices.filter(d=>d.key==='router'||d.key==='sw_poe'||d.key==='sw_normal');
+    const roots=devices.filter(d=>d.key==='router'||isSwitch(d.key));
     if(!roots.length) return devices.map(d=>({device:d,children:[],disconnected:true}));
     const connected=new Set();
     const buildTree=(dev)=>{
@@ -4189,7 +4698,7 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
         <div style={{maxHeight:280,overflowY:'auto'}}>
           {getCategoryDevices(formState.category).map(dev=>{
             const sel=formState.baseDeviceType===dev.key;const cc=categoryColors[formState.category];
-            const ifaces=DEVICE_INTERFACES[dev.key]||[];
+            const ifaces=getDeviceInterfaces(dev.key)||[];
             return <button key={dev.key} onClick={()=>handleFieldChange('baseDeviceType',dev.key)}
               style={{display:'flex',width:'100%',textAlign:'left',padding:12,marginBottom:6,
                 border:`2px solid ${sel?cc:'#e5e8eb'}`,background:sel?cc+'08':'#fafafa',borderRadius:8,cursor:'pointer',alignItems:'center',gap:10}}>
@@ -4264,7 +4773,7 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
         {/* Inherited interfaces */}
         <div style={{marginBottom:12}}>
           <div style={{fontSize:10,fontWeight:700,color:'var(--azul)',marginBottom:6}}>Interfaces do tipo base ({formState.baseDeviceType})</div>
-          {(DEVICE_INTERFACES[formState.baseDeviceType]||[]).map((iface,i)=>(
+          {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>(
             <div key={i} style={{padding:6,marginBottom:4,background:'#f0fdf4',borderRadius:5,fontSize:10,display:'flex',alignItems:'center',gap:6,
               borderLeft:'3px solid #22c55e'}}>
               <span style={{fontWeight:600,color:'#16a34a',minWidth:100}}>{iface.type}</span>
@@ -4355,9 +4864,9 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
 
         {/* Interfaces summary */}
         <div style={{marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:700,marginBottom:4}}>Interfaces ({(DEVICE_INTERFACES[formState.baseDeviceType]||[]).length} base + {formState.customIfaces.filter(i=>i.label).length} custom)</div>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:4}}>Interfaces ({(getDeviceInterfaces(formState.baseDeviceType)||[]).length} base + {formState.customIfaces.filter(i=>i.label).length} custom)</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-            {(DEVICE_INTERFACES[formState.baseDeviceType]||[]).map((iface,i)=>
+            {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>
               <span key={i} style={{fontSize:8,background:'#dcfce7',color:'#166534',padding:'2px 6px',borderRadius:3}}>{iface.type}: {iface.label.substring(0,30)}</span>)}
             {formState.customIfaces.filter(i=>i.label).map((iface,i)=>
               <span key={'c'+i} style={{fontSize:8,background:'#fef3c7',color:'#92400e',padding:'2px 6px',borderRadius:3}}>{iface.type}: {iface.label.substring(0,30)}</span>)}
