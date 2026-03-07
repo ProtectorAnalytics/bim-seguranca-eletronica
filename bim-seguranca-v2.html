@@ -328,7 +328,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 7, build: 0,
+  major: 3, minor: 8, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -708,6 +708,27 @@ const ICONS={
       <rect x={x-6} y="22" width="4" height="4" rx=".5" fill={c} opacity=".08" stroke={c} strokeWidth=".5"/>
     </g>)}
     <line x1="4" y1="24" x2="44" y2="24" stroke={c} strokeWidth="1.5" opacity=".3"/>
+  </svg>,
+  tomada:(c='#6b7280')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="8" y="6" width="32" height="36" rx="4" fill={c} opacity=".06" stroke={c} strokeWidth="2"/>
+    <rect x="12" y="10" width="24" height="14" rx="3" fill="none" stroke={c} strokeWidth="1.5" opacity=".4"/>
+    <circle cx="18" cy="17" r="2" fill={c} opacity=".4"/><circle cx="30" cy="17" r="2" fill={c} opacity=".4"/>
+    <line x1="24" y1="14" x2="24" y2="20" stroke={c} strokeWidth="1.5" opacity=".3"/>
+    <rect x="12" y="28" width="24" height="14" rx="3" fill="none" stroke={c} strokeWidth="1.5" opacity=".4"/>
+    <circle cx="18" cy="35" r="2" fill={c} opacity=".4"/><circle cx="30" cy="35" r="2" fill={c} opacity=".4"/>
+    <line x1="24" y1="32" x2="24" y2="38" stroke={c} strokeWidth="1.5" opacity=".3"/>
+    <text x="24" y="27" textAnchor="middle" fill={c} fontSize="4" opacity=".5" fontWeight="700">10A</text>
+  </svg>,
+  quadro_eletrico:(c='#6b7280')=><svg viewBox="0 0 48 48" width="28" height="28">
+    <rect x="4" y="4" width="40" height="40" rx="3" fill={c} opacity=".06" stroke={c} strokeWidth="2.2"/>
+    <line x1="24" y1="4" x2="24" y2="44" stroke={c} strokeWidth="1" opacity=".2"/>
+    {[14,22,30].map((y,i)=><g key={i}>
+      <rect x="8" y={y} width="14" height="5" rx="1" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+      <rect x="26" y={y} width="14" height="5" rx="1" fill={c} opacity=".1" stroke={c} strokeWidth=".8"/>
+      <circle cx="12" cy={y+2.5} r="1" fill={i===0?'#ef4444':i===1?'#f59e0b':'#22c55e'} opacity=".6"/>
+      <circle cx="30" cy={y+2.5} r="1" fill={i===0?'#ef4444':i===1?'#f59e0b':'#22c55e'} opacity=".6"/>
+    </g>)}
+    <text x="24" y="42" textAnchor="middle" fill={c} fontSize="3.5" opacity=".5" fontWeight="700">QD</text>
   </svg>,
   nobreak_ac:(c='#dc2626')=><svg viewBox="0 0 48 48" width="28" height="28">
     <rect x="6" y="8" width="36" height="32" rx="3" fill={c} opacity=".05" stroke={c} strokeWidth="2.2"/>
@@ -1180,6 +1201,8 @@ const DEVICE_LIB = [
     {key:'patch_panel',name:'Patch Panel',icon:'dio',poe:false,ports:0,props:{portas:'24/48',categoria:'CAT6'},ref:'Patch Panel CAT6 24P'},
     {key:'conversor_midia',name:'Conversor de Mídia',icon:'dio',poe:false,ports:0,props:{entrada:'RJ45 Gbps',saida:'SFP/SC'},ref:'KGSD 1120 A, KGSD 1120 B'},
     {key:'dps_rede',name:'DPS / Protetor de Surto',icon:'borne_sak',poe:false,ports:0,props:{tipo:'Proteção rede/energia'},ref:'SPD 204, iSPD 204'},
+    {key:'tomada_dupla',name:'Tomada Dupla 10A',icon:'tomada',poe:false,ports:0,props:{tipo:'2P+T 10A',padrao:'NBR 14136',uso:'Alimentação AC equipamentos'}},
+    {key:'quadro_eletrico',name:'Quadro Elétrico',icon:'quadro_eletrico',poe:false,ports:0,isContainer:true,configurable:true,configFields:['disjuntores','dps','idr'],props:{tipo:'Quadro de distribuição',padrao:'NBR 5410',protecao:'Disjuntores + IDR + DPS'}},
   ]},
 ];
 
@@ -1383,6 +1406,10 @@ const DEVICE_INTERFACES = {
   dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra',required:true}],
   // Borne SAK - emenda/passagem de cabos de automação e sinal no quadro
   borne_sak:    [{type:'passthrough',cables:['pp2v_10','pp4v_10','pp2v_05','pp2v_10','pp2v_05'],label:'Emenda/passagem automação (trilho DIN)'}],
+  tomada_dupla: [{type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC 10A (2 tomadas)',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (circuito)',required:true}],
+  quadro_eletrico:[{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada geral AC (QGBT)',required:true},
+                   {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída circuitos AC',required:true}],
 };
 
 // ====================================================================
@@ -1417,7 +1444,7 @@ const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
 const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
 const isNobreak = k => k === 'nobreak_ac' || k === 'nobreak_dc';
 const isFonte = k => k === 'fonte';
-const isInfra = k => ['rack','quadro','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate'].includes(k);
+const isInfra = k => ['rack','quadro','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla'].includes(k);
 const needsPoE = k => isCameraIP(k) || isAP(k);
 const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
 const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
@@ -1430,10 +1457,15 @@ function canMountInRack(key){
     key==='modulo_bat'||key==='controladora'||isCentralAlarme(key)||isCentralIncendio(key)||
     key==='fonte'||key==='cabo_engate';
 }
-// Can this device go inside a quadro?
+// Can this device go inside a quadro conectividade?
 function canMountInQuadro(key){
   return key==='nobreak_dc'||isFonte(key)||key==='borne_sak'||key==='dio'||
     isCentralAlarme(key)||key==='controladora'||needsDCPower(key);
+}
+// Can this device go inside a quadro elétrico?
+function canMountInQuadroEletrico(key){
+  return key==='nobreak_ac'||key==='nobreak_dc'||isFonte(key)||key==='dps_rede'||
+    key==='tomada_dupla'||key==='borne_sak';
 }
 
 // Rack U size per device type
@@ -1949,14 +1981,17 @@ function App(){
   const skipHistoryRef=useRef(false);
   const setProject=(updaterOrVal)=>{
     _setProject(prev=>{
-      const next=typeof updaterOrVal==='function'?updaterOrVal(prev):updaterOrVal;
-      if(!skipHistoryRef.current && prev && JSON.stringify(prev)!==JSON.stringify(next)){
-        historyRef.current.past.push(JSON.stringify(prev));
-        if(historyRef.current.past.length>50) historyRef.current.past.shift();
-        historyRef.current.future=[];
-      }
-      skipHistoryRef.current=false;
-      return next;
+      try{
+        const next=typeof updaterOrVal==='function'?updaterOrVal(prev):updaterOrVal;
+        if(!skipHistoryRef.current && prev && next){
+          try{
+            const ps=JSON.stringify(prev);const ns=JSON.stringify(next);
+            if(ps!==ns){historyRef.current.past.push(ps);if(historyRef.current.past.length>50)historyRef.current.past.shift();historyRef.current.future=[];}
+          }catch(e){console.warn('History snapshot failed',e)}
+        }
+        skipHistoryRef.current=false;
+        return next;
+      }catch(e){console.error('setProject error',e);skipHistoryRef.current=false;return prev;}
     });
   };
   const undo=()=>{
@@ -2751,6 +2786,7 @@ function ProjectApp({project,setProject,onBack}){
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
   const [collapsedCats,setCollapsedCats]=useState({});
+  const [editingFloorId,setEditingFloorId]=useState(null);
   const [showCableLabels,setShowCableLabels]=useState(true);
   const toggleCat=(catName)=>setCollapsedCats(prev=>({...prev,[catName]:!prev[catName]}));
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
@@ -2869,6 +2905,7 @@ function ProjectApp({project,setProject,onBack}){
 
   // Add connection with validation — supports multiple connections between same pair (different ifaceType)
   const addConnection=(fromId,toId,type)=>{
+    try{
     if(fromId===toId){setCableMode(null);setTool('select');return}
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
@@ -2932,6 +2969,7 @@ function ProjectApp({project,setProject,onBack}){
     const fcName=CABLE_TYPES.find(c=>c.id===finalCable)?.name||finalCable;
     showConnToast(`✓ ${fcName} · ${dist}m · ${purpose}${portInfo}`,'success');
     setCableMode(null);setTool('select');
+    }catch(err){console.error('addConnection error',err);setCableMode(null);setTool('select');showConnToast('Erro ao conectar: '+err.message,'error');}
   };
 
   // Confirm cable from picker
@@ -3320,39 +3358,44 @@ function ProjectApp({project,setProject,onBack}){
 
   // Compute valid targets when in cable mode
   const validTargets=React.useMemo(()=>{
-    if(!cableMode) return {};
-    const fromDev=devices.find(d=>d.id===cableMode.from);
-    if(!fromDev) return {};
-    const map={};
-    devices.forEach(dev=>{
-      if(dev.id===cableMode.from) return;
-      const result=validateConnection(fromDev.key,dev.key,null);
-      map[dev.id]=result.valid && result.cables.length>0 ? 'valid' : 'invalid';
-    });
-    return map;
+    try{
+      if(!cableMode) return {};
+      const fromDev=devices.find(d=>d.id===cableMode.from);
+      if(!fromDev) return {};
+      const map={};
+      devices.forEach(dev=>{
+        if(dev.id===cableMode.from) return;
+        try{
+          const result=validateConnection(fromDev.key,dev.key,null);
+          map[dev.id]=result?.valid && result?.cables?.length>0 ? 'valid' : 'invalid';
+        }catch(e){map[dev.id]='invalid';}
+      });
+      return map;
+    }catch(e){console.error('validTargets error',e);return {};}
   },[cableMode,devices]);
 
   const handleDeviceClick=(e,devId)=>{
     e.stopPropagation();
-    if(cableMode){
-      // Use cable from ifaceType's allowed cables if available, fallback to selected cableType
-      const ifType=cableMode.ifaceType;
-      let preferredCable=cableType;
-      if(ifType){
-        const fromDev=devices.find(d=>d.id===cableMode.from);
-        if(fromDev){
-          const ifaces=getDeviceInterfaces(fromDev);
-          const matchIface=ifaces.find(i=>i.type===ifType);
-          if(matchIface?.cables?.length && !matchIface.cables.includes(cableType)){
-            preferredCable=matchIface.cables[0]; // auto-pick first compatible cable
+    try{
+      if(cableMode){
+        const ifType=cableMode.ifaceType;
+        let preferredCable=cableType;
+        if(ifType){
+          const fromDev=devices.find(d=>d.id===cableMode.from);
+          if(fromDev){
+            const ifaces=getDeviceInterfaces(fromDev);
+            const matchIface=ifaces.find(i=>i.type===ifType);
+            if(matchIface?.cables?.length && !matchIface.cables.includes(cableType)){
+              preferredCable=matchIface.cables[0];
+            }
           }
         }
+        addConnection(cableMode.from,devId,preferredCable);
+        return;
       }
-      addConnection(cableMode.from,devId,preferredCable);
-      return;
-    }
-    setSelectedDevice(devId);
-    setRightTab('props');
+      setSelectedDevice(devId);
+      setRightTab('props');
+    }catch(err){console.error('handleDeviceClick error',err);setCableMode(null);setTool('select');}
   };
 
   const handleDeviceMouseDown=(e,devId)=>{
@@ -3375,14 +3418,14 @@ function ProjectApp({project,setProject,onBack}){
       // Check if device was dropped inside a rack
       if(dragging){
         const draggedDev=devices.find(d=>d.id===dragging.id);
-        if(draggedDev && draggedDev.key!=='rack' && draggedDev.key!=='quadro'){
-          const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro')&&r.id!==dragging.id&&
+        if(draggedDev && draggedDev.key!=='rack' && draggedDev.key!=='quadro' && draggedDev.key!=='quadro_eletrico'){
+          const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
             draggedDev.x>=r.x-40&&draggedDev.x<=r.x+180&&
             draggedDev.y>=r.y-30&&draggedDev.y<=r.y+((r.key==='rack'?(r.config?.alturaU||12)*22+40:200)));
           if(rackDev){
-            const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):canMountInQuadro(draggedDev.key);
+            const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):rackDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
             if(canMount){updateDevice(dragging.id,{parentRack:rackDev.id})}
-            else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.key==='rack'?'rack':'quadro'}`,'warn')}
+            else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.name||rackDev.key}`,'warn')}
           }else if(draggedDev.parentRack){
             // Dragged out of rack
             const rack=devices.find(r=>r.id===draggedDev.parentRack);
@@ -3514,7 +3557,7 @@ function ProjectApp({project,setProject,onBack}){
           )}
         </div>
         <div className="sim-toggle">
-          <span className="tool-label">Dispositivos: {devices.length}</span>
+          <span className="tool-label">Dispositivos: {devices.reduce((s,d)=>s+(d.qty||1),0)}</span>
           <span className="tool-label">|</span>
           <span className="tool-label">Conexões: {connections.length}</span>
           <span className="tool-label">|</span>
@@ -3618,18 +3661,38 @@ function ProjectApp({project,setProject,onBack}){
             </>}
             {leftTab==='floors'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Pavimentos do projeto:</div>
-              {project.floors.map(f=>(
+              {project.floors.map(f=>{
+                const isActive=f.id===project.activeFloor;
+                const isEditing=editingFloorId===f.id;
+                return (
                 <div key={f.id} style={{padding:'8px 10px',margin:'4px 0',borderRadius:6,
-                  background:f.id===project.activeFloor?'#EBF5FB':'var(--cinzaL)',
-                  border:f.id===project.activeFloor?'1px solid var(--azul2)':'1px solid transparent',
+                  background:isActive?'#EBF5FB':'var(--cinzaL)',
+                  border:isActive?'1px solid var(--azul2)':'1px solid transparent',
                   cursor:'pointer',fontSize:11}}
                   onClick={()=>setProject(p=>({...p,activeFloor:f.id}))}>
-                  <div style={{fontWeight:600,color:'var(--azul)'}}>{f.name}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:4}}>
+                    {isEditing?(
+                      <input type="text" defaultValue={f.name} autoFocus
+                        style={{flex:1,fontSize:11,fontWeight:600,color:'var(--azul)',border:'1px solid var(--azul2)',borderRadius:4,padding:'2px 6px',background:'#fff'}}
+                        onClick={e=>e.stopPropagation()}
+                        onKeyDown={e=>{if(e.key==='Enter'){const v=e.target.value.trim();if(v){setProject(p=>({...p,floors:p.floors.map(fl=>fl.id===f.id?{...fl,name:v}:fl)}))};setEditingFloorId(null)}
+                          if(e.key==='Escape')setEditingFloorId(null)}}
+                        onBlur={e=>{const v=e.target.value.trim();if(v){setProject(p=>({...p,floors:p.floors.map(fl=>fl.id===f.id?{...fl,name:v}:fl)}))};setEditingFloorId(null)}}/>
+                    ):(
+                      <span style={{flex:1,fontWeight:600,color:'var(--azul)'}}>{f.name}</span>
+                    )}
+                    <button style={{background:'none',border:'none',cursor:'pointer',fontSize:11,padding:'2px 4px',color:'var(--cinza)',opacity:.7}}
+                      title="Renomear" onClick={e=>{e.stopPropagation();setEditingFloorId(f.id)}}>✏️</button>
+                    {project.floors.length>1&&<button style={{background:'none',border:'none',cursor:'pointer',fontSize:11,padding:'2px 4px',color:'#ef4444',opacity:.7}}
+                      title="Excluir pavimento" onClick={e=>{e.stopPropagation();if(confirm(`Excluir "${f.name}"?`)){
+                        setProject(p=>{const nf=p.floors.filter(fl=>fl.id!==f.id);return{...p,floors:nf,activeFloor:nf[0]?.id||p.activeFloor}})}
+                      }}>🗑️</button>}
+                  </div>
                   <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
                     {f.devices.length} dispositivos · {f.connections.length} conexões · {f.environments.length} ambientes
                   </div>
-                </div>
-              ))}
+                </div>);
+              })}
             </>}
           </div>
         </div>
@@ -3896,8 +3959,8 @@ function ProjectApp({project,setProject,onBack}){
                   </div>);
               })}
 
-              {/* Quadro de Comando containers */}
-              {devices.filter(d=>d.key==='quadro').map(qd=>{
+              {/* Quadro containers (Conectividade + Elétrico) */}
+              {devices.filter(d=>d.key==='quadro'||d.key==='quadro_eletrico').map(qd=>{
                 const children=devices.filter(d=>d.parentRack===qd.id);
                 const qW=180;const slotH=28;const headerH=24;
                 const qH=headerH+Math.max(3,children.length)*slotH+16;
@@ -3995,6 +4058,43 @@ function ProjectApp({project,setProject,onBack}){
                     {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
                       fontSize:7,background:'var(--azul)',color:'#fff',padding:'0 4px',borderRadius:3,
                       whiteSpace:'nowrap'}}>📦 {inRack.name}</div>}
+                    {/* Delete button on selected device */}
+                    {selectedDevice===dev.id&&!cableMode&&(
+                      <div style={{position:'absolute',top:-8,left:-8,width:18,height:18,borderRadius:'50%',
+                        background:'#ef4444',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',
+                        cursor:'pointer',boxShadow:'0 1px 4px rgba(0,0,0,.3)',fontSize:10,color:'#fff',fontWeight:900,zIndex:15}}
+                        title="Excluir dispositivo"
+                        onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
+                        onClick={e=>{e.stopPropagation();
+                          updateFloor(f=>({...f,
+                            devices:f.devices.filter(d=>d.id!==dev.id),
+                            connections:f.connections.filter(c=>c.from!==dev.id&&c.to!==dev.id)
+                          }));
+                          setSelectedDevice(null);
+                        }}>✕</div>
+                    )}
+                    {/* Quantity badge for cameras */}
+                    {isCamera(dev.key)&&(dev.qty||1)>1&&(
+                      <div style={{position:'absolute',bottom:-4,right:-4,minWidth:16,height:16,borderRadius:8,
+                        background:'#3b82f6',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',
+                        fontSize:8,color:'#fff',fontWeight:900,padding:'0 3px',zIndex:13,
+                        boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>×{dev.qty}</div>
+                    )}
+                    {/* Quantity setter for cameras when selected */}
+                    {selectedDevice===dev.id&&isCamera(dev.key)&&!cableMode&&(
+                      <div style={{position:'absolute',bottom:-22,left:'50%',transform:'translateX(-50%)',
+                        display:'flex',alignItems:'center',gap:2,background:'#1e293b',borderRadius:4,padding:'2px 4px',
+                        boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:15,whiteSpace:'nowrap'}}
+                        onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}>
+                        <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
+                          color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                          onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1)updateDevice(dev.id,{qty:cur-1})}}>−</button>
+                        <span style={{fontSize:8,color:'#e2e8f0',fontWeight:700,minWidth:14,textAlign:'center'}}>{dev.qty||1}</span>
+                        <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
+                          color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                          onClick={e=>{e.stopPropagation();updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
+                      </div>
+                    )}
                     {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:14,height:14,
                       borderRadius:'50%',background:'#22c55e',display:'flex',alignItems:'center',justifyContent:'center',
                       fontSize:8,color:'#fff',fontWeight:900}}>✓</div>}
@@ -5254,9 +5354,25 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
 }
 
 // ====================================================================
+// ERROR BOUNDARY
+// ====================================================================
+class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={hasError:false,error:null}}
+  static getDerivedStateFromError(error){return{hasError:true,error}}
+  componentDidCatch(err,info){console.error('BIM ErrorBoundary:',err,info)}
+  render(){
+    if(this.state.hasError)return React.createElement('div',{style:{padding:40,textAlign:'center',color:'#fff',background:'#1a1a2e',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
+      React.createElement('h2',null,'⚠️ Ocorreu um erro'),
+      React.createElement('p',{style:{color:'#94a3b8',maxWidth:500}},String(this.state.error?.message||'Erro desconhecido')),
+      React.createElement('button',{onClick:()=>this.setState({hasError:false,error:null}),style:{marginTop:16,padding:'10px 24px',background:'#3b82f6',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:14}},'Tentar novamente'));
+    return this.props.children;
+  }
+}
+
+// ====================================================================
 // RENDER
 // ====================================================================
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
 </script>
 </body>
 </html>
