@@ -328,7 +328,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 8, build: 0,
+  major: 3, minor: 8, build: 2,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -3549,9 +3549,9 @@ function ProjectApp({project,setProject,onBack}){
             <button className={`tool-btn ${showCableLabels?'active':''}`} title="Mostrar/ocultar nomes dos cabos"
               style={{width:30,height:30,fontSize:12,marginLeft:4}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
             <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
-              <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16,opacity:historyRef.current.past.length?1:0.4}}
+              <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
                 onClick={undo}>↩</button>
-              <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16,opacity:historyRef.current.future.length?1:0.4}}
+              <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
                 onClick={redo}>↪</button>
             </div>
             </>
