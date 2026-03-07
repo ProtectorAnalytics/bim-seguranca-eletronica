@@ -1337,8 +1337,8 @@ const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEl
 const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
 
 // Pattern-based interface resolution for expanded device library
-function getDeviceInterfaces(key) {
-  if (getDeviceInterfaces(key)) return getDeviceInterfaces(key);
+function resolveInterfacesByKey(key) {
+  if (DEVICE_INTERFACES[key]) return DEVICE_INTERFACES[key];
   // Camera IP → PoE + 12V alt + sensor
   if (isCameraIP(key)) return DEVICE_INTERFACES.cam_dome;
   // Camera Multi HD / HDCVI → Coaxial + 12VDC
@@ -1507,17 +1507,19 @@ const EQUIPMENT_SCHEMAS = {
 // Note: fromKey/toKey can be a string OR a device object. If device, uses getDeviceInterfaces.
 const validateConnection = (fromKey, toKey, cableId) => {
   // Support both string keys and device objects
-  let fromIfaces = getDeviceInterfaces(fromKey) || [];
-  let toIfaces = getDeviceInterfaces(toKey) || [];
+  let fromIfaces, toIfaces;
 
-  // If device objects were passed, use getDeviceInterfaces
   if (typeof fromKey === 'object' && fromKey !== null) {
     fromIfaces = getDeviceInterfaces(fromKey);
     fromKey = fromKey.key;
+  } else {
+    fromIfaces = resolveInterfacesByKey(fromKey) || [];
   }
   if (typeof toKey === 'object' && toKey !== null) {
     toIfaces = getDeviceInterfaces(toKey);
     toKey = toKey.key;
+  } else {
+    toIfaces = resolveInterfacesByKey(toKey) || [];
   }
 
   // Collect all valid cable options between these two devices
@@ -1591,8 +1593,9 @@ const validateConnection = (fromKey, toKey, cableId) => {
 // Get device interfaces dynamically based on config
 const getDeviceInterfaces = (device) => {
   // For custom devices, use the base device type's interfaces
-  const key = device.key.startsWith('custom_') ? getDeviceIconKey(device.key) : device.key;
-  const base = [...(getDeviceInterfaces(key) || [])];
+  const key = (typeof device === 'string') ? device : (device.key.startsWith('custom_') ? getDeviceIconKey(device.key) : device.key);
+  if (typeof device === 'string') return resolveInterfacesByKey(key) || [];
+  const base = [...(resolveInterfacesByKey(key) || [])];
   // For nobreak_ac, add SNMP interface only if config.snmp is true
   if (key === 'nobreak_ac' && device.config?.snmp) {
     base.push({type:'data_io',cables:['cat5e','cat6'],label:'SNMP (placa de rede)',required:false,
