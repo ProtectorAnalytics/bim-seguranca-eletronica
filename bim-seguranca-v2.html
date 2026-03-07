@@ -331,11 +331,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 8, build: 6,
+  major: 3, minor: 9, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.9.0',date:'2026-03-07',changes:['Sistema de Assignment Câmera↔NVR com capacidade','Badges de capacidade no canvas (NVR canais, Switch portas)','Auto-distribuição por topologia de rede','Painel de canais no NVR e portas no Switch']},
     {ver:'3.6.0',date:'2026-03-07',changes:[
       'Categorias colapsáveis na paleta (▶ para expandir/recolher)',
       'Auto-reset do modo cabo após conexão (sem precisar ESC)',
@@ -1452,6 +1453,95 @@ const needsPoE = k => isCameraIP(k) || isAP(k);
 const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
 const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
+
+// ====================================================================
+// NVR/SWITCH CAPACITY HELPERS
+// ====================================================================
+const getNvrChannels = (dev) => {
+  if(dev.config?.channels) return dev.config.channels;
+  const m = dev.key.match(/(\d+)ch/);
+  if(m) return parseInt(m[1]);
+  const c = dev.props?.canais;
+  if(c){ const n=c.match(/(\d+)/); if(n) return parseInt(n[1]); }
+  return 16;
+};
+const getSwitchPorts = (dev) => {
+  if(dev.config?.portCount) return dev.config.portCount;
+  const p = dev.props?.portas;
+  if(p){ const n=p.match(/^(\d+)/); if(n) return parseInt(n[1]); }
+  if(dev.key==='sw_poe') return 8;
+  if(dev.key==='sw_normal') return 8;
+  const m=dev.key.match(/(\d+)/);
+  if(m) return parseInt(m[1]);
+  return 8;
+};
+const getNvrUsedChannels = (nvrId, devs) => {
+  return devs.filter(d=>isCamera(d.key))
+    .reduce((sum,d)=>sum+(d.nvrAssignments?.find(a=>a.nvrId===nvrId)?.qty||0),0);
+};
+const getCameraUnassigned = (cam) => {
+  const total=cam.qty||1;
+  const assigned=(cam.nvrAssignments||[]).reduce((s,a)=>s+(a.qty||0),0);
+  return total-assigned;
+};
+const autoAssignCameras = (devs, conns) => {
+  const updates=[];
+  const nvrs=devs.filter(d=>isGravador(d.key));
+  const cameras=devs.filter(d=>isCamera(d.key));
+  if(!nvrs.length||!cameras.length) return updates;
+  // Build NVR capacity map
+  const nvrCap={};
+  nvrs.forEach(n=>{nvrCap[n.id]={dev:n,total:getNvrChannels(n),used:getNvrUsedChannels(n.id,devs)}});
+  // For each camera, find reachable NVR(s) via shared switch or direct connection
+  cameras.forEach(cam=>{
+    const unassigned=getCameraUnassigned(cam);
+    if(unassigned<=0) return;
+    // Find directly connected devices
+    const directConns=conns.filter(c=>c.from===cam.id||c.to===cam.id);
+    const directIds=directConns.map(c=>c.from===cam.id?c.to:c.from);
+    // Check if directly connected to NVR
+    let reachableNvrs=directIds.filter(id=>nvrs.some(n=>n.id===id));
+    // Check via switch
+    const connSwitches=directIds.filter(id=>devs.find(d=>d.id===id&&isSwitch(d.key)));
+    connSwitches.forEach(swId=>{
+      const swConns=conns.filter(c=>c.from===swId||c.to===swId);
+      swConns.forEach(c=>{
+        const otherId=c.from===swId?c.to:c.from;
+        if(nvrs.some(n=>n.id===otherId)&&!reachableNvrs.includes(otherId)){
+          reachableNvrs.push(otherId);
+        }
+      });
+    });
+    if(!reachableNvrs.length) return;
+    // Assign to reachable NVRs by available capacity
+    let remaining=unassigned;
+    const newAssignments=[...(cam.nvrAssignments||[])];
+    reachableNvrs.forEach(nvrId=>{
+      if(remaining<=0) return;
+      const cap=nvrCap[nvrId];
+      const available=cap.total-cap.used;
+      if(available<=0) return;
+      const assign=Math.min(remaining,available);
+      const existing=newAssignments.find(a=>a.nvrId===nvrId);
+      if(existing) existing.qty+=assign;
+      else newAssignments.push({nvrId,qty:assign});
+      cap.used+=assign;
+      remaining-=assign;
+    });
+    // If still remaining and NVRs are full, assign overflow to first reachable NVR
+    if(remaining>0 && reachableNvrs.length){
+      const firstNvr=reachableNvrs[0];
+      const existing=newAssignments.find(a=>a.nvrId===firstNvr);
+      if(existing) existing.qty+=remaining;
+      else newAssignments.push({nvrId:firstNvr,qty:remaining});
+      nvrCap[firstNvr].used+=remaining;
+    }
+    if(JSON.stringify(newAssignments)!==JSON.stringify(cam.nvrAssignments||[])){
+      updates.push({id:cam.id,nvrAssignments:newAssignments});
+    }
+  });
+  return updates;
+};
 
 // Can this device be rack-mounted?
 function canMountInRack(key){
@@ -4117,6 +4207,52 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                           onClick={e=>{e.stopPropagation();updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
                       </div>
                     )}
+                    {/* NVR capacity badge */}
+                    {isGravador(dev.key)&&(()=>{
+                      const ch=getNvrChannels(dev);
+                      const used=getNvrUsedChannels(dev.id,devices);
+                      const isOver=used>ch;
+                      return (
+                        <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
+                          minWidth:28,height:14,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:7,fontWeight:800,padding:'0 4px',zIndex:13,whiteSpace:'nowrap',
+                          background:isOver?'#ef4444':used>0?'#22c55e':'#94a3b8',
+                          color:'#fff',border:'1.5px solid #fff',
+                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{used}/{ch}ch</div>
+                      );
+                    })()}
+                    {/* Switch port badge */}
+                    {isSwitch(dev.key)&&(()=>{
+                      const totalP=getSwitchPorts(dev);
+                      const connected=connections.filter(c=>c.from===dev.id||c.to===dev.id)
+                        .map(c=>{const oid=c.from===dev.id?c.to:c.from;return devices.find(d=>d.id===oid)}).filter(Boolean);
+                      const usedP=connected.reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
+                      const isOver=usedP>totalP;
+                      return usedP>0?(
+                        <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
+                          minWidth:28,height:14,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:7,fontWeight:800,padding:'0 4px',zIndex:13,whiteSpace:'nowrap',
+                          background:isOver?'#ef4444':'#3b82f6',
+                          color:'#fff',border:'1.5px solid #fff',
+                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{usedP}/{totalP}p</div>
+                      ):null;
+                    })()}
+                    {/* Camera NVR indicator */}
+                    {isCamera(dev.key)&&(dev.nvrAssignments||[]).length>0&&(()=>{
+                      const total=dev.qty||1;
+                      const assigned=(dev.nvrAssignments||[]).reduce((s,a)=>s+(a.qty||0),0);
+                      const allAssigned=assigned>=total;
+                      return (
+                        <div style={{position:'absolute',top:-6,left:-6,minWidth:14,height:14,borderRadius:7,
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:7,fontWeight:800,padding:'0 3px',zIndex:14,
+                          background:allAssigned?'#22c55e':'#f59e0b',
+                          color:'#fff',border:'1.5px solid #fff',
+                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>
+                          {allAssigned?'✓':assigned+'/'+total}
+                        </div>
+                      );
+                    })()}
                     {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:14,height:14,
                       borderRadius:'50%',background:'#22c55e',display:'flex',alignItems:'center',justifyContent:'center',
                       fontSize:8,color:'#fff',fontWeight:900}}>✓</div>}
@@ -4351,6 +4487,86 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                     </div>
                   </div>
                   <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+
+                  {/* NVR Assignment for cameras */}
+                  {isCamera(selectedDev.key)&&(()=>{
+                    const allNvrs=devices.filter(d=>isGravador(d.key));
+                    const totalQty=selectedDev.qty||1;
+                    const assignments=selectedDev.nvrAssignments||[];
+                    const assignedTotal=assignments.reduce((s,a)=>s+(a.qty||0),0);
+                    const unassigned=totalQty-assignedTotal;
+                    return allNvrs.length>0?(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                          letterSpacing:.5,marginBottom:6,marginTop:12,display:'flex',alignItems:'center',gap:6}}>
+                          <span>Gravação ({assignedTotal}/{totalQty})</span>
+                          {unassigned>0&&<span style={{color:'#ef4444',fontSize:9,fontWeight:600,
+                            background:'#fef2f2',padding:'1px 6px',borderRadius:8}}>
+                            {unassigned} sem NVR</span>}
+                          {unassigned===0&&assignedTotal>0&&<span style={{color:'#22c55e',fontSize:9}}>✓</span>}
+                        </div>
+                        {allNvrs.map(nvr=>{
+                          const nvrCh=getNvrChannels(nvr);
+                          const nvrUsed=getNvrUsedChannels(nvr.id,devices);
+                          const myAssign=assignments.find(a=>a.nvrId===nvr.id);
+                          const myQty=myAssign?.qty||0;
+                          const isOver=nvrUsed>nvrCh;
+                          return (
+                            <div key={nvr.id} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 0',
+                              fontSize:10,borderBottom:'1px solid #f0f0f0'}}>
+                              <span style={{width:8,height:8,borderRadius:'50%',flexShrink:0,
+                                background:isOver?'#ef4444':'#22c55e'}}/>
+                              <span style={{flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',
+                                whiteSpace:'nowrap',fontWeight:myQty>0?700:400,
+                                color:myQty>0?'var(--azul)':'var(--cinza)'}}>
+                                {nvr.name}
+                                <span style={{fontSize:8,color:isOver?'#ef4444':'#94a3b8',marginLeft:4}}>
+                                  {nvrUsed}/{nvrCh}ch
+                                </span>
+                              </span>
+                              <div style={{display:'flex',alignItems:'center',gap:2}}>
+                                <button style={{width:16,height:16,fontSize:11,background:myQty>0?'#fee2e2':'#f1f5f9',
+                                  border:'1px solid #e2e8f0',borderRadius:3,cursor:'pointer',display:'flex',
+                                  alignItems:'center',justifyContent:'center',color:myQty>0?'#ef4444':'#94a3b8'}}
+                                  onClick={e=>{e.stopPropagation();
+                                    if(myQty<=0) return;
+                                    let newA=assignments.map(a=>a.nvrId===nvr.id?{...a,qty:a.qty-1}:a).filter(a=>a.qty>0);
+                                    updateDevice(selectedDev.id,{nvrAssignments:newA});
+                                  }}>−</button>
+                                <span style={{fontSize:9,fontWeight:700,minWidth:18,textAlign:'center',
+                                  color:myQty>0?'var(--azul)':'#94a3b8'}}>{myQty}</span>
+                                <button style={{width:16,height:16,fontSize:11,background:unassigned>0?'#dbeafe':'#f1f5f9',
+                                  border:'1px solid #e2e8f0',borderRadius:3,cursor:'pointer',display:'flex',
+                                  alignItems:'center',justifyContent:'center',color:unassigned>0?'#3b82f6':'#94a3b8'}}
+                                  onClick={e=>{e.stopPropagation();
+                                    if(unassigned<=0) return;
+                                    let newA=[...assignments];
+                                    const ex=newA.find(a=>a.nvrId===nvr.id);
+                                    if(ex) ex.qty++;
+                                    else newA.push({nvrId:nvr.id,qty:1});
+                                    updateDevice(selectedDev.id,{nvrAssignments:newA});
+                                  }}>+</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {unassigned>0&&(
+                          <button style={{marginTop:6,width:'100%',padding:'4px 8px',fontSize:9,fontWeight:600,
+                            background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}
+                            onClick={()=>{
+                              const updates=autoAssignCameras(devices,connections);
+                              const myUpdate=updates.find(u=>u.id===selectedDev.id);
+                              if(myUpdate) updateDevice(selectedDev.id,{nvrAssignments:myUpdate.nvrAssignments});
+                              else showConnToast('Nenhum NVR alcançável via rede','warn');
+                            }}>⚡ Auto-distribuir ({unassigned} câmeras)</button>
+                        )}
+                      </div>
+                    ):(
+                      <div style={{fontSize:9,color:'#f59e0b',padding:'6px 0',marginTop:8}}>
+                        ⚠ Nenhum NVR no andar. Adicione um NVR para atribuir gravação.
+                      </div>
+                    );
+                  })()}
                     letterSpacing:.5,marginBottom:6,marginTop:12}}>Especificações</div>
                   {def?.props&&Object.entries(def.props).map(([k,v])=>(
                     <div key={k} className="prop-row">
@@ -4483,6 +4699,125 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                     </>
                   )}
 
+
+                  {/* NVR Channel Map */}
+                  {isGravador(selectedDev.key)&&(()=>{
+                    const totalCh=getNvrChannels(selectedDev);
+                    const usedCh=getNvrUsedChannels(selectedDev.id,devices);
+                    const isOver=usedCh>totalCh;
+                    const pct=Math.min(100,Math.round(usedCh/totalCh*100));
+                    const assignedCams=devices.filter(d=>isCamera(d.key)&&d.nvrAssignments?.some(a=>a.nvrId===selectedDev.id));
+                    return (
+                      <>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                          letterSpacing:.5,marginBottom:6,marginTop:12}}>
+                          Canais ({usedCh}/{totalCh})
+                          {isOver&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>⚠ EXCEDIDO</span>}
+                        </div>
+                        <div style={{height:6,background:'#e2e8f0',borderRadius:3,overflow:'hidden',marginBottom:8}}>
+                          <div style={{height:'100%',borderRadius:3,transition:'width .3s',
+                            width:pct+'%',background:isOver?'#ef4444':pct>80?'#f59e0b':'#22c55e'}}/>
+                        </div>
+                        <div className="prop-row">
+                          <span className="pr-label">Canais totais:</span>
+                          <span className="pr-value">
+                            <input type="number" min="1" max="256" value={totalCh}
+                              onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,channels:parseInt(e.target.value)||16}})}
+                              style={{width:'60px'}}/>
+                          </span>
+                        </div>
+                        {assignedCams.length>0?(
+                          assignedCams.map(cam=>{
+                            const a=cam.nvrAssignments.find(x=>x.nvrId===selectedDev.id);
+                            return (
+                              <div key={cam.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',
+                                fontSize:10,borderBottom:'1px solid #f0f0f0',cursor:'pointer'}}
+                                onClick={()=>{setSelectedDevice(cam.id);setRightTab('props')}}>
+                                <span style={{width:8,height:8,borderRadius:'50%',background:'#3b82f6',flexShrink:0}}/>
+                                <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                  {cam.name}{(cam.qty||1)>1?' ×'+(cam.qty||1):''}
+                                </span>
+                                <span style={{fontSize:9,fontWeight:700,color:'var(--azul)'}}>{a?.qty||0}ch</span>
+                              </div>
+                            );
+                          })
+                        ):(
+                          <div style={{fontSize:10,color:'#9ca3af',padding:'6px 0'}}>
+                            Nenhuma câmera atribuída. Selecione uma câmera e atribua a este NVR.
+                          </div>
+                        )}
+                        {assignedCams.length===0&&(
+                          <button style={{marginTop:6,width:'100%',padding:'4px 8px',fontSize:9,fontWeight:600,
+                            background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}
+                            onClick={()=>{
+                              const updates=autoAssignCameras(devices,connections);
+                              if(updates.length){
+                                updates.forEach(u=>updateDevice(u.id,{nvrAssignments:u.nvrAssignments}));
+                                showConnToast(updates.length+' câmera(s) atribuídas automaticamente','success');
+                              } else showConnToast('Nenhuma câmera alcançável via rede','warn');
+                            }}>⚡ Auto-distribuir câmeras</button>
+                        )}
+                      </>
+                    );
+                  })()}
+
+                  {/* Switch Port Usage */}
+                  {isSwitch(selectedDev.key)&&(()=>{
+                    const totalPorts=getSwitchPorts(selectedDev);
+                    const connected=connections.filter(c=>c.from===selectedDev.id||c.to===selectedDev.id)
+                      .map(c=>{const oid=c.from===selectedDev.id?c.to:c.from;return devices.find(d=>d.id===oid)}).filter(Boolean);
+                    const poeDevs=connected.filter(d=>needsPoE(d.key));
+                    const uplinkDevs=connected.filter(d=>!needsPoE(d.key));
+                    const usedPoePorts=poeDevs.reduce((s,d)=>s+(d.qty||1),0);
+                    const usedUplinks=uplinkDevs.length;
+                    const isOver=usedPoePorts>totalPorts;
+                    const pct=Math.min(100,Math.round(usedPoePorts/totalPorts*100));
+                    return (
+                      <>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                          letterSpacing:.5,marginBottom:6,marginTop:12}}>
+                          Portas PoE ({usedPoePorts}/{totalPorts})
+                          {isOver&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>⚠ {usedPoePorts-totalPorts} EXCEDENTES</span>}
+                        </div>
+                        <div style={{height:6,background:'#e2e8f0',borderRadius:3,overflow:'hidden',marginBottom:8}}>
+                          <div style={{height:'100%',borderRadius:3,transition:'width .3s',
+                            width:pct+'%',background:isOver?'#ef4444':pct>80?'#f59e0b':'#22c55e'}}/>
+                        </div>
+                        <div className="prop-row">
+                          <span className="pr-label">Portas totais:</span>
+                          <span className="pr-value">
+                            <input type="number" min="1" max="48" value={totalPorts}
+                              onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,portCount:parseInt(e.target.value)||8}})}
+                              style={{width:'60px'}}/>
+                          </span>
+                        </div>
+                        {poeDevs.length>0&&<div style={{fontSize:9,fontWeight:600,color:'var(--cinza)',marginTop:6,marginBottom:4}}>
+                          DISPOSITIVOS PoE</div>}
+                        {poeDevs.map(d=>(
+                          <div key={d.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
+                            fontSize:10,borderBottom:'1px solid #f0f0f0',cursor:'pointer'}}
+                            onClick={()=>{setSelectedDevice(d.id);setRightTab('props')}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:'#3b82f6',flexShrink:0}}/>
+                            <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              {d.name}{(d.qty||1)>1?' ×'+(d.qty||1):''}
+                            </span>
+                            <span style={{fontSize:9,color:'var(--cinza)'}}>{d.qty||1}p</span>
+                          </div>
+                        ))}
+                        {uplinkDevs.length>0&&<div style={{fontSize:9,fontWeight:600,color:'var(--cinza)',marginTop:6,marginBottom:4}}>
+                          UPLINKS ({usedUplinks})</div>}
+                        {uplinkDevs.map(d=>(
+                          <div key={d.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
+                            fontSize:10,borderBottom:'1px solid #f0f0f0',cursor:'pointer'}}
+                            onClick={()=>{setSelectedDevice(d.id);setRightTab('props')}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>
+                            <span style={{flex:1}}>{d.name}</span>
+                            <span style={{fontSize:9,color:'var(--cinza)'}}>1p</span>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
                   {/* Configuration fields for rack */}
                   {selectedDev.key==='rack'&&(
                     <>
