@@ -144,8 +144,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Connection lines */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
-.conn-line-path{fill:none;stroke-width:2;stroke-linecap:round}
-.cable-label{font-size:10px;fill:var(--cinza);text-anchor:middle;font-weight:500}
+.conn-line-path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cable-label{font-size:10px;fill:var(--cinza);text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
 
 /* Environments/rooms overlay */
 .env-rect{position:absolute;border:2px dashed;border-radius:8px;z-index:1;pointer-events:none}
@@ -322,7 +322,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 1, build: 0,
+  major: 3, minor: 1, build: 1,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -342,6 +342,16 @@ const APP_VERSION = {
       'Fix: filtro de dispositivos por categoria corrigido (mapeamento explícito)',
       'Toolbar: seletor de cabos com grupos PP 2v e PP 4v identificados',
       'Cabos PP com indicação "(auto por dist.)" no seletor',
+    ]},
+    {ver:'3.1.1',date:'2026-03-06',changes:[
+      'Conexões profissionais — linhas saem da borda do círculo do dispositivo (não do centro)',
+      'Anchor dots visuais nos pontos de conexão (bolinhas na cor do cabo)',
+      'Anchor dots N/E/S/W aparecem nos dispositivos durante modo cabo',
+      'Curva bezier refinada — controle proporcional a 25% do segmento',
+      'Ângulo inteligente — escolhe orientação H-first ou V-first conforme layout',
+      'Cable labels com stroke branco para legibilidade sobre qualquer fundo',
+      'Indicador visual do dispositivo fonte: anel tracejado laranja',
+      'Múltiplas conexões entre mesmo par com offset aumentado (10px)',
     ]},
     {ver:'3.0.2',date:'2026-03-06',changes:['Acessibilidade universal — app otimizado para jovens e idosos','Ícones do canvas: 40px→52px com SVG 28px, borda mais espessa e sombra reforçada','Labels do canvas: 10px→12px com background sólido e box-shadow para leitura em qualquer fundo','Painel esquerdo ampliado: 240→260px, ícones 26→32px, fontes da paleta 12→13px','Painel direito ampliado: 320→340px, propriedades 12→13px, inputs com sombra de foco','Toolbar: botões 32→36px, labels 11→12px, sim-pill 11→12px','Topbar: 52→54px, logo 13→14px, projeto 15→16px, botões com padding maior','Box-shadow em todos os painéis, cards, stat-cards, módulos, validações e port popup','Text-shadow sutil em labels do canvas e ambientes para legibilidade','Topology nodes: 12→13px com sombra, border-left 3→4px','Equipamentos: tabela 12→13px, inputs com sombra de foco','Floor tabs: 32→36px, font 11→12px, botão add 12→14px','Status bar: 26→30px, font 11→12px','Font-smoothing antialiased e line-height 1.5 no body']},
     {ver:'3.0.1',date:'2026-03-06',changes:['Melhoria global de tipografia — fontes ampliadas em todos os componentes','Labels de formulário: 10px→12px, inputs: 12px→14px, placeholders mais legíveis','Dashboard: cards, stats e badges com fontes maiores e mais contraste','Formulário de cliente ampliado (max-width 680px) com campos mais espaçados','Configurações e Assinatura: layout mais largo (720px) e campos maiores','Paleta de dispositivos, topbar, toolbar e painéis laterais com fontes legíveis','Tabelas de equipamentos, validações e port popup com fontes incrementadas','Botões: 12px→14px em todo o app']},
@@ -2523,27 +2533,53 @@ function ProjectApp({project,setProject,onBack}){
 
               {/* Connection lines */}
               <svg className="conn-svg" width="2000" height="2000">
+                {/* Connection anchor dot indicators on devices in cable mode */}
+                {cableMode&&devices.map(dev=>{
+                  const R=26; // device icon radius
+                  const cx=dev.x+R,cy=dev.y+R;
+                  const anchors=[[0,-1],[1,0],[0,1],[-1,0]]; // N,E,S,W
+                  const ts=validTargets[dev.id];
+                  if(ts!=='valid'&&dev.id!==cableMode?.from) return null;
+                  const dotColor=dev.id===cableMode?.from?'#f59e0b':'#22c55e';
+                  return <g key={'anc_'+dev.id}>
+                    {anchors.map(([ax,ay],i)=>(
+                      <circle key={i} cx={cx+ax*(R+1)} cy={cy+ay*(R+1)} r={4}
+                        fill={dotColor} stroke="#fff" strokeWidth={1.5} opacity={0.85}
+                        style={{pointerEvents:'none'}}/>
+                    ))}
+                  </g>;
+                })}
                 {connections.map(conn=>{
                   const from=devices.find(d=>d.id===conn.from);
                   const to=devices.find(d=>d.id===conn.to);
                   if(!from||!to) return null;
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
 
+                  // Device icon radius = 26px (52/2), center offset
+                  const R=26;
+                  const fcx=from.x+R, fcy=from.y+R;
+                  const tcx=to.x+R, tcy=to.y+R;
+
                   // Calculate offset for multiple connections between same pair
                   const pairKey=[conn.from,conn.to].sort().join('|');
                   const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
                   const pairIdx=pairConns.indexOf(conn);
                   const pairTotal=pairConns.length;
-                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*8:0;
+                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*10:0;
 
-                  // Perpendicular offset
-                  const dx=to.x-from.x;const dy=to.y-from.y;
+                  // Direction vector center-to-center
+                  const dx=tcx-fcx;const dy=tcy-fcy;
                   const len=Math.sqrt(dx*dx+dy*dy)||1;
-                  const nx=-dy/len*offsetAmt;const ny=dx/len*offsetAmt;
+                  const ux=dx/len,uy=dy/len; // unit vector
+                  const px=-uy,py=ux; // perpendicular
 
-                  const x1=from.x+20+nx;const y1=from.y+20+ny;
-                  const x2=to.x+20+nx;const y2=to.y+20+ny;
+                  // Anchor on circle border (start from edge, not center)
+                  const x1=fcx+ux*R+px*offsetAmt;
+                  const y1=fcy+uy*R+py*offsetAmt;
+                  const x2=tcx-ux*R+px*offsetAmt;
+                  const y2=tcy-uy*R+py*offsetAmt;
                   const mx=(x1+x2)/2;const my=(y1+y2)/2;
+                  const segLen=Math.sqrt((x2-x1)**2+(y2-y1)**2)||1;
 
                   const isPower=ct.group==='power';
                   const isSignal=ct.group==='signal';
@@ -2557,39 +2593,50 @@ function ProjectApp({project,setProject,onBack}){
                   // Route type rendering
                   const route=conn.route||'straight';
                   let linePath=null;
-                  let labelX=mx,labelY=my-3;
+                  let labelX=mx,labelY=my-6;
                   if(route==='curve'){
-                    // Quadratic bezier curve — control point perpendicular to midpoint
-                    const cpOff=Math.min(80,len*0.3);
-                    const cpx=mx+(-dy/len)*cpOff;
-                    const cpy=my+(dx/len)*cpOff;
-                    labelX=cpx*0.25+mx*0.75;labelY=cpy*0.25+my*0.75-3;
+                    // Smooth quadratic bezier — control point perpendicular at 25% of segment length
+                    const cpOff=Math.min(60,segLen*0.25);
+                    const cpx=mx+px*cpOff;
+                    const cpy=my+py*cpOff;
+                    // Label along curve at t=0.5
+                    labelX=0.25*cpx+0.5*mx+0.25*(x1+x2)*0.5;
+                    labelY=0.25*cpy+0.5*my+0.25*(y1+y2)*0.5-6;
                     linePath=<path d={`M${x1},${y1} Q${cpx},${cpy} ${x2},${y2}`}
                       fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
                   } else if(route==='angle'){
-                    // L-shaped angle path — go horizontal first, then vertical
-                    const elbowX=x2;const elbowY=y1;
-                    labelX=(x1+elbowX)/2;labelY=elbowY-5;
+                    // Smart elbow — choose better L direction based on orientation
+                    const absDx=Math.abs(dx),absDy=Math.abs(dy);
+                    let elbowX,elbowY;
+                    if(absDx>=absDy){elbowX=x2;elbowY=y1;} // horizontal first
+                    else{elbowX=x1;elbowY=y2;} // vertical first
+                    labelX=(x1+elbowX)/2;labelY=Math.min(y1,elbowY)-6;
                     linePath=<path d={`M${x1},${y1} L${elbowX},${elbowY} L${x2},${y2}`}
-                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
+                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}
+                      strokeLinejoin="round"/>;
                   } else {
                     linePath=<line x1={x1} y1={y1} x2={x2} y2={y2}
                       className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
                   }
 
+                  // Small anchor dots at connection endpoints
                   return <g key={conn.id}>
                     {linePath}
+                    <circle cx={x1} cy={y1} r={3} fill={ct.color} opacity={0.7}/>
+                    <circle cx={x2} cy={y2} r={3} fill={ct.color} opacity={0.7}/>
                     <text x={labelX} y={labelY} className="cable-label">
                       {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
                     </text>
                   </g>;
                 })}
-                {/* Cable mode preview */}
-                {cableMode&&selectedDevice&&(()=>{
+                {/* Cable mode preview line from source device */}
+                {cableMode&&(()=>{
                   const from=devices.find(d=>d.id===cableMode.from);
                   if(!from) return null;
-                  return <line x1={from.x+20} y1={from.y+20} x2={from.x+80} y2={from.y+20}
-                    stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 3" opacity=".5"/>;
+                  const R=26;
+                  const cx=from.x+R,cy=from.y+R;
+                  return <circle cx={cx} cy={cy} r={R+3} fill="none"
+                    stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" opacity=".6"/>;
                 })()}
               </svg>
 
