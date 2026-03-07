@@ -2079,16 +2079,32 @@ const dedupDeviceIds=(project)=>{
   if(!project?.floors) return project;
   let changed=false;
   project.floors.forEach(f=>{
-    const seen=new Set();
+    const seen=new Map(); // id → device
     (f.devices||[]).forEach(d=>{
       if(seen.has(d.id)){
         const oldId=d.id;
+        const origDev=seen.get(d.id);
         const newId=uid();
-        console.warn('[dedup] Device "'+d.name+'" had duplicate id='+oldId+' → reassigned to '+newId+'. Rewire connections manually.');
+        console.warn('[dedup] Device "'+d.name+'" had duplicate id='+oldId+' → reassigned to '+newId);
         d.id=newId;
         changed=true;
+        // Smart connection remapping based on cable type vs device type
+        const isNetDev=(key)=>key&&(key.startsWith('sw_')||key.startsWith('nvr_')||key.startsWith('cam_')||key.startsWith('ap_'));
+        const isDataCable=(type)=>type&&(type==='cat6'||type==='cat5e'||type==='fibra_sm'||type==='fibra_mm');
+        (f.connections||[]).forEach(c=>{
+          // If this is a data cable and the dup device is a network device but the original is NOT
+          if(isDataCable(c.type)&&isNetDev(d.key)&&!isNetDev(origDev.key)){
+            if(c.from===oldId) c.from=newId;
+            if(c.to===oldId) c.to=newId;
+          }
+          // If this is a power cable and the dup device is NOT a network device but the original IS
+          if(!isDataCable(c.type)&&!isNetDev(d.key)&&isNetDev(origDev.key)){
+            if(c.from===oldId) c.from=newId;
+            if(c.to===oldId) c.to=newId;
+          }
+        });
       }
-      seen.add(d.id);
+      seen.set(d.id,d);
     });
   });
   if(changed) syncUid(project);
