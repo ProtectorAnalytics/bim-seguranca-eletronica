@@ -331,11 +331,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 9, build: 0,
+  major: 3, minor: 9, build: 1,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.9.1',date:'2026-03-07',changes:['Fix crítico: syncUid previne IDs duplicados ao carregar projetos','Migração automática: dedup de dispositivos com IDs collididos','Persistência do auto-assign corrigida']},
     {ver:'3.9.0',date:'2026-03-07',changes:['Sistema de Assignment Câmera↔NVR com capacidade','Badges de capacidade no canvas (NVR canais, Switch portas)','Auto-distribuição por topologia de rede','Painel de canais no NVR e portas no Switch']},
     {ver:'3.6.0',date:'2026-03-07',changes:[
       'Categorias colapsáveis na paleta (▶ para expandir/recolher)',
@@ -2064,6 +2065,35 @@ function saveSettings(settings){
 // ====================================================================
 let _uid=0;
 const uid=()=>'d'+(++_uid);
+const syncUid=(project)=>{
+  let max=0;
+  if(project?.floors){
+    project.floors.forEach(f=>{
+      (f.devices||[]).forEach(d=>{const m=d.id?.match(/^d(\d+)$/);if(m) max=Math.max(max,parseInt(m[1]));});
+      (f.connections||[]).forEach(c=>{const m=c.id?.match(/^d(\d+)$/);if(m) max=Math.max(max,parseInt(m[1]));});
+    });
+  }
+  if(max>=_uid) _uid=max;
+};
+const dedupDeviceIds=(project)=>{
+  if(!project?.floors) return project;
+  let changed=false;
+  project.floors.forEach(f=>{
+    const seen=new Set();
+    (f.devices||[]).forEach(d=>{
+      if(seen.has(d.id)){
+        const oldId=d.id;
+        const newId=uid();
+        console.warn('[dedup] Device "'+d.name+'" had duplicate id='+oldId+' → reassigned to '+newId+'. Rewire connections manually.');
+        d.id=newId;
+        changed=true;
+      }
+      seen.add(d.id);
+    });
+  });
+  if(changed) syncUid(project);
+  return project;
+};
 
 // ====================================================================
 // MAIN APP COMPONENT
@@ -2145,7 +2175,7 @@ function App(){
   },[project,editingProjectId]);
 
   const onStartNewProject=()=>{ setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''}); setScreen('client'); };
-  const onOpenProject=(proj)=>{ setProject({name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors,activeFloor:proj.activeFloor,settings:proj.settings}); setEditingProjectId(proj.id); setScreen('project'); };
+  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors,activeFloor:proj.activeFloor,settings:proj.settings}; syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
 
   if(screen==='dashboard') return <Dashboard
     onNewProject={onStartNewProject}
