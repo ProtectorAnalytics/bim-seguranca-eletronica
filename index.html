@@ -4614,9 +4614,10 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                             background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}
                             onClick={()=>{
                               const updates=autoAssignCameras(devices,connections);
-                              const myUpdate=updates.find(u=>u.id===selectedDev.id);
-                              if(myUpdate) updateDevice(selectedDev.id,{nvrAssignments:myUpdate.nvrAssignments});
-                              else showConnToast('Nenhum NVR alcançável via rede','warn');
+                              if(updates.length){
+                                updates.forEach(u=>updateDevice(u.id,{nvrAssignments:u.nvrAssignments}));
+                                showConnToast(updates.length+' câmera(s) atribuídas automaticamente','success');
+                              } else showConnToast('Nenhum NVR alcançável via rede','warn');
                             }}>⚡ Auto-distribuir ({unassigned} câmeras)</button>
                         )}
                       </div>
