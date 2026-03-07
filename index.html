@@ -331,7 +331,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 8, build: 5,
+  major: 3, minor: 8, build: 6,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -3427,19 +3427,30 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
       if(dragging){
         const draggedDev=devices.find(d=>d.id===dragging.id);
         if(draggedDev && draggedDev.key!=='rack' && draggedDev.key!=='quadro' && draggedDev.key!=='quadro_eletrico'){
-          const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
-            draggedDev.x>=r.x-40&&draggedDev.x<=r.x+180&&
-            draggedDev.y>=r.y-30&&draggedDev.y<=r.y+((r.key==='rack'?(r.config?.alturaU||12)*22+40:200)));
-          if(rackDev){
-            const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):rackDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
-            if(canMount){updateDevice(dragging.id,{parentRack:rackDev.id})}
-            else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.name||rackDev.key}`,'warn')}
-          }else if(draggedDev.parentRack){
-            // Dragged out of rack
-            const rack=devices.find(r=>r.id===draggedDev.parentRack);
-            if(rack && !(draggedDev.x>=rack.x-40&&draggedDev.x<=rack.x+180&&
-              draggedDev.y>=rack.y-30&&draggedDev.y<=rack.y+((rack.key==='rack'?(rack.config?.alturaU||12)*22+40:200)))){
-              updateDevice(dragging.id,{parentRack:null});
+          const getContainerBounds=(r)=>{
+            const w=r.key==='rack'?160:180;
+            const h=r.key==='rack'?(r.config?.alturaU||12)*22+40:200;
+            return {x1:r.x-30,y1:r.y-20,x2:r.x-30+w,y2:r.y-20+h};
+          };
+          const isInsideContainer=(dev,container)=>{
+            const b=getContainerBounds(container);
+            return dev.x>=b.x1&&dev.x<=b.x2&&dev.y>=b.y1&&dev.y<=b.y2;
+          };
+          if(draggedDev.parentRack){
+            // Check if dragged OUT of current container
+            const parentContainer=devices.find(r=>r.id===draggedDev.parentRack);
+            if(parentContainer && !isInsideContainer(draggedDev,parentContainer)){
+              updateDevice(dragging.id,{parentRack:null,rackSlot:null});
+              showConnToast(`${draggedDev.name} removido de ${parentContainer.name}`,'info');
+            }
+          }else{
+            // Check if dropped INTO a container
+            const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
+              isInsideContainer(draggedDev,r));
+            if(rackDev){
+              const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):rackDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
+              if(canMount){updateDevice(dragging.id,{parentRack:rackDev.id});showConnToast(`${draggedDev.name} montado em ${rackDev.name}`,'success')}
+              else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.name||rackDev.key}`,'warn')}
             }
           }
         }
@@ -3995,9 +4006,12 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                             {thumb?<img src={thumb} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:
                               <span style={{fontSize:10}}>{ICONS[getDeviceIconKey(child.key)]?.(catColor)}</span>}
                           </div>
-                          <div style={{flex:1,minWidth:0}}>
+                          <div style={{flex:1,minWidth:0,cursor:'pointer'}} onClick={()=>{setSelectedDevice(child.id);setRightTab('props')}}>
                             <div style={{fontSize:9,fontWeight:600,color:'#334155',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{child.name}</div>
                           </div>
+                          <span style={{fontSize:10,color:'#ef4444',cursor:'pointer',padding:'0 3px',
+                            pointerEvents:'auto',fontWeight:700,lineHeight:1}} title="Remover do quadro"
+                            onClick={(e)=>{e.stopPropagation();updateDevice(child.id,{parentRack:null})}}>✕</span>
                           <div style={{width:4,height:18,borderRadius:2,background:catColor,opacity:.5,flexShrink:0}}/>
                         </div>
                       );
@@ -4513,8 +4527,10 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                               <span style={{width:8,height:8,borderRadius:'50%',background:childCat?.color||'#999',flexShrink:0}}/>
                               <span style={{flex:1}}>{child.name}</span>
                               <span style={{fontSize:8,color:'var(--cinza)'}}>2U</span>
-                              <span style={{cursor:'pointer',color:'var(--cinza)',fontSize:10}}
-                                onClick={e=>{e.stopPropagation();updateDevice(child.id,{parentRack:null})}}>↗</span>
+                              <span style={{cursor:'pointer',color:'#ef4444',fontSize:9,fontWeight:600,padding:'1px 4px',
+                                borderRadius:3,background:'#fef2f2',border:'1px solid #fecaca'}} title="Remover do container"
+                                onClick={e=>{e.stopPropagation();updateDevice(child.id,{parentRack:null,rackSlot:null});
+                                  showConnToast(`${child.name} removido do container`,'info')}}>✕ Remover</span>
                             </div>
                           );
                         })
