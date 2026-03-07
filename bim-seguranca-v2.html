@@ -18,40 +18,40 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* ===== LANDING ===== */
 .landing{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%)}
-.landing-logo{color:rgba(255,255,255,.5);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
-.landing-title{color:#fff;font-size:36px;font-weight:800;margin-bottom:4px}
-.landing-sub{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:48px}
+.landing-logo{color:rgba(255,255,255,.5);font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.landing-title{color:#fff;font-size:38px;font-weight:800;margin-bottom:6px}
+.landing-sub{color:rgba(255,255,255,.5);font-size:15px;margin-bottom:48px}
 .scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:720px}
 .scenario-card{width:160px;background:rgba(255,255,255,.06);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px 16px;cursor:pointer;transition:.25s;text-align:center;color:#fff}
 .scenario-card:hover{background:rgba(255,255,255,.12);border-color:var(--laranja);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
 .scenario-card .sc-icon{font-size:32px;margin-bottom:10px}
-.scenario-card h4{font-size:13px;margin-bottom:4px;font-weight:600}
-.scenario-card p{font-size:10px;opacity:.5;line-height:1.3}
+.scenario-card h4{font-size:15px;margin-bottom:6px;font-weight:600}
+.scenario-card p{font-size:12px;opacity:.5;line-height:1.4}
 /* Client form */
-.client-form{width:100%;max-width:520px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:32px;animation:portPopIn .2s ease-out}
-.client-form .cf-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
-.client-form .cf-sub{font-size:11px;color:rgba(255,255,255,.45);margin-bottom:24px}
-.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.client-form{width:100%;max-width:680px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:36px 40px;animation:portPopIn .2s ease-out}
+.client-form .cf-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
+.client-form .cf-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px}
+.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .cf-grid.full{grid-template-columns:1fr}
-.cf-field{display:flex;flex-direction:column;gap:3px}
-.cf-field label{font-size:10px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.cf-field input,.cf-field select,.cf-field textarea{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:12px;outline:none;transition:.2s;font-family:inherit}
+.cf-field{display:flex;flex-direction:column;gap:5px}
+.cf-field label{font-size:12px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.cf-field input,.cf-field select,.cf-field textarea{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:11px 14px;color:#fff;font-size:14px;outline:none;transition:.2s;font-family:inherit}
 .cf-field input:focus,.cf-field select:focus,.cf-field textarea:focus{border-color:var(--laranja);background:rgba(255,255,255,.12)}
-.cf-field input::placeholder{color:rgba(255,255,255,.25)}
-.cf-field textarea{resize:vertical;min-height:50px}
+.cf-field input::placeholder{color:rgba(255,255,255,.3);font-size:13px}
+.cf-field textarea{resize:vertical;min-height:60px}
 .cf-field select option{background:#1B4F72;color:#fff}
-.cf-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
-.cf-btn{padding:10px 28px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.cf-actions{display:flex;gap:12px;margin-top:24px;justify-content:flex-end}
+.cf-btn{padding:12px 32px;border-radius:8px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:.2s}
 .cf-btn.primary{background:var(--laranja);color:#000}.cf-btn.primary:hover{background:#e5a817;transform:translateY(-1px)}
 .cf-btn.secondary{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6)}.cf-btn.secondary:hover{border-color:rgba(255,255,255,.4);color:#fff}
-.cf-section{font-size:10px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-top:16px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.cf-section{font-size:12px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-top:20px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
 
 /* ===== APP SHELL ===== */
 .app-shell{display:flex;flex-direction:column;height:100vh}
-.app-topbar{height:48px;background:var(--azulD);color:#fff;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
-.app-topbar .logo{font-size:12px;font-weight:700;letter-spacing:1px;opacity:.7}
-.app-topbar .proj-name{font-size:14px;font-weight:600;flex:1}
-.app-topbar .tb-btn{padding:5px 12px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);border-radius:5px;font-size:11px;cursor:pointer;transition:.15s}
+.app-topbar{height:52px;background:var(--azulD);color:#fff;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.app-topbar .logo{font-size:13px;font-weight:700;letter-spacing:1px;opacity:.7}
+.app-topbar .proj-name{font-size:15px;font-weight:600;flex:1}
+.app-topbar .tb-btn{padding:6px 14px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);border-radius:5px;font-size:12px;cursor:pointer;transition:.15s;font-weight:600}
 .app-topbar .tb-btn:hover{background:rgba(255,255,255,.1);color:#fff}
 .app-topbar .tb-btn.primary{background:var(--laranja);border-color:var(--laranja);color:#000;font-weight:700}
 
@@ -63,13 +63,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .tool-btn:hover{background:var(--cinzaL);color:var(--azul)}
 .tool-btn.active{background:#EBF5FB;color:var(--azul2)}
 .tool-sep{width:1px;height:24px;background:var(--cinzaM)}
-.tool-label{font-size:10px;color:var(--cinza);padding:0 4px}
+.tool-label{font-size:11px;color:var(--cinza);padding:0 4px}
 
 /* Simulation toggle */
 .sim-toggle{display:flex;align-items:center;gap:6px;margin-left:auto;padding:0 8px}
-.sim-toggle label{font-size:10px;color:var(--cinza);font-weight:600}
+.sim-toggle label{font-size:11px;color:var(--cinza);font-weight:600}
 .sim-pill{display:flex;background:var(--cinzaL);border-radius:4px;overflow:hidden;border:1px solid var(--cinzaM)}
-.sim-pill button{padding:4px 10px;border:none;background:transparent;font-size:10px;font-weight:600;cursor:pointer;color:var(--cinza);transition:.15s}
+.sim-pill button{padding:5px 12px;border:none;background:transparent;font-size:11px;font-weight:600;cursor:pointer;color:var(--cinza);transition:.15s}
 .sim-pill button.active{background:var(--azul);color:#fff}
 
 /* ===== MAIN AREA ===== */
@@ -78,23 +78,23 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 /* ===== LEFT PANEL ===== */
 .left-panel{width:240px;background:var(--branco);border-right:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .lp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
-.lp-tab{flex:1;padding:8px 4px;font-size:10px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.lp-tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
 .lp-tab.active{color:var(--azul);border-color:var(--azul2)}
 .lp-content{flex:1;overflow-y:auto;padding:8px}
-.lp-search{width:100%;padding:6px 10px;border:1px solid var(--cinzaM);border-radius:5px;font-size:11px;margin-bottom:8px}
+.lp-search{width:100%;padding:7px 10px;border:1px solid var(--cinzaM);border-radius:5px;font-size:12px;margin-bottom:8px}
 .lp-search:focus{outline:none;border-color:var(--azul2)}
 .dev-category{margin-bottom:10px}
-.dev-cat-title{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);padding:4px 6px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
-.dev-cat-title .cnt{font-size:9px;background:var(--cinzaL);padding:1px 5px;border-radius:8px}
-.dev-item{display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px 0;border-radius:6px;cursor:grab;transition:.12s;font-size:11px;border:1px solid transparent}
+.dev-cat-title{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);padding:4px 6px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
+.dev-cat-title .cnt{font-size:10px;background:var(--cinzaL);padding:1px 5px;border-radius:8px}
+.dev-item{display:flex;align-items:center;gap:8px;padding:7px 8px;margin:2px 0;border-radius:6px;cursor:grab;transition:.12s;font-size:12px;border:1px solid transparent}
 .dev-item:hover{background:#F0F7FD;border-color:#D6EAF8}
 .dev-item:active{cursor:grabbing;opacity:.7;transform:scale(.97)}
 .dev-item .di-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .dev-item .di-icon svg{width:100%;height:100%}
 .dev-item .di-info{flex:1;min-width:0}
 .dev-item .di-name{font-weight:600;color:var(--azul);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dev-item .di-spec{font-size:9px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dev-item .di-tag{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0}
+.dev-item .di-spec{font-size:10px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-item .di-tag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;flex-shrink:0}
 .tag-poe{background:#E8F8F0;color:var(--verde)}
 .tag-dc{background:#FEF5E7;color:#E67E22}
 
@@ -113,8 +113,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .device-on-canvas .doc-icon{width:40px;height:40px;background:var(--branco);border:2px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:.15s}
 .device-on-canvas:hover .doc-icon{box-shadow:0 4px 16px rgba(0,0,0,.2);transform:scale(1.05)}
 .device-on-canvas.selected .doc-icon{border-color:var(--laranja);box-shadow:0 0 0 4px rgba(243,156,18,.2)}
-.device-on-canvas .doc-label{font-size:9px;font-weight:600;color:var(--azul);margin-top:2px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.9);padding:0 3px;border-radius:2px}
-.device-on-canvas .doc-model{font-size:8px;color:var(--cinza)}
+.device-on-canvas .doc-label{font-size:10px;font-weight:600;color:var(--azul);margin-top:2px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.9);padding:1px 4px;border-radius:2px}
+.device-on-canvas .doc-model{font-size:9px;color:var(--cinza)}
 
 /* Connection port popup */
 .port-popup-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:900;background:rgba(0,0,0,.15)}
@@ -122,7 +122,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
   background:var(--branco);border:1px solid var(--cinzaM);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18);
   padding:6px;animation:portPopIn .15s ease-out}
 @keyframes portPopIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
-.port-popup .pp-title{font-size:10px;font-weight:700;color:var(--azul);padding:4px 8px;border-bottom:1px solid var(--cinzaM);margin-bottom:2px}
+.port-popup .pp-title{font-size:11px;font-weight:700;color:var(--azul);padding:4px 8px;border-bottom:1px solid var(--cinzaM);margin-bottom:2px}
 .port-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;background:transparent;
   border-radius:7px;cursor:crosshair;transition:.12s;text-align:left;width:100%}
 .port-btn:hover{background:#EBF5FB}
@@ -136,10 +136,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .port-btn .pb-dot.ch-automation-out{background:#ea580c}
 .port-btn .pb-dot.ch-passthrough{background:#8b5cf6}
 .port-btn .pb-info{flex:1;min-width:0}
-.port-btn .pb-label{font-size:10px;font-weight:600;color:var(--azulD);line-height:1.2}
-.port-btn .pb-type{font-size:8px;color:var(--cinza);margin-top:1px}
-.port-btn .pb-req{font-size:7px;color:var(--vermelho);font-weight:700}
-.port-btn .pb-opt{font-size:7px;color:var(--cinza);font-style:italic}
+.port-btn .pb-label{font-size:11px;font-weight:600;color:var(--azulD);line-height:1.2}
+.port-btn .pb-type{font-size:9px;color:var(--cinza);margin-top:1px}
+.port-btn .pb-req{font-size:8px;color:var(--vermelho);font-weight:700}
+.port-btn .pb-opt{font-size:8px;color:var(--cinza);font-style:italic}
 
 /* Connection lines */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
@@ -168,7 +168,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 /* ===== RIGHT PANEL ===== */
 .right-panel{width:320px;background:var(--branco);border-left:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .rp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
-.rp-tab{flex:1;padding:8px 4px;font-size:10px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.rp-tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
 .rp-tab.active{color:var(--azul);border-color:var(--azul2)}
 .rp-content{flex:1;overflow-y:auto;padding:12px}
 
@@ -177,17 +177,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .prop-header{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--cinzaM);margin-bottom:8px}
 .prop-header .ph-icon{width:36px;height:36px;background:#EBF5FB;border-radius:8px;display:flex;align-items:center;justify-content:center}
 .prop-header .ph-info{flex:1}
-.prop-header .ph-name{font-size:13px;font-weight:700;color:var(--azul)}
-.prop-header .ph-model{font-size:10px;color:var(--cinza)}
-.prop-header .ph-replace{font-size:10px;color:var(--azul2);cursor:pointer;font-weight:600}
+.prop-header .ph-name{font-size:14px;font-weight:700;color:var(--azul)}
+.prop-header .ph-model{font-size:11px;color:var(--cinza)}
+.prop-header .ph-replace{font-size:11px;color:var(--azul2);cursor:pointer;font-weight:600}
 .prop-header .ph-replace:hover{text-decoration:underline}
-.prop-row{display:flex;align-items:center;padding:5px 0;font-size:11px}
+.prop-row{display:flex;align-items:center;padding:6px 0;font-size:12px}
 .prop-row .pr-label{width:100px;color:var(--cinza);font-weight:500;flex-shrink:0}
 .prop-row .pr-value{flex:1}
-.prop-row input,.prop-row select{width:100%;padding:4px 8px;border:1px solid var(--cinzaM);border-radius:4px;font-size:11px}
+.prop-row input,.prop-row select{width:100%;padding:5px 8px;border:1px solid var(--cinzaM);border-radius:4px;font-size:12px}
 .prop-row input:focus,.prop-row select:focus{outline:none;border-color:var(--azul2)}
 .prop-actions{display:flex;gap:6px;margin-top:8px}
-.prop-actions button{flex:1;padding:6px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+.prop-actions button{flex:1;padding:7px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
 .btn-apply{background:var(--verde);color:#fff}
 .btn-apply:hover{background:#229954}
 .btn-delete{background:transparent;border:1px solid var(--vermelho)!important;color:var(--vermelho)}
@@ -196,12 +196,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .btn-copy:hover{background:#EBF5FB}
 
 /* Topology view */
-.topo-node{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:4px 0;background:var(--cinzaL);border-radius:6px;font-size:11px;border-left:3px solid var(--azul2)}
+.topo-node{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:4px 0;background:var(--cinzaL);border-radius:6px;font-size:12px;border-left:3px solid var(--azul2)}
 .topo-node .tn-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
 .topo-node .tn-info{flex:1}
 .topo-node .tn-name{font-weight:600;color:var(--azul)}
-.topo-node .tn-detail{font-size:9px;color:var(--cinza)}
-.topo-node .tn-ports{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.topo-node .tn-detail{font-size:10px;color:var(--cinza)}
+.topo-node .tn-ports{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px}
 .ports-ok{background:#E8F8F0;color:var(--verde)}
 .ports-warn{background:#FEF5E7;color:#E67E22}
 .ports-full{background:#FDEDEC;color:var(--vermelho)}
@@ -209,15 +209,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .topo-disconnected{border-left-color:var(--vermelho);background:#FDEDEC}
 
 /* Equipment List */
-.eq-table{width:100%;border-collapse:collapse;font-size:10px}
+.eq-table{width:100%;border-collapse:collapse;font-size:12px}
 .eq-table th{text-align:left;padding:6px 8px;background:var(--cinzaL);border-bottom:1px solid var(--cinzaM);font-weight:700;color:var(--cinza);position:sticky;top:0}
 .eq-table td{padding:5px 8px;border-bottom:1px solid #f0f0f0}
 .eq-table tr:hover{background:#FAFBFC}
 .eq-table .eq-total{font-weight:700;color:var(--azul)}
 .eq-footer{padding:10px 0;border-top:2px solid var(--cinzaM)}
-.eq-footer .ef-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.eq-footer .ef-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
 .eq-footer .ef-row.total{font-size:13px;font-weight:700;color:var(--azul);padding-top:6px;border-top:1px solid var(--cinzaM);margin-top:4px}
-.eq-input{width:60px;padding:2px 4px;border:1px solid var(--cinzaM);border-radius:3px;font-size:10px;text-align:right}
+.eq-input{width:60px;padding:3px 5px;border:1px solid var(--cinzaM);border-radius:3px;font-size:12px;text-align:right}
 .eq-input:focus{outline:none;border-color:var(--azul2)}
 
 /* Validation alerts */
@@ -226,19 +226,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .val-card.alta{background:#FEF5E7;border-color:#E67E22}
 .val-card.media{background:#EBF5FB;border-color:var(--azul2)}
 .val-card.obrigatoria{background:#F5EEF8;border-color:var(--roxo)}
-.val-title{font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px}
-.val-sev{font-size:8px;padding:1px 5px;border-radius:3px;color:#fff;font-weight:700}
+.val-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px}
+.val-sev{font-size:9px;padding:2px 6px;border-radius:3px;color:#fff;font-weight:700}
 .sev-critica{background:var(--vermelho)}
 .sev-alta{background:#E67E22}
 .sev-media{background:var(--azul2)}
 .sev-obrigatoria{background:var(--roxo)}
-.val-body{font-size:10px;color:var(--cinza);margin-top:3px;line-height:1.4}
+.val-body{font-size:11px;color:var(--cinza);margin-top:3px;line-height:1.4}
 
 /* Export dialog */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
 .modal-card{background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto}
 .modal-card h3{font-size:16px;color:var(--azul);margin-bottom:12px}
-.modal-card .mc-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.modal-card .mc-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
 .modal-card .mc-row label{flex:1;cursor:pointer}
 .modal-card .mc-actions{display:flex;gap:8px;margin-top:16px}
 .modal-card .mc-btn{flex:1;padding:10px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
@@ -248,7 +248,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Floor tabs */
 .floor-tabs{display:flex;align-items:center;gap:2px;padding:0 8px;border-bottom:1px solid var(--cinzaM);background:var(--cinzaL);height:32px;flex-shrink:0}
-.floor-tab{padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;border-radius:4px 4px 0 0;color:var(--cinza);transition:.12s;border:1px solid transparent;border-bottom:none}
+.floor-tab{padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;border-radius:4px 4px 0 0;color:var(--cinza);transition:.12s;border:1px solid transparent;border-bottom:none}
 .floor-tab.active{background:var(--branco);color:var(--azul);border-color:var(--cinzaM)}
 .floor-tab:hover{background:rgba(255,255,255,.5)}
 .floor-add{padding:4px 8px;font-size:12px;cursor:pointer;color:var(--azul2);font-weight:700;border:none;background:transparent;border-radius:4px}
@@ -259,7 +259,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .env-badge:hover{filter:brightness(.9)}
 
 /* Status bar */
-.status-bar{height:24px;background:var(--cinzaL);border-top:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 12px;gap:16px;font-size:10px;color:var(--cinza);flex-shrink:0}
+.status-bar{height:26px;background:var(--cinzaL);border-top:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 12px;gap:16px;font-size:11px;color:var(--cinza);flex-shrink:0}
 .status-bar .sb-item{display:flex;align-items:center;gap:4px}
 .sb-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 .sb-ok{background:var(--verde)}
@@ -273,42 +273,42 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .dashboard-container{height:100vh;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%);color:#fff;overflow-y:auto;padding:24px}
 .dashboard-content{max-width:1400px;margin:0 auto}
 .dashboard-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
-.dh-left h1{font-size:28px;font-weight:800;margin-bottom:2px}
-.dh-left p{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px}
-.dh-version{font-size:10px;color:rgba(255,255,255,.35)}
+.dh-left h1{font-size:30px;font-weight:800;margin-bottom:4px}
+.dh-left p{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:16px}
+.dh-version{font-size:12px;color:rgba(255,255,255,.4)}
 .dh-user{display:flex;align-items:center;gap:12px}
 .dh-avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,.3)}
 
 .dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
-.stat-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px;text-align:center}
-.stat-number{font-size:32px;font-weight:800;color:var(--laranja);margin-bottom:8px}
-.stat-label{font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px}
+.stat-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px;text-align:center}
+.stat-number{font-size:34px;font-weight:800;color:var(--laranja);margin-bottom:8px}
+.stat-label{font-size:13px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
 
 .dashboard-modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .module-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;cursor:pointer;transition:.3s;display:flex;flex-direction:column;align-items:flex-start;min-height:140px}
 .module-card:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.3)}
 .module-card.primary{border-color:var(--laranja);background:rgba(243,156,18,.12)}
 .module-card.primary:hover{border-color:var(--laranja);background:rgba(243,156,18,.2);box-shadow:0 0 32px rgba(243,156,18,.2)}
-.mc-icon{font-size:32px;margin-bottom:12px}
-.mc-title{font-size:16px;font-weight:700;margin-bottom:4px}
-.mc-desc{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:16px;flex:1}
-.mc-badge{font-size:9px;background:rgba(255,255,255,.15);padding:4px 8px;border-radius:6px;color:rgba(255,255,255,.7);margin-top:auto}
+.mc-icon{font-size:36px;margin-bottom:14px}
+.mc-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.mc-desc{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:16px;flex:1;line-height:1.4}
+.mc-badge{font-size:11px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:6px;color:rgba(255,255,255,.75);margin-top:auto;font-weight:600}
 
 .dashboard-list{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px}
-.dashboard-list h3{color:#fff;margin-bottom:16px;font-size:14px}
-.list-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.2s}
+.dashboard-list h3{color:#fff;margin-bottom:16px;font-size:17px}
+.list-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.2s}
 .list-item:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
-.list-item-info h4{color:#fff;font-size:12px;font-weight:600;margin-bottom:2px}
-.list-item-info p{font-size:10px;color:rgba(255,255,255,.5)}
+.list-item-info h4{color:#fff;font-size:15px;font-weight:600;margin-bottom:3px}
+.list-item-info p{font-size:13px;color:rgba(255,255,255,.55)}
 .list-actions{display:flex;gap:8px}
-.list-btn{padding:4px 12px;font-size:10px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;transition:.2s}
+.list-btn{padding:6px 14px;font-size:12px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;transition:.2s;font-weight:600}
 .list-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
 
-.search-input{width:100%;padding:10px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-size:12px;margin-bottom:16px}
-.search-input::placeholder{color:rgba(255,255,255,.35)}
+.search-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-size:14px;margin-bottom:16px}
+.search-input::placeholder{color:rgba(255,255,255,.35);font-size:13px}
 .search-input:focus{outline:none;border-color:var(--laranja);background:rgba(255,255,255,.12)}
 
-.modal-back-btn{padding:10px 20px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);border-radius:8px;font-size:12px;cursor:pointer;transition:.2s;margin-bottom:20px;align-self:flex-start}
+.modal-back-btn{padding:11px 24px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);border-radius:8px;font-size:14px;cursor:pointer;transition:.2s;margin-bottom:20px;align-self:flex-start;font-weight:600}
 .modal-back-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
 </style>
 </head>
@@ -321,11 +321,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 0, build: 0,
+  major: 3, minor: 0, build: 1,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.0.1',date:'2026-03-06',changes:['Melhoria global de tipografia — fontes ampliadas em todos os componentes','Labels de formulário: 10px→12px, inputs: 12px→14px, placeholders mais legíveis','Dashboard: cards, stats e badges com fontes maiores e mais contraste','Formulário de cliente ampliado (max-width 680px) com campos mais espaçados','Configurações e Assinatura: layout mais largo (720px) e campos maiores','Paleta de dispositivos, topbar, toolbar e painéis laterais com fontes legíveis','Tabelas de equipamentos, validações e port popup com fontes incrementadas','Botões: 12px→14px em todo o app']},
     {ver:'3.0.0',date:'2026-03-06',changes:['Dashboard de Gerenciamento — hub central com stats, módulos e navegação SaaS','Persistência de Projetos — auto-save em localStorage, lista para reabrir projetos salvos','Gestão de Clientes — lista de clientes com histórico, reutilização em novos projetos','Configurações da Empresa — dados corporativos, taxa padrão, persistidos','Página de Assinatura — placeholder para integração com gerenciador de assinatura externo','Repositório de Equipamentos elevado a módulo do dashboard (acesso direto)','Fluxo refatorado: Dashboard → Cliente → Cenário → Projeto (4 etapas)','Novo fluxo: reabrir projetos salvos direto do dashboard']},
     {ver:'2.3.0',date:'2026-03-06',changes:['Repositório de Equipamentos — cadastro de dispositivos customizados com campos dinâmicos por tipo','Parser de datasheet — cola texto do datasheet e extrai specs automaticamente (tensão, corrente, resolução, portas, IP rating, etc)','Schemas por categoria: câmera, acesso, fechadura, alarme, sensor, switch, gravador, fonte, nobreak, infra','Equipamentos custom aparecem na paleta (📦 Customizados) com herança de ícone e interfaces','Persistência via localStorage — equipamentos salvos entre sessões','Fechadura eletroímã: adicionada saída sensor porta NF/C (vai pro facial, controladora ou fonte)','Fonte 12V: adicionada entrada alarme/aterramento para sensor de porta']},
     {ver:'2.2.3',date:'2026-03-06',changes:['Switch não-PoE (SG 800 Q+): alimentação DC 12-30V via fonte/nobreak como interface opcional','Switch não-PoE: PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-) como interface opcional','Labels atualizadas com especificações reais do datasheet Intelbras']},
@@ -1535,54 +1536,54 @@ function SettingsPage({onBack}){
       <div className="dashboard-content">
         <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
 
-        <div className="dashboard-list" style={{maxWidth:'600px'}}>
+        <div className="dashboard-list" style={{maxWidth:'720px'}}>
           <h3>Configurações da Empresa</h3>
 
-          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{display:'flex',flexDirection:'column',gap:18}}>
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Nome da Empresa</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>Nome da Empresa</label>
               <input type="text" value={settings.nomeEmpresa||''} onChange={e=>upd('nomeEmpresa',e.target.value)}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="Protector Sistemas"/>
             </div>
 
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>CNPJ</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>CNPJ</label>
               <input type="text" value={settings.cnpj||''} onChange={e=>upd('cnpj',e.target.value)}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="XX.XXX.XXX/0001-XX"/>
             </div>
 
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Endereço</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>Endereço</label>
               <input type="text" value={settings.endereco||''} onChange={e=>upd('endereco',e.target.value)}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="Rua, número, complemento"/>
             </div>
 
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Telefone</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>Telefone</label>
               <input type="text" value={settings.telefone||''} onChange={e=>upd('telefone',e.target.value)}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="(XX) XXXXX-XXXX"/>
             </div>
 
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>E-mail</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>E-mail</label>
               <input type="email" value={settings.email||''} onChange={e=>upd('email',e.target.value)}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="contato@empresa.com"/>
             </div>
 
             <div>
-              <label style={{color:'rgba(255,255,255,.6)',fontSize:11,textTransform:'uppercase',display:'block',marginBottom:6}}>Taxa Padrão (%)</label>
+              <label style={{color:'rgba(255,255,255,.65)',fontSize:12,textTransform:'uppercase',fontWeight:600,letterSpacing:'.5px',display:'block',marginBottom:8}}>Taxa Padrão (%)</label>
               <input type="number" value={settings.taxaPadrao||0} onChange={e=>upd('taxaPadrao',parseFloat(e.target.value))}
-                style={{width:'100%',padding:'10px 12px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:12}}
+                style={{width:'100%',padding:'12px 14px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,color:'#fff',fontSize:14,fontFamily:'inherit'}}
                 placeholder="0"/>
             </div>
           </div>
 
-          <p style={{marginTop:20,fontSize:11,color:'rgba(255,255,255,.4)'}}>As configurações são salvas automaticamente.</p>
+          <p style={{marginTop:24,fontSize:13,color:'rgba(255,255,255,.45)'}}>As configurações são salvas automaticamente.</p>
         </div>
       </div>
     </div>
@@ -1598,31 +1599,31 @@ function SubscriptionPage({onBack}){
       <div className="dashboard-content">
         <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
 
-        <div className="dashboard-list" style={{maxWidth:'600px'}}>
+        <div className="dashboard-list" style={{maxWidth:'720px'}}>
           <h3>Informações de Assinatura</h3>
 
-          <div style={{display:'grid',gap:16,marginTop:20}}>
+          <div style={{display:'grid',gap:20,marginTop:24}}>
             <div>
-              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>PLANO ATUAL</p>
-              <p style={{fontSize:16,fontWeight:700}}>Trial</p>
+              <p style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>PLANO ATUAL</p>
+              <p style={{fontSize:20,fontWeight:700}}>Trial</p>
             </div>
 
             <div>
-              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>VALIDADE</p>
-              <p style={{fontSize:14}}>--</p>
+              <p style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>VALIDADE</p>
+              <p style={{fontSize:16}}>--</p>
             </div>
 
             <div>
-              <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginBottom:4}}>STATUS</p>
-              <p style={{fontSize:14,color:'rgba(255,255,255,.7)'}}>Aguardando integração com provedor</p>
+              <p style={{fontSize:12,color:'rgba(255,255,255,.55)',marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>STATUS</p>
+              <p style={{fontSize:15,color:'rgba(255,255,255,.7)'}}>Aguardando integração com provedor</p>
             </div>
 
-            <button style={{padding:'12px 20px',background:'var(--laranja)',color:'#000',border:'none',borderRadius:8,fontWeight:700,fontSize:12,cursor:'not-allowed',opacity:.5,marginTop:20}}>
+            <button style={{padding:'14px 24px',background:'var(--laranja)',color:'#000',border:'none',borderRadius:8,fontWeight:700,fontSize:14,cursor:'not-allowed',opacity:.5,marginTop:20}}>
               Gerenciar Assinatura (desabilitado)
             </button>
           </div>
 
-          <p style={{marginTop:20,fontSize:11,color:'rgba(255,255,255,.4)'}}>Esta página será integrada com o provedor de pagamento em breve.</p>
+          <p style={{marginTop:24,fontSize:13,color:'rgba(255,255,255,.45)'}}>Esta página será integrada com o provedor de pagamento em breve.</p>
         </div>
       </div>
     </div>
