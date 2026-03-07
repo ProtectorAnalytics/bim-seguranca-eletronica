@@ -145,7 +145,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 /* Connection lines */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
 .conn-line-path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.conn-hit-area{fill:none;stroke:transparent;stroke-width:14;cursor:pointer;pointer-events:stroke}
+.conn-hit-area:hover+.conn-line-path{filter:brightness(1.3)}
+.conn-selected .conn-line-path{filter:drop-shadow(0 0 4px rgba(59,130,246,.7))}
 .cable-label{font-size:10px;fill:var(--cinza);text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
+.wp-dot{cursor:grab;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
+.wp-dot:hover{r:7}
+.wp-add-dot{cursor:crosshair;opacity:0;transition:opacity .15s}
+.conn-g:hover .wp-add-dot{opacity:.6}
+.wp-add-dot:hover{opacity:1!important}
 
 /* Environments/rooms overlay */
 .env-rect{position:absolute;border:2px dashed;border-radius:8px;z-index:1;pointer-events:none}
@@ -322,11 +330,19 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 2, build: 1,
-  date: '2026-03-06',
+  major: 3, minor: 3, build: 0,
+  date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.3.0',date:'2026-03-07',changes:[
+      'Cabos interativos — clique para selecionar, dbl-clique para adicionar waypoints',
+      'Arraste waypoints para reposicionar cabos livremente no canvas',
+      'Curvas Catmull-Rom suaves passando por todos os waypoints',
+      'Pontos intermediários (midpoints) para inserção rápida de novos waypoints',
+      'Barra de contexto com instruções ao selecionar cabo',
+      'Delete remove waypoints ou exclui cabo selecionado'
+    ]},
     {ver:'3.2.0',date:'2026-03-06',changes:[
       'Ícones SVG profissionais — todos redesenhados com detalhes realistas (fonte com portas 12V, switches com LEDs, câmeras com lentes)',
       'Interfaces flexíveis — câmeras suportam PoE + 12VDC alternativo, entradas de sensor alarme (1-4), saídas contato seco',
@@ -2101,6 +2117,8 @@ function ProjectApp({project,setProject,onBack}){
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
   const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
+  const [selectedConn,setSelectedConn]=useState(null); // selected connection id
+  const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -2299,7 +2317,76 @@ function ProjectApp({project,setProject,onBack}){
   // Delete connection
   const deleteConnection=(connId)=>{
     updateFloor(f=>({...f,connections:f.connections.filter(c=>c.id!==connId)}));
+    if(selectedConn===connId) setSelectedConn(null);
   };
+
+  // ---- Waypoint management for interactive cable routing ----
+  const updateConnWaypoints=(connId,waypoints)=>{
+    updateFloor(f=>({...f,connections:f.connections.map(c=>
+      c.id===connId?{...c,waypoints}:c
+    )}));
+  };
+  const addWaypoint=(connId,insertIdx,x,y)=>{
+    const conn=connections.find(c=>c.id===connId);
+    if(!conn) return;
+    const wps=[...(conn.waypoints||[])];
+    wps.splice(insertIdx,0,{x,y});
+    updateConnWaypoints(connId,wps);
+  };
+  const moveWaypoint=(connId,wpIdx,x,y)=>{
+    const conn=connections.find(c=>c.id===connId);
+    if(!conn) return;
+    const wps=[...(conn.waypoints||[])];
+    wps[wpIdx]={x,y};
+    updateConnWaypoints(connId,wps);
+  };
+  const deleteWaypoint=(connId,wpIdx)=>{
+    const conn=connections.find(c=>c.id===connId);
+    if(!conn) return;
+    const wps=[...(conn.waypoints||[])];
+    wps.splice(wpIdx,1);
+    updateConnWaypoints(connId,wps.length?wps:undefined);
+  };
+
+  // Build smooth SVG path through waypoints using cubic bezier curves
+  const buildWaypointPath=(pts)=>{
+    if(pts.length<2) return '';
+    if(pts.length===2) return `M${pts[0].x},${pts[0].y} L${pts[1].x},${pts[1].y}`;
+    // For 3+ points: use cubic bezier spline (Catmull-Rom to Bezier conversion)
+    let d=`M${pts[0].x},${pts[0].y}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[Math.max(i-1,0)];
+      const p1=pts[i];
+      const p2=pts[i+1];
+      const p3=pts[Math.min(i+2,pts.length-1)];
+      // Catmull-Rom to cubic bezier control points (tension=0.4)
+      const t=0.4;
+      const cp1x=p1.x+(p2.x-p0.x)*t/3;
+      const cp1y=p1.y+(p2.y-p0.y)*t/3;
+      const cp2x=p2.x-(p3.x-p1.x)*t/3;
+      const cp2y=p2.y-(p3.y-p1.y)*t/3;
+      d+=` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  };
+
+  // Waypoint drag effect
+  useEffect(()=>{
+    if(!draggingWp) return;
+    const onMove=(e)=>{
+      const rect=canvasRef.current?.getBoundingClientRect();
+      if(!rect) return;
+      const nx=(e.clientX-rect.left)/zoom-pan.x/zoom;
+      const ny=(e.clientY-rect.top)/zoom-pan.y/zoom;
+      if(draggingWp.wpIdx!==undefined){
+        moveWaypoint(draggingWp.connId,draggingWp.wpIdx,nx,ny);
+      }
+    };
+    const onUp=()=>setDraggingWp(null);
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+  },[draggingWp,zoom,pan]);
 
   // Add environment
   const addEnvironment=(name,color,bg)=>{
@@ -2511,6 +2598,7 @@ function ProjectApp({project,setProject,onBack}){
       addDevice(pendingDevice,x,y);
     } else if(tool==='select'){
       setSelectedDevice(null);
+      setSelectedConn(null);
     }
   };
 
@@ -2597,13 +2685,24 @@ function ProjectApp({project,setProject,onBack}){
   // Keyboard shortcuts
   useEffect(()=>{
     const handler=(e)=>{
-      if(e.key==='Delete'&&selectedDevice) deleteDevice(selectedDevice);
-      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null)}
+      if(e.key==='Delete'){
+        if(selectedDevice) deleteDevice(selectedDevice);
+        else if(selectedConn){
+          // Delete selected connection or clear its waypoints first
+          const sc=connections.find(c=>c.id===selectedConn);
+          if(sc?.waypoints?.length){
+            updateConnWaypoints(selectedConn,undefined);
+          } else {
+            deleteConnection(selectedConn);
+          }
+        }
+      }
+      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null)}
       if(e.ctrlKey&&e.key==='z') e.preventDefault(); // placeholder undo
     };
     window.addEventListener('keydown',handler);
     return ()=>window.removeEventListener('keydown',handler);
-  },[selectedDevice]);
+  },[selectedDevice,selectedConn,connections]);
 
   // Wheel zoom
   const handleWheel=(e)=>{
@@ -2835,12 +2934,12 @@ function ProjectApp({project,setProject,onBack}){
               ))}
 
               {/* Connection lines */}
-              <svg className="conn-svg" width="2000" height="2000">
+              <svg className="conn-svg" width="2000" height="2000" style={{pointerEvents:tool==='select'?'auto':'none'}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
-                  const R=26; // device icon radius
+                  const R=26;
                   const cx=dev.x+R,cy=dev.y+R;
-                  const anchors=[[0,-1],[1,0],[0,1],[-1,0]]; // N,E,S,W
+                  const anchors=[[0,-1],[1,0],[0,1],[-1,0]];
                   const ts=validTargets[dev.id];
                   if(ts!=='valid'&&dev.id!==cableMode?.from) return null;
                   const dotColor=dev.id===cableMode?.from?'#f59e0b':'#22c55e';
@@ -2857,32 +2956,28 @@ function ProjectApp({project,setProject,onBack}){
                   const to=devices.find(d=>d.id===conn.to);
                   if(!from||!to) return null;
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
+                  const isSel=selectedConn===conn.id;
 
-                  // Device icon radius = 26px (52/2), center offset
                   const R=26;
                   const fcx=from.x+R, fcy=from.y+R;
                   const tcx=to.x+R, tcy=to.y+R;
 
-                  // Calculate offset for multiple connections between same pair
+                  // Offset for multiple connections between same pair
                   const pairKey=[conn.from,conn.to].sort().join('|');
                   const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
                   const pairIdx=pairConns.indexOf(conn);
                   const pairTotal=pairConns.length;
                   const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*10:0;
 
-                  // Direction vector center-to-center
                   const dx=tcx-fcx;const dy=tcy-fcy;
                   const len=Math.sqrt(dx*dx+dy*dy)||1;
-                  const ux=dx/len,uy=dy/len; // unit vector
-                  const px=-uy,py=ux; // perpendicular
+                  const ux=dx/len,uy=dy/len;
+                  const ppx=-uy,ppy=ux;
 
-                  // Anchor on circle border (start from edge, not center)
-                  const x1=fcx+ux*R+px*offsetAmt;
-                  const y1=fcy+uy*R+py*offsetAmt;
-                  const x2=tcx-ux*R+px*offsetAmt;
-                  const y2=tcy-uy*R+py*offsetAmt;
-                  const mx=(x1+x2)/2;const my=(y1+y2)/2;
-                  const segLen=Math.sqrt((x2-x1)**2+(y2-y1)**2)||1;
+                  const x1=fcx+ux*R+ppx*offsetAmt;
+                  const y1=fcy+uy*R+ppy*offsetAmt;
+                  const x2=tcx-ux*R+ppx*offsetAmt;
+                  const y2=tcy-uy*R+ppy*offsetAmt;
 
                   const isPower=ct.group==='power';
                   const isSignal=ct.group==='signal';
@@ -2893,43 +2988,113 @@ function ProjectApp({project,setProject,onBack}){
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
                   const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
 
-                  // Route type rendering
-                  const route=conn.route||'straight';
-                  let linePath=null;
-                  let labelX=mx,labelY=my-6;
-                  if(route==='curve'){
-                    // Smooth quadratic bezier — control point perpendicular at 25% of segment length
-                    const cpOff=Math.min(60,segLen*0.25);
-                    const cpx=mx+px*cpOff;
-                    const cpy=my+py*cpOff;
-                    // Label along curve at t=0.5
-                    labelX=0.25*cpx+0.5*mx+0.25*(x1+x2)*0.5;
-                    labelY=0.25*cpy+0.5*my+0.25*(y1+y2)*0.5-6;
-                    linePath=<path d={`M${x1},${y1} Q${cpx},${cpy} ${x2},${y2}`}
-                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
-                  } else if(route==='angle'){
-                    // Smart elbow — choose better L direction based on orientation
-                    const absDx=Math.abs(dx),absDy=Math.abs(dy);
-                    let elbowX,elbowY;
-                    if(absDx>=absDy){elbowX=x2;elbowY=y1;} // horizontal first
-                    else{elbowX=x1;elbowY=y2;} // vertical first
-                    labelX=(x1+elbowX)/2;labelY=Math.min(y1,elbowY)-6;
-                    linePath=<path d={`M${x1},${y1} L${elbowX},${elbowY} L${x2},${y2}`}
-                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}
-                      strokeLinejoin="round"/>;
+                  const wps=conn.waypoints||[];
+                  const hasWps=wps.length>0;
+
+                  // Build full points array: start → waypoints → end
+                  const allPts=[{x:x1,y:y1},...wps,{x:x2,y:y2}];
+
+                  // Generate SVG path
+                  let pathD;
+                  if(hasWps){
+                    // Use smooth cubic bezier spline through all points
+                    pathD=buildWaypointPath(allPts);
                   } else {
-                    linePath=<line x1={x1} y1={y1} x2={x2} y2={y2}
-                      className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
+                    const route=conn.route||'straight';
+                    const mx=(x1+x2)/2,my=(y1+y2)/2;
+                    const segLen=Math.sqrt((x2-x1)**2+(y2-y1)**2)||1;
+                    if(route==='curve'){
+                      const cpOff=Math.min(60,segLen*0.25);
+                      const cpx=mx+ppx*cpOff,cpy=my+ppy*cpOff;
+                      pathD=`M${x1},${y1} Q${cpx},${cpy} ${x2},${y2}`;
+                    } else if(route==='angle'){
+                      const absDx=Math.abs(dx),absDy=Math.abs(dy);
+                      let ex,ey;
+                      if(absDx>=absDy){ex=x2;ey=y1;} else{ex=x1;ey=y2;}
+                      pathD=`M${x1},${y1} L${ex},${ey} L${x2},${y2}`;
+                    } else {
+                      pathD=`M${x1},${y1} L${x2},${y2}`;
+                    }
                   }
 
-                  // Small anchor dots at connection endpoints
-                  return <g key={conn.id}>
-                    {linePath}
-                    <circle cx={x1} cy={y1} r={3} fill={ct.color} opacity={0.7}/>
-                    <circle cx={x2} cy={y2} r={3} fill={ct.color} opacity={0.7}/>
-                    <text x={labelX} y={labelY} className="cable-label">
+                  // Label position: midpoint of path
+                  const lp=allPts[Math.floor(allPts.length/2)];
+                  const labelX=hasWps?lp.x:(x1+x2)/2;
+                  const labelY=hasWps?lp.y-10:(y1+y2)/2-6;
+
+                  // Click on cable to select
+                  const onConnClick=(e)=>{
+                    e.stopPropagation();
+                    if(cableMode) return;
+                    setSelectedConn(isSel?null:conn.id);
+                    setSelectedDevice(null);
+                  };
+                  // Double-click to add waypoint
+                  const onConnDblClick=(e)=>{
+                    e.stopPropagation();
+                    if(cableMode) return;
+                    const rect=canvasRef.current?.getBoundingClientRect();
+                    if(!rect) return;
+                    const nx=(e.clientX-rect.left)/zoom-pan.x/zoom;
+                    const ny=(e.clientY-rect.top)/zoom-pan.y/zoom;
+                    // Find insertion index: closest segment
+                    let bestIdx=0,bestDist=Infinity;
+                    for(let i=0;i<allPts.length-1;i++){
+                      const ax=allPts[i].x,ay=allPts[i].y;
+                      const bx=allPts[i+1].x,by=allPts[i+1].y;
+                      const smx=(ax+bx)/2,smy=(ay+by)/2;
+                      const d=Math.sqrt((nx-smx)**2+(ny-smy)**2);
+                      if(d<bestDist){bestDist=d;bestIdx=i;}
+                    }
+                    // insertIdx relative to waypoints array (allPts[0] = start anchor)
+                    addWaypoint(conn.id,bestIdx,nx,ny);
+                    setSelectedConn(conn.id);
+                  };
+
+                  return <g key={conn.id} className={`conn-g${isSel?' conn-selected':''}`}>
+                    {/* Invisible wide hit area for clicking */}
+                    <path d={pathD} className="conn-hit-area"
+                      onClick={onConnClick} onDoubleClick={onConnDblClick}/>
+                    {/* Visible cable path */}
+                    <path d={pathD} fill="none" className="conn-line-path"
+                      stroke={isSel?'#3b82f6':ct.color} strokeWidth={isSel?sw+1:sw}
+                      strokeDasharray={dashArr} strokeLinejoin="round" strokeLinecap="round"
+                      style={{pointerEvents:'none'}}/>
+                    {/* Endpoint anchor dots */}
+                    <circle cx={x1} cy={y1} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
+                    <circle cx={x2} cy={y2} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
+                    {/* Cable label */}
+                    <text x={labelX} y={labelY} className="cable-label" style={{pointerEvents:'none'}}>
                       {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
                     </text>
+                    {/* Waypoint dots (draggable) — shown when selected */}
+                    {isSel&&wps.map((wp,wi)=>(
+                      <circle key={'wp'+wi} cx={wp.x} cy={wp.y} r={5.5}
+                        fill="#3b82f6" stroke="#fff" strokeWidth={2} className="wp-dot"
+                        onMouseDown={(e)=>{
+                          e.stopPropagation();e.preventDefault();
+                          setDraggingWp({connId:conn.id,wpIdx:wi});
+                        }}
+                        onDoubleClick={(e)=>{
+                          e.stopPropagation();
+                          deleteWaypoint(conn.id,wi);
+                        }}/>
+                    ))}
+                    {/* Midpoint dots for adding new waypoints — shown when selected */}
+                    {isSel&&allPts.slice(0,-1).map((pt,si)=>{
+                      const npt=allPts[si+1];
+                      const midx=(pt.x+npt.x)/2,midy=(pt.y+npt.y)/2;
+                      // Check if there's already a waypoint very close
+                      return <circle key={'wpa'+si} cx={midx} cy={midy} r={4}
+                        fill="#3b82f6" stroke="#fff" strokeWidth={1.5} className="wp-add-dot"
+                        onMouseDown={(e)=>{
+                          e.stopPropagation();e.preventDefault();
+                          addWaypoint(conn.id,si,midx,midy);
+                          // Start dragging the new waypoint immediately
+                          setDraggingWp({connId:conn.id,wpIdx:si});
+                          setSelectedConn(conn.id);
+                        }}/>;
+                    })}
                   </g>;
                 })}
                 {/* Cable mode preview line from source device */}
@@ -3112,6 +3277,24 @@ function ProjectApp({project,setProject,onBack}){
               <span style={{marginLeft:8,opacity:.6}}>ESC para cancelar</span>
             </div>
           )}
+
+          {/* Selected connection indicator */}
+          {selectedConn&&!cableMode&&(()=>{
+            const sc=connections.find(c=>c.id===selectedConn);
+            if(!sc) return null;
+            const sct=CABLE_TYPES.find(c=>c.id===sc.type);
+            const wpCount=sc.waypoints?.length||0;
+            return <div style={{position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',
+              background:'#1e40af',color:'#fff',padding:'6px 16px',borderRadius:20,
+              fontSize:11,fontWeight:700,zIndex:20,display:'flex',gap:12,alignItems:'center'}}>
+              <span>🔧 {sct?.name||sc.type} selecionado</span>
+              <span style={{opacity:.7}}>Dbl-clique = add ponto</span>
+              <span style={{opacity:.7}}>Arraste pontos ●</span>
+              <span style={{opacity:.7}}>Dbl-clique ponto = remover</span>
+              {wpCount>0&&<span style={{color:'#fde68a'}}>{wpCount} waypoint{wpCount>1?'s':''}</span>}
+              <span style={{opacity:.5}}>DEL = {wpCount>0?'limpar pontos':'excluir cabo'}</span>
+            </div>;
+          })()}
 
           {/* Connection toast */}
           {connToast&&(
