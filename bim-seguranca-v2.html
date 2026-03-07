@@ -331,7 +331,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 8, build: 4,
+  major: 3, minor: 8, build: 5,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -2099,7 +2099,7 @@ function App(){
 
   if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} />;
 
-  return <ProjectApp project={project} setProject={setProject} onBack={()=>setScreen('dashboard')}/>;
+  return <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} onBack={()=>setScreen('dashboard')}/>;
 }
 
 // ====================================================================
@@ -2781,7 +2781,7 @@ function EquipmentRepoAddButton({customDevices,onSave}){
 // ====================================================================
 // PROJECT APP
 // ====================================================================
-function ProjectApp({project,setProject,onBack}){
+function ProjectApp({project,setProject,undo,redo,onBack}){
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
   const [selectedDevice,setSelectedDevice]=useState(null);
