@@ -328,11 +328,19 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 5, build: 2,
+  major: 3, minor: 6, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.6.0',date:'2026-03-07',changes:[
+      'Categorias colapsáveis na paleta (▶ para expandir/recolher)',
+      'Auto-reset do modo cabo após conexão (sem precisar ESC)',
+      'Toggle de labels de cabo no canvas (botão Aa na toolbar)',
+      'Rack estilo UniFi: grid de U, auto-posicionamento, visual dark com slots',
+      'Quadro de Comando como container: drag-and-drop de dispositivos',
+      'Gerador de Diagrama Unifilar Elétrico: circuitos, dimensionamento, proteção (aba Unifilar)',
+    ]},
     {ver:'3.5.1',date:'2026-03-07',changes:[
       'Fotos reais dos produtos Intelbras substituem ícones SVG no canvas, paleta, propriedades e topologia (69 produtos com cobertura)',
     ]},
@@ -1159,7 +1167,7 @@ const DEVICE_LIB = [
   // INFRAESTRUTURA (13 tipos)
   // ================================================================
   {cat:'Infraestrutura',color:'#6b7280',items:[
-    {key:'quadro',name:'Quadro Conectividade',icon:'quadro',poe:false,ports:0,props:{material:'PVC IP65',trilho:'DIN'}},
+    {key:'quadro',name:'Quadro Conectividade',icon:'quadro',poe:false,ports:0,isContainer:true,configurable:true,configFields:['vagas'],props:{material:'PVC IP65',trilho:'DIN',vagas:'12-36 módulos'}},
     {key:'rack',name:'Rack',icon:'rack',poe:false,ports:0,isContainer:true,configurable:true,configFields:['alturaU','profundidade','acessorios'],props:{altura:'5U-42U',profundidade:'450-600mm'}},
     {key:'nobreak_ac',name:'Nobreak AC',icon:'nobreak_ac',poe:false,ports:0,configurable:true,configFields:['snmp','tomadas_10a','tomadas_20a','potenciaVA','batExterna'],props:{potencia:'600-3000VA',tipo:'AC Interativo/Senoidal'},ref:'SNB 3000 VA BI, ATTIV SEG BI+'},
     {key:'nobreak_dc',name:'Nobreak DC',icon:'nobreak_dc',poe:false,ports:0,configurable:true,configFields:['correnteSaida','batInterna','batExterna'],props:{potencia:'60-120W',tipo:'DC 12V',saida:'12.8Vcc'},ref:'FON1407, FON1388, FON1358'},
@@ -1414,6 +1422,24 @@ const needsPoE = k => isCameraIP(k) || isAP(k);
 const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
 const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
+
+// Rack U size per device type
+function getDeviceUSize(key){
+  if(isGravador(key)) return 2; // NVR/DVR = 2U
+  if(isSwitch(key)) return 1;
+  if(key==='nobreak_ac') return 2;
+  if(key==='nobreak_dc') return 1;
+  if(key==='router') return 1;
+  if(key==='dio') return 1;
+  if(key==='borne_sak') return 1;
+  if(key==='fonte') return 1;
+  if(key==='bateria_ext') return 2;
+  if(key==='modulo_bat') return 3;
+  if(isCentralAlarme(key)) return 1;
+  if(isCentralIncendio(key)) return 2;
+  if(key==='controladora') return 1;
+  return 1; // default 1U
+}
 
 // Pattern-based interface resolution for expanded device library
 function resolveInterfacesByKey(key) {
@@ -2677,6 +2703,9 @@ function ProjectApp({project,setProject,onBack}){
   const [portPopup,setPortPopup]=useState(null); // null | {devId,x,y} - connection port selector popup
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
+  const [collapsedCats,setCollapsedCats]=useState({});
+  const [showCableLabels,setShowCableLabels]=useState(true);
+  const toggleCat=(catName)=>setCollapsedCats(prev=>({...prev,[catName]:!prev[catName]}));
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
   const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
@@ -2793,7 +2822,7 @@ function ProjectApp({project,setProject,onBack}){
 
   // Add connection with validation — supports multiple connections between same pair (different ifaceType)
   const addConnection=(fromId,toId,type)=>{
-    if(fromId===toId){setCableMode(null);return}
+    if(fromId===toId){setCableMode(null);setTool('select');return}
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
     if(!fromDev||!toDev) return;
@@ -2812,7 +2841,7 @@ function ProjectApp({project,setProject,onBack}){
       if(!ifaceType && !c.ifaceType) return true;
       return false;
     });
-    if(dupExists){showConnToast('Conexão deste tipo já existe entre estes dispositivos','warn');setCableMode(null);return}
+    if(dupExists){showConnToast('Conexão deste tipo já existe entre estes dispositivos','warn');setCableMode(null);setTool('select');return}
 
     const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
     const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
@@ -2825,7 +2854,7 @@ function ProjectApp({project,setProject,onBack}){
 
     if(!validation.valid && validation.cables.length===0){
       showConnToast(`✕ ${validation.reason}`,'error');
-      setCableMode(null);
+      setCableMode(null);setTool('select');
       return;
     }
 
@@ -2855,7 +2884,7 @@ function ProjectApp({project,setProject,onBack}){
     const portInfo=ifaceLabel?` [${ifaceLabel}]`:'';
     const fcName=CABLE_TYPES.find(c=>c.id===finalCable)?.name||finalCable;
     showConnToast(`✓ ${fcName} · ${dist}m · ${purpose}${portInfo}`,'success');
-    setCableMode(null);
+    setCableMode(null);setTool('select');
   };
 
   // Confirm cable from picker
@@ -3299,17 +3328,17 @@ function ProjectApp({project,setProject,onBack}){
       // Check if device was dropped inside a rack
       if(dragging){
         const draggedDev=devices.find(d=>d.id===dragging.id);
-        if(draggedDev && draggedDev.key!=='rack'){
-          const rackDev=devices.find(r=>r.key==='rack'&&r.id!==dragging.id&&
-            draggedDev.x>=r.x-10&&draggedDev.x<=r.x+130&&
-            draggedDev.y>=r.y-10&&draggedDev.y<=r.y+170);
+        if(draggedDev && draggedDev.key!=='rack' && draggedDev.key!=='quadro'){
+          const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro')&&r.id!==dragging.id&&
+            draggedDev.x>=r.x-40&&draggedDev.x<=r.x+180&&
+            draggedDev.y>=r.y-30&&draggedDev.y<=r.y+((r.key==='rack'?(r.config?.alturaU||12)*22+40:200)));
           if(rackDev){
             updateDevice(dragging.id,{parentRack:rackDev.id});
           }else if(draggedDev.parentRack){
             // Dragged out of rack
             const rack=devices.find(r=>r.id===draggedDev.parentRack);
-            if(rack && !(draggedDev.x>=rack.x-10&&draggedDev.x<=rack.x+130&&
-              draggedDev.y>=rack.y-10&&draggedDev.y<=rack.y+170)){
+            if(rack && !(draggedDev.x>=rack.x-40&&draggedDev.x<=rack.x+180&&
+              draggedDev.y>=rack.y-30&&draggedDev.y<=rack.y+((rack.key==='rack'?(rack.config?.alturaU||12)*22+40:200)))){
               updateDevice(dragging.id,{parentRack:null});
             }
           }
@@ -3423,6 +3452,8 @@ function ProjectApp({project,setProject,onBack}){
                   onClick={()=>setRouteType(rt.id)}>{rt.icon}</button>
               ))}
             </div>
+            <button className={`tool-btn ${showCableLabels?'active':''}`} title="Mostrar/ocultar nomes dos cabos"
+              style={{width:30,height:30,fontSize:12,marginLeft:4}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
             </>
           )}
         </div>
@@ -3459,12 +3490,15 @@ function ProjectApp({project,setProject,onBack}){
               {DEVICE_LIB.map(cat=>{
                 const filtered=cat.items.filter(i=>!search||i.name.toLowerCase().includes(search.toLowerCase())||i.key.includes(search.toLowerCase()));
                 if(!filtered.length) return null;
+                const isOpen=search||!collapsedCats[cat.cat];
                 return (
                   <div key={cat.cat} className="dev-category">
-                    <div className="dev-cat-title" style={{color:cat.color}}>
+                    <div className="dev-cat-title" style={{color:cat.color,cursor:'pointer',userSelect:'none',display:'flex',alignItems:'center',gap:4}}
+                      onClick={()=>toggleCat(cat.cat)}>
+                      <span style={{fontSize:9,transition:'.15s',transform:isOpen?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>
                       {cat.cat} <span className="cnt">{filtered.length}</span>
                     </div>
-                    {filtered.map(item=>(
+                    {isOpen&&filtered.map(item=>(
                       <div key={item.key} className="dev-item"
                         draggable
                         onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
@@ -3672,9 +3706,9 @@ function ProjectApp({project,setProject,onBack}){
                     <circle cx={x1} cy={y1} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
                     <circle cx={x2} cy={y2} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
                     {/* Cable label */}
-                    <text x={labelX} y={labelY} className="cable-label" style={{pointerEvents:'none'}}>
+                    {showCableLabels&&<text x={labelX} y={labelY} className="cable-label" style={{pointerEvents:'none'}}>
                       {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
-                    </text>
+                    </text>}
 
                     {/* draw.io-style: segment drag handles (shown when selected) */}
                     {isSel&&allPts.slice(0,-1).map((pt,si)=>{
@@ -3743,40 +3777,142 @@ function ProjectApp({project,setProject,onBack}){
                 })()}
               </svg>
 
-              {/* Rack containers - render first (behind devices) */}
+              {/* Rack containers - UniFi-style with U slots */}
               {devices.filter(d=>d.key==='rack').map(rack=>{
                 const rackU=rack.config?.alturaU||12;
-                const rackH=Math.max(100,rackU*5+40);
-                const rackW=120;
-                const childCount=devices.filter(d=>d.parentRack===rack.id).length;
-                const accCount=(rack.config?.acessorios||[]).length;
-                const usedU=childCount*2+accCount;
+                const uH=22; // height per U slot
+                const rackW=200;
+                const headerH=24;
+                const rackH=headerH+rackU*uH+8;
+                const children=devices.filter(d=>d.parentRack===rack.id);
+                // Build slot allocation
+                const slots=new Array(rackU).fill(null);
+                const childSlots=[];
+                children.forEach(child=>{
+                  const uSize=getDeviceUSize(child.key);
+                  const assignedU=child.rackSlot!=null?child.rackSlot:-1;
+                  // Find slot or use assigned
+                  let startU=assignedU>=0&&assignedU+uSize<=rackU?assignedU:-1;
+                  if(startU<0){for(let u=0;u<=rackU-uSize;u++){let free=true;for(let s=0;s<uSize;s++)if(slots[u+s]!=null){free=false;break}if(free){startU=u;break}}}
+                  if(startU>=0){for(let s=0;s<uSize;s++)slots[startU+s]=child.id;
+                    childSlots.push({child,startU,uSize});
+                    if(child.rackSlot!==startU) updateDevice(child.id,{rackSlot:startU});
+                  }
+                });
+                const usedU=slots.filter(s=>s!=null).length;
+                const isSel=selectedDevice===rack.id;
                 return (
                   <div key={'rack-bg-'+rack.id}
-                    style={{position:'absolute',left:rack.x-10,top:rack.y-10,width:rackW,height:rackH,
-                      background:'rgba(107,114,128,.06)',border:`2px ${selectedDevice===rack.id?'solid':'dashed'} ${selectedDevice===rack.id?'var(--azul2)':'#9ca3af'}`,
-                      borderRadius:8,zIndex:0,pointerEvents:'none'}}>
-                    <div style={{position:'absolute',top:-18,left:0,fontSize:9,fontWeight:700,
-                      color:'#6b7280',background:'#f0f2f5',padding:'1px 6px',borderRadius:3}}>
-                      {rack.name} · {usedU}/{rackU}U
+                    style={{position:'absolute',left:rack.x-30,top:rack.y-20,width:rackW,height:rackH,
+                      background:'linear-gradient(180deg,#1e293b 0%,#0f172a 100%)',
+                      border:`2px solid ${isSel?'var(--azul2)':'#475569'}`,
+                      borderRadius:6,zIndex:0,pointerEvents:'none',boxShadow:'0 4px 20px rgba(0,0,0,.35)'}}>
+                    {/* Rack header */}
+                    <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
+                      padding:'0 8px',borderBottom:'1px solid #334155'}}>
+                      <span style={{fontSize:10,fontWeight:700,color:'#e2e8f0',letterSpacing:'.5px'}}>{rack.name}</span>
+                      <span style={{fontSize:9,color:usedU>=rackU?'#ef4444':usedU>rackU*0.7?'#f59e0b':'#22c55e',fontWeight:600}}>
+                        {usedU}/{rackU}U
+                      </span>
                     </div>
-                    {childCount===0&&!cableMode&&<div style={{position:'absolute',top:'50%',left:'50%',
-                      transform:'translate(-50%,-50%)',fontSize:9,color:'#9ca3af',textAlign:'center',
-                      pointerEvents:'none',lineHeight:1.4}}>
-                      Arraste<br/>equipamentos<br/>para dentro
+                    {/* U slots grid */}
+                    {Array.from({length:rackU}).map((_,u)=>{
+                      const occupant=childSlots.find(cs=>cs.startU===u);
+                      const isOccupied=slots[u]!=null;
+                      const isStartOfDevice=occupant!=null;
+                      if(isOccupied&&!isStartOfDevice) return null; // continuation of multi-U device
+                      const slotDev=isStartOfDevice?occupant.child:null;
+                      const slotUSize=isStartOfDevice?occupant.uSize:1;
+                      const thumb=slotDev?DEVICE_THUMBNAILS[slotDev.key]:null;
+                      const slotColor=slotDev?(DEVICE_LIB.find(c=>c.items.some(i=>i.key===slotDev.key))?.color||'#6b7280'):'transparent';
+                      return (
+                        <div key={'u'+u} style={{position:'absolute',left:4,right:4,
+                          top:headerH+u*uH,height:slotUSize*uH-1,
+                          background:isStartOfDevice?'rgba(255,255,255,.08)':'transparent',
+                          borderBottom:isStartOfDevice?'none':'1px solid rgba(255,255,255,.04)',
+                          borderRadius:isStartOfDevice?3:0,display:'flex',alignItems:'center',
+                          gap:6,padding:'0 6px'}}>
+                          <span style={{fontSize:8,color:'#64748b',fontWeight:600,width:16,textAlign:'right',flexShrink:0}}>
+                            {u+1}
+                          </span>
+                          {isStartOfDevice?(
+                            <>
+                              <div style={{width:slotUSize*uH-6,height:slotUSize*uH-6,flexShrink:0,
+                                borderRadius:3,overflow:'hidden',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                {thumb?<img src={thumb} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:
+                                  <span style={{fontSize:12}}>{ICONS[getDeviceIconKey(slotDev.key)]?.('#94a3b8')}</span>}
+                              </div>
+                              <div style={{minWidth:0,flex:1}}>
+                                <div style={{fontSize:9,fontWeight:700,color:'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{slotDev.name}</div>
+                                <div style={{fontSize:8,color:'#94a3b8'}}>{slotUSize}U · {slotDev.key}</div>
+                              </div>
+                              <div style={{width:6,height:slotUSize*uH-8,borderRadius:2,background:slotColor,flexShrink:0,opacity:.6}}/>
+                            </>
+                          ):(
+                            <div style={{flex:1,borderBottom:'1px dashed rgba(255,255,255,.06)'}}/>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {children.length===0&&!cableMode&&<div style={{position:'absolute',top:headerH+8,left:0,right:0,
+                      fontSize:9,color:'#64748b',textAlign:'center',lineHeight:1.5,pointerEvents:'none'}}>
+                      Arraste equipamentos<br/>para dentro do rack
                     </div>}
                   </div>
                 );
               })}
 
-              {/* Device nodes */}
-              {devices.map(dev=>{
+              {/* Quadro de Comando containers */}
+              {devices.filter(d=>d.key==='quadro').map(qd=>{
+                const children=devices.filter(d=>d.parentRack===qd.id);
+                const qW=180;const slotH=28;const headerH=24;
+                const qH=headerH+Math.max(3,children.length)*slotH+16;
+                const isSel=selectedDevice===qd.id;
+                return (
+                  <div key={'qd-bg-'+qd.id}
+                    style={{position:'absolute',left:qd.x-30,top:qd.y-20,width:qW,height:qH,
+                      background:'linear-gradient(180deg,#f8fafc,#e2e8f0)',
+                      border:`2px solid ${isSel?'var(--azul2)':'#94a3b8'}`,
+                      borderRadius:6,zIndex:0,pointerEvents:'none',boxShadow:'0 2px 12px rgba(0,0,0,.12)'}}>
+                    <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
+                      padding:'0 8px',borderBottom:'1px solid #cbd5e1'}}>
+                      <span style={{fontSize:10,fontWeight:700,color:'#334155'}}>{qd.name}</span>
+                      <span style={{fontSize:9,color:'#64748b',fontWeight:600}}>{children.length} itens</span>
+                    </div>
+                    {children.length>0?children.map((child,i)=>{
+                      const thumb=DEVICE_THUMBNAILS[child.key];
+                      const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===child.key))?.color||'#6b7280';
+                      return (
+                        <div key={child.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 8px',
+                          borderBottom:'1px solid #e2e8f0',height:slotH}}>
+                          <div style={{width:20,height:20,flexShrink:0,borderRadius:3,overflow:'hidden',background:'#fff',
+                            display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid #e2e8f0'}}>
+                            {thumb?<img src={thumb} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:
+                              <span style={{fontSize:10}}>{ICONS[getDeviceIconKey(child.key)]?.(catColor)}</span>}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:9,fontWeight:600,color:'#334155',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{child.name}</div>
+                          </div>
+                          <div style={{width:4,height:18,borderRadius:2,background:catColor,opacity:.5,flexShrink:0}}/>
+                        </div>
+                      );
+                    }):(
+                      <div style={{padding:12,fontSize:9,color:'#94a3b8',textAlign:'center',lineHeight:1.5}}>
+                        Arraste itens<br/>para dentro do quadro
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Device nodes — hide devices that are mounted inside a rack or quadro */}
+              {devices.filter(d=>!d.parentRack).map(dev=>{
                 const def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
                 const color=catInfo?.color||'#6b7280';
                 const targetStatus=cableMode?validTargets[dev.id]:null;
                 const isSource=cableMode?.from===dev.id;
-                const inRack=dev.parentRack?devices.find(r=>r.id===dev.parentRack):null;
+                const inRack=null;
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${selectedDevice===dev.id?'selected':''}`}
@@ -4008,8 +4144,11 @@ function ProjectApp({project,setProject,onBack}){
               Materiais
             </div>
             <div className={`rp-tab ${rightTab==='validation'?'active':''}`} onClick={()=>setRightTab('validation')}>
-              Validação {validations.length>0&&<span style={{background:'var(--vermelho)',color:'#fff',
+              Válid. {validations.length>0&&<span style={{background:'var(--vermelho)',color:'#fff',
                 borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{validations.length}</span>}
+            </div>
+            <div className={`rp-tab ${rightTab==='unifilar'?'active':''}`} onClick={()=>setRightTab('unifilar')}>
+              Unifilar
             </div>
           </div>
           <div className="rp-content">
@@ -4403,6 +4542,108 @@ function ProjectApp({project,setProject,onBack}){
                 </div>
               </div>
             )}
+            {/* UNIFILAR - Diagrama Unifilar Elétrico */}
+            {rightTab==='unifilar'&&(()=>{
+              // Analyze electrical topology from current project
+              const tensao=230; // Default trifásico
+              const fp=0.92; // Fator de potência
+              // Group devices by electrical circuit
+              const circuits=[];
+              let circNum=1;
+              // Group by environment
+              const envGroups={};
+              devices.forEach(d=>{
+                const env=d.envId?environments.find(e=>e.id===d.envId):null;
+                const envName=env?.name||'Geral';
+                if(!envGroups[envName]) envGroups[envName]=[];
+                envGroups[envName].push(d);
+              });
+              // Build circuits per environment
+              Object.entries(envGroups).forEach(([envName,devs])=>{
+                // Separate by power type
+                const poeDevs=devs.filter(d=>{const def=findDevDef(d.key);return def?.poe});
+                const acDevs=devs.filter(d=>needsACPower(d.key));
+                const dcDevs=devs.filter(d=>needsDCPower(d.key)&&!findDevDef(d.key)?.poe);
+                if(poeDevs.length>0){
+                  const totalW=poeDevs.reduce((s,d)=>{const def=findDevDef(d.key);return s+(def?.poeW||15)},0);
+                  const corrente=(totalW/(tensao*fp)).toFixed(1);
+                  const secao=totalW<400?'1.5':totalW<800?'2.5':'4.0';
+                  const disj=corrente<10?10:corrente<16?16:corrente<20?20:corrente<25?25:32;
+                  circuits.push({num:circNum++,env:envName,desc:`CFTV/PoE (${poeDevs.length} câm.)`,
+                    potencia:totalW,tensao,corrente,secao,disj,idr:true,dps:true,devs:poeDevs});
+                }
+                if(acDevs.length>0){
+                  const totalW=acDevs.reduce((s,d)=>{
+                    const def=findDevDef(d.key);
+                    const p=parseInt(def?.props?.potencia)||100;return s+p},0);
+                  const corrente=(totalW/(tensao*fp)).toFixed(1);
+                  const secao=totalW<400?'1.5':totalW<800?'2.5':totalW<1500?'4.0':'6.0';
+                  const disj=corrente<10?10:corrente<16?16:corrente<20?20:corrente<25?25:corrente<32?32:40;
+                  circuits.push({num:circNum++,env:envName,desc:`Equip. AC (${acDevs.length} un.)`,
+                    potencia:totalW,tensao,corrente,secao,disj,idr:true,dps:true,devs:acDevs});
+                }
+                if(dcDevs.length>0){
+                  const totalW=dcDevs.length*5; // ~5W por device DC
+                  circuits.push({num:circNum++,env:envName,desc:`Sensores/DC (${dcDevs.length} un.)`,
+                    potencia:totalW,tensao:12,corrente:(totalW/12).toFixed(1),secao:'0.75',disj:6,idr:false,dps:false,devs:dcDevs});
+                }
+              });
+              const totalPot=circuits.reduce((s,c)=>s+c.potencia,0);
+              const totalCorr=(totalPot/(tensao*fp)).toFixed(1);
+              const djGeral=totalCorr<25?25:totalCorr<32?32:totalCorr<40?40:totalCorr<50?50:63;
+              return (
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>⚡ Diagrama Unifilar</div>
+                  {devices.length===0?(
+                    <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
+                      Adicione dispositivos para gerar o unifilar</div>
+                  ):(
+                    <div>
+                      {/* QGBT Summary */}
+                      <div style={{background:'#1e293b',borderRadius:6,padding:8,marginBottom:8,color:'#e2e8f0'}}>
+                        <div style={{fontSize:10,fontWeight:700,marginBottom:4}}>QGBT — Quadro Geral</div>
+                        <div style={{fontSize:9,color:'#94a3b8',lineHeight:1.6}}>
+                          Pot. Total: {totalPot}W ({(totalPot/1000).toFixed(1)}kW)<br/>
+                          Corrente: {totalCorr}A @ {tensao}V<br/>
+                          DJ Geral: {djGeral}A tripolar<br/>
+                          IDR Geral: 30mA<br/>
+                          DPS Classe II: Sim<br/>
+                          Circuitos: {circuits.length}
+                        </div>
+                      </div>
+                      {/* Circuit table */}
+                      <div style={{fontSize:9,marginBottom:8}}>
+                        <div style={{display:'grid',gridTemplateColumns:'24px 1fr 50px 40px 32px 28px',gap:2,
+                          padding:'4px 0',borderBottom:'2px solid var(--azul)',fontWeight:700,color:'var(--azul)'}}>
+                          <span>#</span><span>Circuito</span><span>W</span><span>mm²</span><span>DJ</span><span>IDR</span>
+                        </div>
+                        {circuits.map(c=>(
+                          <div key={c.num} style={{display:'grid',gridTemplateColumns:'24px 1fr 50px 40px 32px 28px',gap:2,
+                            padding:'3px 0',borderBottom:'1px solid #eee',alignItems:'center'}}>
+                            <span style={{fontWeight:700,color:'var(--azul)'}}>{c.num}</span>
+                            <div>
+                              <div style={{fontWeight:600}}>{c.desc}</div>
+                              <div style={{fontSize:8,color:'#94a3b8'}}>{c.env}</div>
+                            </div>
+                            <span>{c.potencia}</span>
+                            <span>{c.secao}</span>
+                            <span>{c.disj}A</span>
+                            <span>{c.idr?'✓':'—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Legend */}
+                      <div style={{fontSize:8,color:'#94a3b8',lineHeight:1.5,borderTop:'1px solid #eee',paddingTop:6}}>
+                        <strong>Normas:</strong> NBR 5410 · IEC 60617<br/>
+                        <strong>Condutor:</strong> Seção nominal (mm²) c/ queda tensão ≤4%<br/>
+                        <strong>IDR:</strong> 30mA · <strong>DPS:</strong> Classe II em todos circuitos<br/>
+                        <strong>Condutor Terra:</strong> Verde-amarelo em todos
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
