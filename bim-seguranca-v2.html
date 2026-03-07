@@ -328,13 +328,13 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 5, build: 0,
+  major: 3, minor: 5, build: 1,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
-    {ver:'3.5.0',date:'2026-03-07',changes:[
-      'Thumbnails de produtos: 69 fotos extraídas do catálogo Intelbras exibidas como tooltip ao passar o mouse sobre dispositivos no canvas',
+    {ver:'3.5.1',date:'2026-03-07',changes:[
+      'Fotos reais dos produtos Intelbras substituem ícones SVG no canvas, paleta, propriedades e topologia (69 produtos com cobertura)',
     ]},
     {ver:'3.4.0',date:'2026-03-07',changes:[
       'Biblioteca expandida: 160 dispositivos genéricos em 22 categorias (baseado no catálogo Intelbras 12ª edição)',
@@ -2675,7 +2675,6 @@ function ProjectApp({project,setProject,onBack}){
   const [routeType,setRouteType]=useState('straight'); // straight | curve | angle
   const [cableMode,setCableMode]=useState(null); // null | {from:deviceId, ifaceType?, ifaceLabel?}
   const [portPopup,setPortPopup]=useState(null); // null | {devId,x,y} - connection port selector popup
-  const [thumbTip,setThumbTip]=useState(null); // null | {devKey,x,y,name,ref} - product thumbnail tooltip
   const [showExport,setShowExport]=useState(false);
   const [search,setSearch]=useState('');
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
@@ -3471,7 +3470,9 @@ function ProjectApp({project,setProject,onBack}){
                         onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
                         onClick={()=>{setPendingDevice(item.key);setTool('device')}}
                         style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
-                        <div className="di-icon">{ICONS[item.icon]?.(cat.color)}</div>
+                        <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
+                          <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:24,height:24,objectFit:'cover',borderRadius:'50%'}}/>
+                        ):ICONS[item.icon]?.(cat.color)}</div>
                         <div className="di-info">
                           <div className="di-name">{item.name}</div>
                           <div className="di-spec">{item.props?.resolucao||item.props?.portas||item.props?.potencia||''}</div>
@@ -3789,14 +3790,13 @@ function ProjectApp({project,setProject,onBack}){
                     }}
                     onClick={(e)=>handleDeviceClick(e,dev.id)}
                     onMouseDown={(e)=>handleDeviceMouseDown(e,dev.id)}
-                    onMouseEnter={(e)=>{const lib=DEVICE_LIB.find(d=>d.key===dev.key);const thumb=DEVICE_THUMBNAILS[dev.key];
-                      if(thumb||lib?.ref){const r=e.currentTarget.getBoundingClientRect();
-                      setThumbTip({devKey:dev.key,x:r.right+8,y:r.top,name:dev.name,ref:lib?.ref||'',thumb})}}}
-                    onMouseLeave={()=>setThumbTip(null)}
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
                       setCableMode({from:dev.id});setTool('cable')}}>
-                    <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
-                      {ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
+                    <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
+                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:0,overflow:'hidden'}:{})}}>
+                      {DEVICE_THUMBNAILS[dev.key]?(
+                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+                      ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
                     {/* Connection button - opens port popup */}
                     {!cableMode&&(()=>{
@@ -3885,22 +3885,6 @@ function ProjectApp({project,setProject,onBack}){
               </>
             );
           })()}
-
-          {/* Product thumbnail tooltip */}
-          {thumbTip&&(
-            <div style={{position:'fixed',left:thumbTip.x,top:thumbTip.y,zIndex:9999,
-              background:'#1e293b',border:'1px solid #334155',borderRadius:10,padding:10,
-              boxShadow:'0 8px 32px rgba(0,0,0,.45)',maxWidth:200,pointerEvents:'none',
-              transform:'translateY(-50%)'}}>
-              {thumbTip.thumb?(
-                <img src={thumbTip.thumb} alt={thumbTip.name} style={{width:'100%',maxHeight:120,objectFit:'contain',borderRadius:6,background:'#fff',marginBottom:6}}/>
-              ):(
-                <div style={{width:'100%',height:60,background:'#334155',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:6,fontSize:24}}>📷</div>
-              )}
-              <div style={{fontSize:11,fontWeight:700,color:'#f1f5f9',lineHeight:1.3}}>{thumbTip.name}</div>
-              {thumbTip.ref&&<div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>Ref: {thumbTip.ref}</div>}
-            </div>
-          )}
 
           {/* Empty state */}
           {devices.length===0&&(
@@ -4036,7 +4020,9 @@ function ProjectApp({project,setProject,onBack}){
               return (
                 <div>
                   <div className="prop-header">
-                    <div className="ph-icon">{ICONS[getDeviceIconKey(selectedDev.key)]?.(catInfo?.color)}</div>
+                    <div className="ph-icon">{DEVICE_THUMBNAILS[selectedDev.key]?(
+                      <img src={DEVICE_THUMBNAILS[selectedDev.key]} alt={selectedDev.name} style={{width:36,height:36,objectFit:'cover',borderRadius:'50%'}}/>
+                    ):ICONS[getDeviceIconKey(selectedDev.key)]?.(catInfo?.color)}</div>
                     <div className="ph-info">
                       <div className="ph-name">{selectedDev.name}</div>
                       <div className="ph-model">{catInfo?.cat} · {selectedDev.key}</div>
@@ -4469,7 +4455,9 @@ function TopoNode({node,devices,level,onSelect}){
     <div>
       <div className={`topo-node ${node.disconnected?'topo-disconnected':''}`}
         style={{marginLeft:level*16,cursor:'pointer'}} onClick={()=>onSelect(node.device.id)}>
-        <div className="tn-icon">{ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
+        <div className="tn-icon">{DEVICE_THUMBNAILS[node.device.key]?(
+          <img src={DEVICE_THUMBNAILS[node.device.key]} alt={node.device.name} style={{width:20,height:20,objectFit:'cover',borderRadius:'50%'}}/>
+        ):ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
         <div className="tn-info">
           <div className="tn-name">{node.device.name}</div>
           <div className="tn-detail">{node.device.model||node.device.key}</div>
