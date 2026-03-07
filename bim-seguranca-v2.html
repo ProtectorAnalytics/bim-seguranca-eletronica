@@ -328,7 +328,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 5, build: 1,
+  major: 3, minor: 5, build: 2,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -3471,7 +3471,7 @@ function ProjectApp({project,setProject,onBack}){
                         onClick={()=>{setPendingDevice(item.key);setTool('device')}}
                         style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
                         <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
-                          <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:24,height:24,objectFit:'cover',borderRadius:'50%'}}/>
+                          <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
                         ):ICONS[item.icon]?.(cat.color)}</div>
                         <div className="di-info">
                           <div className="di-name">{item.name}</div>
@@ -3793,9 +3793,9 @@ function ProjectApp({project,setProject,onBack}){
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
                       setCableMode({from:dev.id});setTool('cable')}}>
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
-                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:0,overflow:'hidden'}:{})}}>
+                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:2,overflow:'hidden'}:{})}}>
                       {DEVICE_THUMBNAILS[dev.key]?(
-                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:40,height:40,objectFit:'contain'}}/>
                       ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
                     {/* Connection button - opens port popup */}
@@ -4021,7 +4021,7 @@ function ProjectApp({project,setProject,onBack}){
                 <div>
                   <div className="prop-header">
                     <div className="ph-icon">{DEVICE_THUMBNAILS[selectedDev.key]?(
-                      <img src={DEVICE_THUMBNAILS[selectedDev.key]} alt={selectedDev.name} style={{width:36,height:36,objectFit:'cover',borderRadius:'50%'}}/>
+                      <img src={DEVICE_THUMBNAILS[selectedDev.key]} alt={selectedDev.name} style={{width:32,height:32,objectFit:'contain'}}/>
                     ):ICONS[getDeviceIconKey(selectedDev.key)]?.(catInfo?.color)}</div>
                     <div className="ph-info">
                       <div className="ph-name">{selectedDev.name}</div>
@@ -4456,7 +4456,7 @@ function TopoNode({node,devices,level,onSelect}){
       <div className={`topo-node ${node.disconnected?'topo-disconnected':''}`}
         style={{marginLeft:level*16,cursor:'pointer'}} onClick={()=>onSelect(node.device.id)}>
         <div className="tn-icon">{DEVICE_THUMBNAILS[node.device.key]?(
-          <img src={DEVICE_THUMBNAILS[node.device.key]} alt={node.device.name} style={{width:20,height:20,objectFit:'cover',borderRadius:'50%'}}/>
+          <img src={DEVICE_THUMBNAILS[node.device.key]} alt={node.device.name} style={{width:18,height:18,objectFit:'contain'}}/>
         ):ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
         <div className="tn-info">
           <div className="tn-name">{node.device.name}</div>
