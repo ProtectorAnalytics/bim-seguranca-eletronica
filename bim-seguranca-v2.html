@@ -328,18 +328,19 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 3, build: 1,
+  major: 3, minor: 3, build: 2,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
-    {ver:'3.3.1',date:'2026-03-07',changes:[
+    {ver:'3.3.2',date:'2026-03-07',changes:[
       'Roteamento ortogonal estilo draw.io — cabos com ângulos retos e curvas suaves nas dobras',
       'Arraste segmentos inteiros para reposicionar trechos do cabo',
       'Handles quadrados ■ nos pontos de dobra — arraste para ajustar, dbl-clique para remover',
       'Auto-rota Z inteligente — gera caminho ortogonal automaticamente entre equipamentos',
       'Cantos arredondados nas curvas de 90° para visual profissional',
-      'Highlight azul ao passar mouse sobre segmentos arrastáveis'
+      'Highlight azul ao passar mouse sobre segmentos arrastáveis',
+      'Fix: proteção contra drag acidental durante criação de cabo'
     ]},
     {ver:'3.2.0',date:'2026-03-06',changes:[
       'Ícones SVG profissionais — todos redesenhados com detalhes realistas (fonte com portas 12V, switches com LEDs, câmeras com lentes)',
@@ -3090,6 +3091,7 @@ function ProjectApp({project,setProject,onBack}){
                         {/* Invisible wide hit area for dragging segment */}
                         <path d={segD} className="seg-hit"
                           onMouseDown={(e)=>{
+                            if(cableMode) return; // Don't start drag during cable creation
                             e.stopPropagation();e.preventDefault();
                             const rect=canvasRef.current?.getBoundingClientRect();
                             if(!rect) return;
