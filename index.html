@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>BIM Segurança Eletrônica | Protector Sistemas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -328,7 +331,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 8, build: 2,
+  major: 3, minor: 8, build: 3,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -1978,42 +1981,46 @@ const uid=()=>'d'+(++_uid);
 function App(){
   const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription
   const [project,_setProject]=useState(null);
-  const historyRef=useRef({past:[],future:[]});
-  const skipHistoryRef=useRef(false);
+  const _historyStore=useRef({past:[],future:[]});
+  const _skipHistory=useRef(false);
   const setProject=(updaterOrVal)=>{
     _setProject(prev=>{
       try{
         const next=typeof updaterOrVal==='function'?updaterOrVal(prev):updaterOrVal;
-        if(!skipHistoryRef.current && prev && next){
+        if(!_skipHistory.current && prev && next){
           try{
             const ps=JSON.stringify(prev);const ns=JSON.stringify(next);
-            if(ps!==ns){historyRef.current.past.push(ps);if(historyRef.current.past.length>50)historyRef.current.past.shift();historyRef.current.future=[];}
+            if(ps!==ns){const h=_historyStore.current;h.past.push(ps);if(h.past.length>50)h.past.shift();h.future=[];}
           }catch(e){console.warn('History snapshot failed',e)}
         }
-        skipHistoryRef.current=false;
+        _skipHistory.current=false;
         return next;
-      }catch(e){console.error('setProject error',e);skipHistoryRef.current=false;return prev;}
+      }catch(e){console.error('setProject error',e);_skipHistory.current=false;return prev;}
     });
   };
   const undo=()=>{
-    const h=historyRef.current;
-    if(!h.past.length) return;
-    _setProject(prev=>{
-      h.future.push(JSON.stringify(prev));
-      const restored=JSON.parse(h.past.pop());
-      skipHistoryRef.current=true;
-      return restored;
-    });
+    try{
+      const h=_historyStore.current;
+      if(!h||!h.past||!h.past.length) return;
+      _setProject(prev=>{
+        h.future.push(JSON.stringify(prev));
+        const restored=JSON.parse(h.past.pop());
+        _skipHistory.current=true;
+        return restored;
+      });
+    }catch(e){console.error('undo error',e)}
   };
   const redo=()=>{
-    const h=historyRef.current;
-    if(!h.future.length) return;
-    _setProject(prev=>{
-      h.past.push(JSON.stringify(prev));
-      const restored=JSON.parse(h.future.pop());
-      skipHistoryRef.current=true;
-      return restored;
-    });
+    try{
+      const h=_historyStore.current;
+      if(!h||!h.future||!h.future.length) return;
+      _setProject(prev=>{
+        h.past.push(JSON.stringify(prev));
+        const restored=JSON.parse(h.future.pop());
+        _skipHistory.current=true;
+        return restored;
+      });
+    }catch(e){console.error('redo error',e)}
   };
   const [editingProjectId,setEditingProjectId]=useState(null);
   const [clientData,setClientData]=useState({
