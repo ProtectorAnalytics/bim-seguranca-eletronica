@@ -322,7 +322,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 2, build: 0,
+  major: 3, minor: 2, build: 1,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -3986,25 +3986,41 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
 
       {/* STEP 3: GENERAL DATA */}
       {step===3&&<>
-        <h3 style={{fontSize:14,marginBottom:12}}>Dados do equipamento</h3>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Dados do equipamento</h3>
         <div style={{maxHeight:340,overflowY:'auto'}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-            <div className="cf-field"><label style={{fontSize:11,fontWeight:600}}>Marca *</label>
-              <input value={formState.brand} onChange={e=>handleFieldChange('brand',e.target.value)} placeholder="Ex: Intelbras, Hikvision" style={{fontSize:12}}/></div>
-            <div className="cf-field"><label style={{fontSize:11,fontWeight:600}}>Modelo *</label>
-              <input value={formState.model} onChange={e=>handleFieldChange('model',e.target.value)} placeholder="Ex: VIP 3230 D" style={{fontSize:12}}/></div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Marca *</label>
+              <input value={formState.brand} onChange={e=>handleFieldChange('brand',e.target.value)} placeholder="Ex: Intelbras, Hikvision"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Modelo *</label>
+              <input value={formState.model} onChange={e=>handleFieldChange('model',e.target.value)} placeholder="Ex: VIP 3230 D"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
           </div>
-          <div className="cf-field" style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600}}>Descrição</label>
-            <textarea value={formState.descricao} onChange={e=>handleFieldChange('descricao',e.target.value)} style={{minHeight:50,fontSize:11}} placeholder="Breve descrição do equipamento"/></div>
+          <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
+            <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Descrição</label>
+            <textarea value={formState.descricao} onChange={e=>handleFieldChange('descricao',e.target.value)}
+              style={{minHeight:50,fontSize:11,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff',resize:'vertical'}} placeholder="Breve descrição do equipamento"/>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-            <div className="cf-field"><label style={{fontSize:11,fontWeight:600}}>Referência (SKU)</label>
-              <input value={formState.referencia} onChange={e=>handleFieldChange('referencia',e.target.value)} style={{fontSize:12}}/></div>
-            <div className="cf-field"><label style={{fontSize:11,fontWeight:600}}>Preço (R$)</label>
-              <input value={formState.preco} onChange={e=>handleFieldChange('preco',e.target.value)} type="number" style={{fontSize:12}}/></div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Referência (SKU)</label>
+              <input value={formState.referencia} onChange={e=>handleFieldChange('referencia',e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Preço (R$)</label>
+              <input value={formState.preco} onChange={e=>handleFieldChange('preco',e.target.value)} type="number"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
           </div>
-          <div className="cf-field"><label style={{fontSize:11,fontWeight:600}}>Datasheet (colar texto)</label>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Datasheet (colar texto)</label>
             <textarea value={formState.datasheetText} onChange={e=>handleFieldChange('datasheetText',e.target.value)}
-              style={{minHeight:60,fontSize:9}} placeholder="Cole texto do datasheet para extração automática"/>
+              style={{minHeight:60,fontSize:9,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff',resize:'vertical'}} placeholder="Cole texto do datasheet para extração automática"/>
             {formState.datasheetText&&<button onClick={parseDatasheet}
               style={{marginTop:4,padding:'4px 10px',fontSize:9,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}>
               🔍 Extrair specs</button>}
@@ -4068,17 +4084,20 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
 
       {/* STEP 5: SPECS */}
       {step===5&&<>
-        <h3 style={{fontSize:14,marginBottom:12}}>Especificações técnicas</h3>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Especificações técnicas</h3>
         <div style={{maxHeight:340,overflowY:'auto'}}>
           {(EQUIPMENT_SCHEMAS[formState.category]||[]).map(field=>(
-            <div key={field.key} className="cf-field" style={{marginBottom:10}}>
-              <label style={{fontSize:11,fontWeight:600}}>{field.label}{field.required?' *':''}{field.unit?` (${field.unit})`:''}</label>
-              {field.type==='text'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)} style={{fontSize:12}}/>}
-              {field.type==='number'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)} type="number" style={{fontSize:12}}/>}
-              {field.type==='select'&&<select value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)} style={{fontSize:12}}>
+            <div key={field.key} style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>{field.label}{field.required?' *':''}{field.unit?` (${field.unit})`:''}</label>
+              {field.type==='text'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>}
+              {field.type==='number'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)} type="number"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>}
+              {field.type==='select'&&<select value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}>
                 <option value="">Selecionar...</option>{field.options.map(o=><option key={o} value={o}>{o}</option>)}</select>}
               {field.type==='bool'&&<label style={{display:'flex',alignItems:'center',gap:6}}>
-                <input type="checkbox" checked={!!formState.specs[field.key]} onChange={e=>handleSpecChange(field.key,e.target.checked)}/><span style={{fontSize:11}}>{field.label}</span></label>}
+                <input type="checkbox" checked={!!formState.specs[field.key]} onChange={e=>handleSpecChange(field.key,e.target.checked)}/><span style={{fontSize:11,color:'#374151'}}>{field.label}</span></label>}
             </div>
           ))}
           {(EQUIPMENT_SCHEMAS[formState.category]||[]).length===0&&<div style={{textAlign:'center',padding:20,color:'#9ca3af',fontSize:11}}>Sem especificações padrão para esta categoria.</div>}
@@ -4088,15 +4107,15 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep})
 
       {/* STEP 6: REVIEW */}
       {step===6&&<>
-        <h3 style={{fontSize:14,marginBottom:12}}>Revisão final</h3>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Revisão final</h3>
         <div style={{background:'#f8f9fa',borderRadius:10,padding:14,marginBottom:10}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
             <div style={{width:44,height:44,borderRadius:10,background:categoryColors[formState.category]+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
               {ICONS[formState.baseDeviceType]?.(categoryColors[formState.category])}
             </div>
             <div>
-              <div style={{fontWeight:700,fontSize:14,color:'var(--azul)'}}>{formState.brand} {formState.model}</div>
-              <div style={{fontSize:10,color:'var(--cinza)'}}>
+              <div style={{fontWeight:700,fontSize:14,color:'#1e40af'}}>{formState.brand} {formState.model}</div>
+              <div style={{fontSize:10,color:'#6b7280'}}>
                 <span style={{background:categoryColors[formState.category]+'20',color:categoryColors[formState.category],padding:'1px 6px',borderRadius:3,fontWeight:600,fontSize:9}}>{categoryLabels[formState.category]}</span>
                 <span style={{marginLeft:6}}>Base: {formState.baseDeviceType}</span>
               </div>
