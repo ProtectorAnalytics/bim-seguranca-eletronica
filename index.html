@@ -322,11 +322,27 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 0, build: 2,
+  major: 3, minor: 1, build: 0,
   date: '2026-03-06',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.1.0',date:'2026-03-06',changes:[
+      'Sistema de cabos PP — cabo padrão de segurança eletrônica (PP 2 e 4 vias: 0,5 / 1,0 / 1,5 / 2,5mm²)',
+      'Auto-cálculo de seção PP por distância: 0-30m→0,5mm², 31-60m→1,0mm², 61-100m→1,5mm², >100m→2,5mm²',
+      'Indicador de portas em uso — popup de portas mostra quais estão conectadas e para qual dispositivo',
+      'Contador de portas (X/Y em uso) no título do popup',
+      'Roteamento de cabos — 3 tipos: Reto (padrão), Curva (bezier), Ângulo (L-shape)',
+      'Seletor de rota na toolbar com botões visuais ━ ⌒ ⌐',
+      'Conexões armazenam tipo de rota (straight/curve/angle)',
+      'SVG: paths curvos (quadratic bezier) e angulares (elbow) para visualização profissional',
+      'Repositório de Equipamentos — redesenhado como página inline (sem modal-sobre-modal)',
+      'Fix: exclusão de equipamento customizado (ID/key mismatch resolvido)',
+      'Fix: edição sem duplicação de prefixo "custom_custom_"',
+      'Fix: filtro de dispositivos por categoria corrigido (mapeamento explícito)',
+      'Toolbar: seletor de cabos com grupos PP 2v e PP 4v identificados',
+      'Cabos PP com indicação "(auto por dist.)" no seletor',
+    ]},
     {ver:'3.0.2',date:'2026-03-06',changes:['Acessibilidade universal — app otimizado para jovens e idosos','Ícones do canvas: 40px→52px com SVG 28px, borda mais espessa e sombra reforçada','Labels do canvas: 10px→12px com background sólido e box-shadow para leitura em qualquer fundo','Painel esquerdo ampliado: 240→260px, ícones 26→32px, fontes da paleta 12→13px','Painel direito ampliado: 320→340px, propriedades 12→13px, inputs com sombra de foco','Toolbar: botões 32→36px, labels 11→12px, sim-pill 11→12px','Topbar: 52→54px, logo 13→14px, projeto 15→16px, botões com padding maior','Box-shadow em todos os painéis, cards, stat-cards, módulos, validações e port popup','Text-shadow sutil em labels do canvas e ambientes para legibilidade','Topology nodes: 12→13px com sombra, border-left 3→4px','Equipamentos: tabela 12→13px, inputs com sombra de foco','Floor tabs: 32→36px, font 11→12px, botão add 12→14px','Status bar: 26→30px, font 11→12px','Font-smoothing antialiased e line-height 1.5 no body']},
     {ver:'3.0.1',date:'2026-03-06',changes:['Melhoria global de tipografia — fontes ampliadas em todos os componentes','Labels de formulário: 10px→12px, inputs: 12px→14px, placeholders mais legíveis','Dashboard: cards, stats e badges com fontes maiores e mais contraste','Formulário de cliente ampliado (max-width 680px) com campos mais espaçados','Configurações e Assinatura: layout mais largo (720px) e campos maiores','Paleta de dispositivos, topbar, toolbar e painéis laterais com fontes legíveis','Tabelas de equipamentos, validações e port popup com fontes incrementadas','Botões: 12px→14px em todo o app']},
     {ver:'3.0.0',date:'2026-03-06',changes:['Dashboard de Gerenciamento — hub central com stats, módulos e navegação SaaS','Persistência de Projetos — auto-save em localStorage, lista para reabrir projetos salvos','Gestão de Clientes — lista de clientes com histórico, reutilização em novos projetos','Configurações da Empresa — dados corporativos, taxa padrão, persistidos','Página de Assinatura — placeholder para integração com gerenciador de assinatura externo','Repositório de Equipamentos elevado a módulo do dashboard (acesso direto)','Fluxo refatorado: Dashboard → Cliente → Cenário → Projeto (4 etapas)','Novo fluxo: reabrir projetos salvos direto do dashboard']},
@@ -442,20 +458,42 @@ const CABLE_TYPES = [
   {id:'cat6a',name:'CAT6A',color:'#1d4ed8',speed:'10Gbps',maxLen:90,group:'data'},
   {id:'smf',name:'SM Fibra',color:'#f59e0b',speed:'100Gbps+',maxLen:40000,group:'data'},
   {id:'mmf',name:'MM Fibra',color:'#ef4444',speed:'10Gbps',maxLen:300,group:'data'},
-  {id:'2pares',name:'2 Pares (alarme)',color:'#6b7280',speed:'RS485',maxLen:1200,group:'signal'},
   {id:'coaxial',name:'Coaxial RG59',color:'#374151',speed:'Analógico',maxLen:300,group:'signal'},
   {id:'wireless',name:'Wireless/Mesh',color:'#8b5cf6',speed:'WiFi6',maxLen:100,group:'data'},
-  // Power cables
+  // PP Cables — standard for electronic security installations
+  {id:'pp2v_05',name:'PP 2×0,50mm²',color:'#6b7280',speed:'Sinal/sensor',maxLen:30,group:'signal',vias:2,secao:0.5},
+  {id:'pp2v_10',name:'PP 2×1,00mm²',color:'#6b7280',speed:'Sinal/12VDC',maxLen:60,group:'signal',vias:2,secao:1.0},
+  {id:'pp2v_15',name:'PP 2×1,50mm²',color:'#9ca3af',speed:'12VDC',maxLen:100,group:'power',vias:2,secao:1.5},
+  {id:'pp2v_25',name:'PP 2×2,50mm²',color:'#a3a3a3',speed:'12VDC',maxLen:180,group:'power',vias:2,secao:2.5},
+  {id:'pp4v_05',name:'PP 4×0,50mm²',color:'#a855f7',speed:'Automação',maxLen:30,group:'automation',vias:4,secao:0.5},
+  {id:'pp4v_10',name:'PP 4×1,00mm²',color:'#9333ea',speed:'Automação+GND',maxLen:60,group:'automation',vias:4,secao:1.0},
+  {id:'pp4v_15',name:'PP 4×1,50mm²',color:'#7c3aed',speed:'Automação HD',maxLen:100,group:'automation',vias:4,secao:1.5},
+  {id:'pp4v_25',name:'PP 4×2,50mm²',color:'#6d28d9',speed:'Automação+pot.',maxLen:180,group:'automation',vias:4,secao:2.5},
+  // Power cables (AC)
   {id:'ac_power',name:'Cabo Força AC',color:'#dc2626',speed:'110/220V',maxLen:100,group:'power'},
-  {id:'pp_flex',name:'PP/Flex 3x1.5mm²',color:'#b91c1c',speed:'AC',maxLen:50,group:'power'},
-  {id:'dc_power',name:'Cabo DC 12V',color:'#f97316',speed:'12VDC',maxLen:30,group:'power'},
-  {id:'dc_par',name:'Par DC (P4)',color:'#ea580c',speed:'12VDC',maxLen:20,group:'power'},
-  // Automation
-  {id:'auto_2v',name:'Cabo Automação 2 vias',color:'#a855f7',speed:'Contato seco',maxLen:100,group:'automation'},
-  {id:'auto_4v',name:'Cabo Automação 4 vias',color:'#9333ea',speed:'Contato seco+GND',maxLen:100,group:'automation'},
+  {id:'pp_flex',name:'PP/Flex 3×1,5mm²',color:'#b91c1c',speed:'AC',maxLen:50,group:'power'},
   // Cable engate (Anderson connectors)
   {id:'sb50_48v',name:'Cabo Engate SB50 (48V)',color:'#dc2626',speed:'48VDC',maxLen:3,group:'power'},
   {id:'sb50_12v',name:'Cabo Engate SB50 (12V)',color:'#ea580c',speed:'12VDC',maxLen:3,group:'power'},
+];
+
+// Calculate recommended PP cable section based on distance (meters)
+// Rules: 0-30m→0.5mm², 31-60m→1.0mm², 61-100m→1.5mm², >100m→2.5mm²
+const calcPPSection = (distMeters, vias=2) => {
+  let secao = 0.5;
+  if(distMeters > 100) secao = 2.5;
+  else if(distMeters > 60) secao = 1.5;
+  else if(distMeters > 30) secao = 1.0;
+  const secStr = secao.toFixed(1).replace('.',',');
+  const id = `pp${vias}v_${String(secao*10).replace('.','').padStart(2,'0')}`;
+  return { secao, id, label: `PP ${vias}×${secStr}mm²` };
+};
+
+// Route types for connection lines
+const ROUTE_TYPES = [
+  {id:'straight',name:'Reto',icon:'━'},
+  {id:'curve',name:'Curva',icon:'⌒'},
+  {id:'angle',name:'Ângulo',icon:'⌐'},
 ];
 
 // ====================================================================
@@ -533,67 +571,67 @@ const DEVICE_INTERFACES = {
   cam_fisheye:  [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true}],
   // LPR Camera - PoE + saída automação (contato seco p/ abrir portão)
   cam_lpr:      [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power',required:true},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída automação (contato seco)',required:false}],
   // Controle Acesso
-  leitor_facial:[{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC (Grupo A: +12V/GND)',required:true},
+  leitor_facial:[{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC (Grupo A: +12V/GND)',required:true},
                  {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (RJ45)',required:true},
-                 {type:'data_in',cables:['2pares'],label:'RS-485 (Grupo C: C1/C2)',required:false},
-                 {type:'signal_out',cables:['2pares'],label:'Wiegand saída (Grupo C: W0/W1)',required:false},
-                 {type:'signal_in',cables:['2pares'],label:'Alarme entrada (Grupo B: B1-B3)',required:false},
-                 {type:'signal_out',cables:['2pares'],label:'Alarme saída (Grupo B: B4-B6)',required:false},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Fechadura (Grupo D: NC/COM/NÃO)',required:false},
-                 {type:'signal_in',cables:['2pares'],label:'Sensor porta / Botoeira (Grupo D: SENSOR/BTN)',required:false}],
-  leitor_tag:   [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
-                 {type:'data_in',cables:['2pares'],label:'Wiegand/RS485',required:true},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída automação (contato seco)',required:false}],
+                 {type:'data_in',cables:['pp2v_05'],label:'RS-485 (Grupo C: C1/C2)',required:false},
+                 {type:'signal_out',cables:['pp2v_05'],label:'Wiegand saída (Grupo C: W0/W1)',required:false},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Alarme entrada (Grupo B: B1-B3)',required:false},
+                 {type:'signal_out',cables:['pp2v_05'],label:'Alarme saída (Grupo B: B4-B6)',required:false},
+                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Fechadura (Grupo D: NC/COM/NÃO)',required:false},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Sensor porta / Botoeira (Grupo D: SENSOR/BTN)',required:false}],
+  leitor_tag:   [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC',required:true},
+                 {type:'data_in',cables:['pp2v_05'],label:'Wiegand/RS485',required:true},
+                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída automação (contato seco)',required:false}],
   controladora: [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC Full Range',required:true},
                  {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
-                 {type:'automation_out',cables:['auto_2v','auto_4v','2pares'],label:'Saída fechadura eletroímã (NF)',required:true},
-                 {type:'signal_in',cables:['2pares'],label:'Botoeira entrada',required:false},
-                 {type:'signal_out',cables:['2pares'],label:'Saída auxiliar 2A (automação)',required:false},
-                 {type:'power_out',cables:['dc_power'],label:'Bateria 12V 7-9Ah',required:false}],
-  fechadura:    [{type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação 12VDC (Lock+/Lock−)',required:true},
-                 {type:'automation_in',cables:['auto_2v','2pares'],label:'Acionamento NF/COM (do facial ou controladora)',required:true},
-                 {type:'signal_out',cables:['2pares'],label:'Sensor porta NF/C (estado aberto/fechado)',required:false}],
+                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída fechadura eletroímã (NF)',required:true},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Botoeira entrada',required:false},
+                 {type:'signal_out',cables:['pp2v_05'],label:'Saída auxiliar 2A (automação)',required:false},
+                 {type:'power_out',cables:['pp2v_10'],label:'Bateria 12V 7-9Ah',required:false}],
+  fechadura:    [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC (Lock+/Lock−)',required:true},
+                 {type:'automation_in',cables:['pp2v_10','pp2v_05'],label:'Acionamento NF/COM (do facial ou controladora)',required:true},
+                 {type:'signal_out',cables:['pp2v_05'],label:'Sensor porta NF/C (estado aberto/fechado)',required:false}],
   motor:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'AC 110/220V',required:true},
-                 {type:'signal_in',cables:['2pares'],label:'Sinal central/controladora',required:false},
-                 {type:'automation_in',cables:['auto_2v','auto_4v','2pares'],label:'Entrada automação (botoeira/contato)',required:false}],
+                 {type:'signal_in',cables:['pp2v_05'],label:'Sinal central/controladora',required:false},
+                 {type:'automation_in',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Entrada automação (botoeira/contato)',required:false}],
   // Alarme
   alarme_central:[{type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
-                  {type:'power_in',cables:['ac_power','dc_power'],label:'Alimentação',required:true},
-                  {type:'signal_in',cables:['2pares'],label:'Entrada zonas',required:false}],
-  sensor_presenca:[{type:'signal_out',cables:['2pares'],label:'Saída zona',required:true},
-                   {type:'power_in',cables:['dc_power','dc_par'],label:'12VDC (se ativo)',required:false}],
-  sensor_abertura:[{type:'signal_out',cables:['2pares'],label:'Saída zona',required:true}],
-  sirene:        [{type:'power_in',cables:['dc_power','dc_par'],label:'12VDC',required:true},
-                  {type:'signal_in',cables:['2pares'],label:'Acionamento',required:true}],
+                  {type:'power_in',cables:['ac_power','pp2v_10'],label:'Alimentação',required:true},
+                  {type:'signal_in',cables:['pp2v_05'],label:'Entrada zonas',required:false}],
+  sensor_presenca:[{type:'signal_out',cables:['pp2v_05'],label:'Saída zona',required:true},
+                   {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC (se ativo)',required:false}],
+  sensor_abertura:[{type:'signal_out',cables:['pp2v_05'],label:'Saída zona',required:true}],
+  sirene:        [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC',required:true},
+                  {type:'signal_in',cables:['pp2v_05'],label:'Acionamento',required:true}],
   // Rede
   sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede (uplink + PoE out)',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 100-240V (fonte bivolt)',required:true}],
   sw_normal:    [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas rede (8 portas Gigabit)',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 100-240V (fonte bivolt)',required:true},
-                 {type:'power_in',cables:['dc_power','dc_par'],label:'Alimentação DC 12-30V (fonte/nobreak DC)',required:false},
+                 {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação DC 12-30V (fonte/nobreak DC)',required:false},
                  {type:'power_in',cables:['cat5e','cat6'],label:'PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-)',required:false}],
   nvr:          [{type:'data_in',cables:['cat5e','cat6','cat6a'],label:'Rede p/ câmeras',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}],
   router:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'WAN/LAN',required:true},
                  {type:'power_in',cables:['ac_power'],label:'Alimentação AC',required:true}],
   // Infraestrutura
-  quadro:       [{type:'passthrough',cables:['cat5e','cat6','cat6a','2pares','dc_power','ac_power','smf','mmf','auto_2v','auto_4v'],label:'Passagem/organização'}],
-  rack:         [{type:'passthrough',cables:['cat5e','cat6','cat6a','2pares','dc_power','ac_power','smf','mmf'],label:'Rack organização'}],
+  quadro:       [{type:'passthrough',cables:['cat5e','cat6','cat6a','pp2v_05','pp2v_10','ac_power','smf','mmf','pp2v_10','pp4v_10'],label:'Passagem/organização'}],
+  rack:         [{type:'passthrough',cables:['cat5e','cat6','cat6a','pp2v_05','pp2v_10','ac_power','smf','mmf'],label:'Rack organização'}],
   nobreak_ac:   [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (rede elétrica)',required:true},
                  {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC (tomadas)',required:true}],
   nobreak_dc:   [{type:'power_in',cables:['ac_power'],label:'Entrada AC',required:true},
-                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída DC 12V',required:true}],
-  bateria_ext:  [{type:'power_out',cables:['dc_power'],label:'Fornecimento DC',required:true}],
-  modulo_bat:   [{type:'power_out',cables:['dc_power','ac_power'],label:'Fornecimento energia',required:true}],
-  cabo_engate:  [{type:'passthrough',cables:['dc_power','ac_power'],label:'Conexão nobreak↔bateria'}],
+                 {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída DC 12V',required:true}],
+  bateria_ext:  [{type:'power_out',cables:['pp2v_10'],label:'Fornecimento DC',required:true}],
+  modulo_bat:   [{type:'power_out',cables:['pp2v_10','ac_power'],label:'Fornecimento energia',required:true}],
+  cabo_engate:  [{type:'passthrough',cables:['pp2v_10','ac_power'],label:'Conexão nobreak↔bateria'}],
   fonte:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC',required:true},
-                 {type:'power_out',cables:['dc_power','dc_par'],label:'Saída 12VDC',required:true},
-                 {type:'signal_in',cables:['2pares'],label:'Entrada alarme/aterramento (sensor porta)',required:false}],
+                 {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída 12VDC',required:true},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Entrada alarme/aterramento (sensor porta)',required:false}],
   dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra',required:true}],
   // Borne SAK - emenda/passagem de cabos de automação e sinal no quadro
-  borne_sak:    [{type:'passthrough',cables:['auto_2v','auto_4v','2pares','dc_power','dc_par'],label:'Emenda/passagem automação (trilho DIN)'}],
+  borne_sak:    [{type:'passthrough',cables:['pp2v_10','pp4v_10','pp2v_05','pp2v_10','pp2v_05'],label:'Emenda/passagem automação (trilho DIN)'}],
 };
 
 // ====================================================================
@@ -790,7 +828,7 @@ const getDefaultCable = (fromKey, toKey) => {
   const result = validateConnection(fromKey, toKey, null);
   if (!result.valid || result.cables.length === 0) return null;
   // Priority: prefer data cables for data devices, power for power devices
-  const priority = ['cat6','cat6a','cat5e','smf','mmf','ac_power','pp_flex','dc_power','dc_par','2pares','coaxial','wireless'];
+  const priority = ['cat6','cat6a','cat5e','smf','mmf','ac_power','pp_flex','pp2v_10','pp2v_15','pp2v_25','pp2v_05','pp4v_10','pp4v_15','pp4v_25','pp4v_05','coaxial','wireless','sb50_48v','sb50_12v'];
   return result.cables.sort((a,b) => priority.indexOf(a) - priority.indexOf(b))[0];
 };
 
@@ -1651,19 +1689,85 @@ function EquipmentRepoPage({onBack}){
   };
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-content">
-        <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
+    <div className="dashboard-container" style={{background:'#F0F2F5',minHeight:'100vh'}}>
+      <div className="dashboard-content" style={{maxWidth:780,margin:'0 auto',padding:'24px 20px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <button className="modal-back-btn" onClick={onBack} style={{margin:0}}>← Voltar ao Dashboard</button>
+          <h2 style={{fontSize:20,fontWeight:700,color:'var(--azul)',margin:0}}>📦 Repositório de Equipamentos</h2>
+        </div>
 
-        <EquipmentRepoModal
-          customDevices={customDevices}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={onBack}
-        />
+        <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'var(--sombra)'}}>
+          <div style={{fontSize:13,color:'var(--cinza)',marginBottom:16}}>
+            Gerencie seus equipamentos personalizados para uso em projetos.
+            Equipamentos criados aqui ficam disponíveis na paleta do canvas.
+          </div>
+
+          <div style={{maxHeight:400,overflowY:'auto',marginBottom:16,borderTop:'1px solid #e5e8eb',paddingTop:12}}>
+            {customDevices.length===0?(
+              <div style={{textAlign:'center',padding:'40px 16px',color:'var(--cinza)',fontSize:13}}>
+                Nenhum equipamento personalizado ainda.<br/>Clique em <strong>"+ Novo equipamento"</strong> para cadastrar.
+              </div>
+            ):(
+              customDevices.map(dev=>{
+                const catColor={camera:'#f59e0b',acesso:'#3b82f6',fechadura:'#ef4444',
+                  alarme:'#f97316',sensor:'#84cc16',switch_rede:'#06b6d4',gravador:'#8b5cf6',
+                  fonte_energia:'#ec4899',nobreak:'#f43f5e',infra:'#6b7280'}[dev.category]||'#999';
+                const categoryLabels={camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores',
+                  switch_rede:'Switches',gravador:'Gravador',fonte_energia:'Fonte',nobreak:'Nobreak',infra:'Infraestrutura'};
+                return (
+                <div key={dev.id} style={{padding:14,marginBottom:10,background:'#f8f9fa',borderRadius:8,
+                  borderLeft:'4px solid '+catColor,transition:'.15s'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <div>
+                      <div style={{fontWeight:700,color:'var(--azul)',fontSize:14}}>{dev.name}</div>
+                      <div style={{fontSize:11,color:'var(--cinza)',marginTop:3}}>
+                        <span style={{background:catColor+'20',color:catColor,padding:'2px 8px',borderRadius:4,fontWeight:600,fontSize:10}}>{categoryLabels[dev.category]||dev.category}</span>
+                        <span style={{marginLeft:8}}>Base: {dev.deviceType}</span>
+                        {dev.referencia&&<span style={{marginLeft:8}}>Ref: {dev.referencia}</span>}
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:6}}>
+                      <button onClick={()=>{}}
+                        style={{padding:'6px 14px',fontSize:11,background:'var(--azul2)',color:'#fff',border:'none',
+                          borderRadius:6,cursor:'pointer',fontWeight:600}}>Editar</button>
+                      <button onClick={()=>handleDelete(dev.key)}
+                        style={{padding:'6px 14px',fontSize:11,background:'#fee2e2',color:'#dc2626',border:'none',
+                          borderRadius:6,cursor:'pointer',fontWeight:600}}>Remover</button>
+                    </div>
+                  </div>
+                  {dev.specs && Object.keys(dev.specs).length>0&&(
+                    <div style={{fontSize:11,color:'var(--cinza)',display:'flex',gap:10,flexWrap:'wrap',marginTop:4}}>
+                      {Object.entries(dev.specs).slice(0,5).map(([k,v])=>(
+                        <span key={k} style={{background:'#e5e8eb',padding:'2px 6px',borderRadius:3,fontSize:10}}>{k}: {String(v)}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>);
+              })
+            )}
+          </div>
+
+          <div style={{display:'flex',gap:10,borderTop:'1px solid #e5e8eb',paddingTop:16}}>
+            <button onClick={onBack}
+              style={{padding:'10px 20px',fontSize:13,background:'#e5e8eb',color:'var(--cinza)',border:'none',
+                borderRadius:8,cursor:'pointer',fontWeight:600}}>← Voltar</button>
+            <EquipmentRepoAddButton customDevices={customDevices} onSave={handleSave}/>
+          </div>
+        </div>
       </div>
     </div>
   );
+}
+
+function EquipmentRepoAddButton({customDevices,onSave}){
+  const [showModal,setShowModal]=useState(false);
+  return <>
+    <button onClick={()=>setShowModal(true)}
+      style={{padding:'10px 24px',fontSize:13,background:'var(--laranja)',color:'#000',border:'none',
+        borderRadius:8,cursor:'pointer',fontWeight:700}}>+ Novo equipamento</button>
+    {showModal&&<EquipmentRepoModal customDevices={customDevices} onSave={(dev)=>{onSave(dev);setShowModal(false);}}
+      onDelete={()=>{}} onClose={()=>setShowModal(false)} startAtStep={2}/>}
+  </>;
 }
 
 // ====================================================================
@@ -1676,6 +1780,7 @@ function ProjectApp({project,setProject,onBack}){
   const [tool,setTool]=useState('select'); // select | device | cable | env | measure
   const [pendingDevice,setPendingDevice]=useState(null);
   const [cableType,setCableType]=useState('cat6');
+  const [routeType,setRouteType]=useState('straight'); // straight | curve | angle
   const [cableMode,setCableMode]=useState(null); // null | {from:deviceId, ifaceType?, ifaceLabel?}
   const [portPopup,setPortPopup]=useState(null); // null | {devId,x,y} - connection port selector popup
   const [showExport,setShowExport]=useState(false);
@@ -1836,14 +1941,26 @@ function ProjectApp({project,setProject,onBack}){
       return;
     }
 
-    // Valid — create connection with ifaceType metadata
+    // Auto-calculate PP cable section if chosen cable is PP type
+    let finalCable=chosenCable;
+    const chosenCT=CABLE_TYPES.find(c=>c.id===chosenCable);
+    if(chosenCT?.vias && chosenCT?.secao){
+      const recommended=calcPPSection(dist,chosenCT.vias);
+      if(recommended.secao!==chosenCT.secao){
+        finalCable=recommended.id;
+        showConnToast(`📐 Auto-ajuste: ${dist}m → ${recommended.label} (seção calculada pela distância)`,'info');
+      }
+    }
+
+    // Valid — create connection with ifaceType metadata + route
     const purpose=validation.purpose||'dados';
     updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:chosenCable,distance:dist,purpose,
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||''
+      id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'
     }]}));
     const portInfo=ifaceLabel?` [${ifaceLabel}]`:'';
-    showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===chosenCable)?.name} · ${dist}m · ${purpose}${portInfo}`,'success');
+    const fcName=CABLE_TYPES.find(c=>c.id===finalCable)?.name||finalCable;
+    showConnToast(`✓ ${fcName} · ${dist}m · ${purpose}${portInfo}`,'success');
     setCableMode(null);
   };
 
@@ -1854,9 +1971,13 @@ function ProjectApp({project,setProject,onBack}){
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
     const validation=validateConnection(fromDev.key,toDev.key,cableId);
+    // Auto-calc PP section for picker too
+    let pickCable=cableId;
+    const pickCT=CABLE_TYPES.find(c=>c.id===cableId);
+    if(pickCT?.vias&&pickCT?.secao){const rec=calcPPSection(dist,pickCT.vias);if(rec.secao!==pickCT.secao) pickCable=rec.id;}
     updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:cableId,distance:dist,purpose:validation.purpose||'dados',
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||''
+      id:uid(),from:fromId,to:toId,type:pickCable,distance:dist,purpose:validation.purpose||'dados',
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'
     }]}));
     showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===cableId)?.name} · ${dist}m`,'success');
     setCablePicker(null);
@@ -1991,7 +2112,7 @@ function ProjectApp({project,setProject,onBack}){
           const pairExists=newConns.some(c=>(c.from===dev.id&&c.to===n.device.id)||(c.from===n.device.id&&c.to===dev.id));
           if(!pairExists){
             const dist=Math.round(n.dist);
-            newConns.push({id:uid(),from:dev.id,to:n.device.id,type:'auto_2v',distance:dist,purpose:'automação'});
+            newConns.push({id:uid(),from:dev.id,to:n.device.id,type:'pp2v_10',distance:dist,purpose:'automação'});
           }
         }
       });
@@ -2227,21 +2348,30 @@ function ProjectApp({project,setProject,onBack}){
         </div>
         <div className="tool-group">
           {tool==='cable'&&(
+            <>
             <select value={cableType} onChange={e=>setCableType(e.target.value)}
-              style={{padding:'4px 8px',border:'1px solid var(--cinzaM)',borderRadius:4,fontSize:10}}>
+              style={{padding:'4px 8px',border:'1px solid var(--cinzaM)',borderRadius:4,fontSize:11}}>
               <optgroup label="🌐 Dados">
                 {CABLE_TYPES.filter(c=>c.group==='data').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
               </optgroup>
-              <optgroup label="📡 Sinal">
-                {CABLE_TYPES.filter(c=>c.group==='signal').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              <optgroup label="📡 Sinal / PP 2 vias">
+                {CABLE_TYPES.filter(c=>c.group==='signal').map(ct=><option key={ct.id} value={ct.id}>{ct.name}{ct.secao?' (auto por dist.)':''}</option>)}
               </optgroup>
               <optgroup label="⚡ Energia">
                 {CABLE_TYPES.filter(c=>c.group==='power').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
               </optgroup>
-              <optgroup label="🔧 Automação">
-                {CABLE_TYPES.filter(c=>c.group==='automation').map(ct=><option key={ct.id} value={ct.id}>{ct.name}</option>)}
+              <optgroup label="🔧 Automação / PP 4 vias">
+                {CABLE_TYPES.filter(c=>c.group==='automation').map(ct=><option key={ct.id} value={ct.id}>{ct.name}{ct.secao?' (auto por dist.)':''}</option>)}
               </optgroup>
             </select>
+            <div style={{display:'flex',gap:2,marginLeft:4}}>
+              {ROUTE_TYPES.map(rt=>(
+                <button key={rt.id} className={`tool-btn ${routeType===rt.id?'active':''}`}
+                  title={`Rota: ${rt.name}`} style={{width:30,height:30,fontSize:14}}
+                  onClick={()=>setRouteType(rt.id)}>{rt.icon}</button>
+              ))}
+            </div>
+            </>
           )}
         </div>
         <div className="sim-toggle">
@@ -2423,10 +2553,33 @@ function ProjectApp({project,setProject,onBack}){
                   const sw=isPower?2.5:isAuto?2:1.5;
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
                   const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
+
+                  // Route type rendering
+                  const route=conn.route||'straight';
+                  let linePath=null;
+                  let labelX=mx,labelY=my-3;
+                  if(route==='curve'){
+                    // Quadratic bezier curve — control point perpendicular to midpoint
+                    const cpOff=Math.min(80,len*0.3);
+                    const cpx=mx+(-dy/len)*cpOff;
+                    const cpy=my+(dx/len)*cpOff;
+                    labelX=cpx*0.25+mx*0.75;labelY=cpy*0.25+my*0.75-3;
+                    linePath=<path d={`M${x1},${y1} Q${cpx},${cpy} ${x2},${y2}`}
+                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
+                  } else if(route==='angle'){
+                    // L-shaped angle path — go horizontal first, then vertical
+                    const elbowX=x2;const elbowY=y1;
+                    labelX=(x1+elbowX)/2;labelY=elbowY-5;
+                    linePath=<path d={`M${x1},${y1} L${elbowX},${elbowY} L${x2},${y2}`}
+                      fill="none" className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
+                  } else {
+                    linePath=<line x1={x1} y1={y1} x2={x2} y2={y2}
+                      className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>;
+                  }
+
                   return <g key={conn.id}>
-                    <line x1={x1} y1={y1} x2={x2} y2={y2}
-                      className="conn-line-path" stroke={ct.color} strokeWidth={sw} strokeDasharray={dashArr}/>
-                    <text x={mx} y={my-3} className="cable-label">
+                    {linePath}
+                    <text x={labelX} y={labelY} className="cable-label">
                       {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
                     </text>
                   </g>;
@@ -2534,25 +2687,47 @@ function ProjectApp({project,setProject,onBack}){
             if(!ppDev) return null;
             const ifaces=getDeviceInterfaces(ppDev);
             if(!ifaces.length) return null;
+            // Check which ports are already in use
+            const usedPorts=connections.filter(c=>c.from===ppDev.id||c.to===ppDev.id);
+            const getPortUsage=(iface)=>{
+              return usedPorts.filter(c=>c.ifaceType===iface.type).length;
+            };
+            const totalUsed=usedPorts.length;
+            const totalPorts=ifaces.length;
             return (
               <>
                 <div className="port-popup-overlay" onClick={()=>setPortPopup(null)}/>
                 <div className="port-popup" style={{left:portPopup.x,top:portPopup.y}}>
-                  <div className="pp-title">⚡ Portas — {ppDev.name}</div>
-                  {ifaces.map((iface,i)=>(
-                    <button key={i} className="port-btn" onClick={()=>{
+                  <div className="pp-title">⚡ Portas — {ppDev.name}
+                    <span style={{fontSize:10,fontWeight:400,marginLeft:8,color:totalUsed>0?'#f59e0b':'#6b7280'}}>
+                      ({totalUsed}/{totalPorts} em uso)
+                    </span>
+                  </div>
+                  {ifaces.map((iface,i)=>{
+                    const usage=getPortUsage(iface);
+                    const isUsed=usage>0;
+                    const connectedTo=isUsed?usedPorts.filter(c=>c.ifaceType===iface.type).map(c=>{
+                      const otherId=c.from===ppDev.id?c.to:c.from;
+                      const otherDev=devices.find(d=>d.id===otherId);
+                      return otherDev?.name||'?';
+                    }).join(', '):'';
+                    return (
+                    <button key={i} className="port-btn" style={{opacity:isUsed?0.6:1,position:'relative'}} onClick={()=>{
                       setCableMode({from:ppDev.id,ifaceType:iface.type,ifaceLabel:iface.label});
                       setTool('cable');
                       setPortPopup(null);
                     }}>
-                      <div className={`pb-dot ${getPortDotClass(iface.type)}`}/>
+                      <div className={`pb-dot ${getPortDotClass(iface.type)}`} style={isUsed?{boxShadow:'0 0 0 2px #f59e0b'}:{}}/>
                       <div className="pb-info">
-                        <div className="pb-label">{iface.label}</div>
+                        <div className="pb-label">{iface.label}
+                          {isUsed&&<span style={{marginLeft:6,fontSize:9,color:'#f59e0b',fontWeight:700}}>✓ CONECTADA → {connectedTo}</span>}
+                        </div>
                         <div className="pb-type">{getPortTypeName(iface.type)} · {iface.cables?.map(c=>CABLE_TYPES.find(ct=>ct.id===c)?.name||c).join(', ')}</div>
                       </div>
-                      {iface.required?<span className="pb-req">OBRIG.</span>:<span className="pb-opt">opcional</span>}
-                    </button>
-                  ))}
+                      {isUsed?<span style={{fontSize:9,color:'#f59e0b',fontWeight:700,flexShrink:0}}>EM USO</span>:
+                       iface.required?<span className="pb-req">OBRIG.</span>:<span className="pb-opt">disponível</span>}
+                    </button>);
+                  })}
                 </div>
               </>
             );
@@ -2591,7 +2766,7 @@ function ProjectApp({project,setProject,onBack}){
           {/* Connection toast */}
           {connToast&&(
             <div style={{position:'absolute',bottom:48,left:'50%',transform:'translateX(-50%)',
-              background:connToast.type==='error'?'#dc2626':connToast.type==='warn'?'#d97706':'#16a34a',
+              background:connToast.type==='error'?'#dc2626':connToast.type==='warn'?'#d97706':connToast.type==='info'?'#2563eb':'#16a34a',
               color:'#fff',padding:'8px 20px',borderRadius:8,fontSize:11,fontWeight:600,zIndex:30,
               boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:480,textAlign:'center',
               animation:'fadeIn .2s'}}>
@@ -3228,8 +3403,8 @@ function ExportModal({project,bom,allDevices,connections,onClose}){
 // ====================================================================
 // EQUIPMENT REPOSITORY MODAL
 // ====================================================================
-function EquipmentRepoModal({customDevices,onSave,onDelete,onClose}){
-  const [step,setStep]=useState(1); // 1=list, 2=add form step 1 (category), 3=add form step 2 (base device), 4=common, 5=specs
+function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep}){
+  const [step,setStep]=useState(startAtStep||1); // 1=list, 2=add form step 1 (category), 3=add form step 2 (base device), 4=common, 5=specs
   const [editingDevice,setEditingDevice]=useState(null);
   const [formState,setFormState]=useState({
     category:'camera',
@@ -3320,9 +3495,12 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose}){
       return;
     }
 
+    const devTimestamp=Date.now();
+    const devId=editingDevice?.id||('custom_'+devTimestamp);
+    const devKey=editingDevice?.key||(devId);
     const customDev={
-      id:editingDevice?.id||'custom_'+Date.now(),
-      key:'custom_'+(editingDevice?.id||Date.now()),
+      id:devId,
+      key:devKey,
       name:formState.brand+' '+formState.model,
       category:formState.category,
       deviceType:formState.baseDeviceType,
@@ -3348,11 +3526,20 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose}){
   };
 
   const getCategoryDevices=(category)=>{
-    return DEVICE_LIB.find(c=>c.items.some(i=>EQUIPMENT_SCHEMAS[category]?.some(s=>i.key===category)))?.items||
-           DEVICE_LIB.flatMap(c=>c.items).filter(i=>{
-             const schema=EQUIPMENT_SCHEMAS[category];
-             return schema && i.key.startsWith(category.substring(0,3));
-           });
+    const categoryDeviceMap={
+      camera:['cam_dome','cam_bullet','cam_ptz','cam_fisheye','cam_lpr'],
+      acesso:['leitor_facial','controladora','leitor_tag'],
+      fechadura:['fechadura'],
+      alarme:['alarme_central'],
+      sensor:['sensor_presenca','sensor_abertura','sirene'],
+      switch_rede:['sw_poe','sw_normal'],
+      gravador:['nvr'],
+      fonte_energia:['fonte'],
+      nobreak:['nobreak_ac','nobreak_dc'],
+      infra:['quadro','rack','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate']
+    };
+    const keys=categoryDeviceMap[category]||[];
+    return DEVICE_LIB.flatMap(c=>c.items).filter(i=>keys.includes(i.key));
   };
 
   if(step===1){
@@ -3390,7 +3577,7 @@ function EquipmentRepoModal({customDevices,onSave,onDelete,onClose}){
                           borderRadius:4,cursor:'pointer',transition:'.15s'}}
                         onMouseOver={e=>e.currentTarget.style.opacity='.8'}
                         onMouseOut={e=>e.currentTarget.style.opacity='1'}>Editar</button>
-                      <button onClick={()=>onDelete(dev.id)}
+                      <button onClick={()=>onDelete(dev.key)}
                         style={{padding:'4px 10px',fontSize:9,background:'#e5e8eb',color:'var(--cinza)',border:'none',
                           borderRadius:4,cursor:'pointer',transition:'.15s'}}
                         onMouseOver={e=>e.currentTarget.style.background='#d1d5db'}
