@@ -328,7 +328,7 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 6, build: 0,
+  major: 3, minor: 7, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
@@ -1423,6 +1423,19 @@ const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || 
 const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
 
+// Can this device be rack-mounted?
+function canMountInRack(key){
+  return isSwitch(key)||isGravador(key)||isNobreak(key)||isFonte(key)||
+    key==='router'||key==='dio'||key==='borne_sak'||key==='bateria_ext'||
+    key==='modulo_bat'||key==='controladora'||isCentralAlarme(key)||isCentralIncendio(key)||
+    key==='fonte'||key==='cabo_engate';
+}
+// Can this device go inside a quadro?
+function canMountInQuadro(key){
+  return key==='nobreak_dc'||isFonte(key)||key==='borne_sak'||key==='dio'||
+    isCentralAlarme(key)||key==='controladora'||needsDCPower(key);
+}
+
 // Rack U size per device type
 function getDeviceUSize(key){
   if(isGravador(key)) return 2; // NVR/DVR = 2U
@@ -1931,7 +1944,41 @@ const uid=()=>'d'+(++_uid);
 // ====================================================================
 function App(){
   const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription
-  const [project,setProject]=useState(null);
+  const [project,_setProject]=useState(null);
+  const historyRef=useRef({past:[],future:[]});
+  const skipHistoryRef=useRef(false);
+  const setProject=(updaterOrVal)=>{
+    _setProject(prev=>{
+      const next=typeof updaterOrVal==='function'?updaterOrVal(prev):updaterOrVal;
+      if(!skipHistoryRef.current && prev && JSON.stringify(prev)!==JSON.stringify(next)){
+        historyRef.current.past.push(JSON.stringify(prev));
+        if(historyRef.current.past.length>50) historyRef.current.past.shift();
+        historyRef.current.future=[];
+      }
+      skipHistoryRef.current=false;
+      return next;
+    });
+  };
+  const undo=()=>{
+    const h=historyRef.current;
+    if(!h.past.length) return;
+    _setProject(prev=>{
+      h.future.push(JSON.stringify(prev));
+      const restored=JSON.parse(h.past.pop());
+      skipHistoryRef.current=true;
+      return restored;
+    });
+  };
+  const redo=()=>{
+    const h=historyRef.current;
+    if(!h.future.length) return;
+    _setProject(prev=>{
+      h.past.push(JSON.stringify(prev));
+      const restored=JSON.parse(h.future.pop());
+      skipHistoryRef.current=true;
+      return restored;
+    });
+  };
   const [editingProjectId,setEditingProjectId]=useState(null);
   const [clientData,setClientData]=useState({
     nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
@@ -3333,7 +3380,9 @@ function ProjectApp({project,setProject,onBack}){
             draggedDev.x>=r.x-40&&draggedDev.x<=r.x+180&&
             draggedDev.y>=r.y-30&&draggedDev.y<=r.y+((r.key==='rack'?(r.config?.alturaU||12)*22+40:200)));
           if(rackDev){
-            updateDevice(dragging.id,{parentRack:rackDev.id});
+            const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):canMountInQuadro(draggedDev.key);
+            if(canMount){updateDevice(dragging.id,{parentRack:rackDev.id})}
+            else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.key==='rack'?'rack':'quadro'}`,'warn')}
           }else if(draggedDev.parentRack){
             // Dragged out of rack
             const rack=devices.find(r=>r.id===draggedDev.parentRack);
@@ -3367,7 +3416,8 @@ function ProjectApp({project,setProject,onBack}){
         }
       }
       if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null)}
-      if(e.ctrlKey&&e.key==='z') e.preventDefault(); // placeholder undo
+      if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
+      if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
     };
     window.addEventListener('keydown',handler);
     return ()=>window.removeEventListener('keydown',handler);
@@ -3454,6 +3504,12 @@ function ProjectApp({project,setProject,onBack}){
             </div>
             <button className={`tool-btn ${showCableLabels?'active':''}`} title="Mostrar/ocultar nomes dos cabos"
               style={{width:30,height:30,fontSize:12,marginLeft:4}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
+            <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
+              <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16,opacity:historyRef.current.past.length?1:0.4}}
+                onClick={undo}>↩</button>
+              <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16,opacity:historyRef.current.future.length?1:0.4}}
+                onClick={redo}>↪</button>
+            </div>
             </>
           )}
         </div>
@@ -3777,89 +3833,67 @@ function ProjectApp({project,setProject,onBack}){
                 })()}
               </svg>
 
-              {/* Rack containers - UniFi-style with U slots */}
+              {/* Rack containers - clean U-slot layout */}
               {devices.filter(d=>d.key==='rack').map(rack=>{
                 const rackU=rack.config?.alturaU||12;
-                const uH=22; // height per U slot
-                const rackW=200;
-                const headerH=24;
-                const rackH=headerH+rackU*uH+8;
+                const uH=18;const rackW=180;const headerH=22;
+                const rackH=headerH+rackU*uH+4;
                 const children=devices.filter(d=>d.parentRack===rack.id);
-                // Build slot allocation
-                const slots=new Array(rackU).fill(null);
-                const childSlots=[];
+                const slots=new Array(rackU).fill(null);const childSlots=[];
                 children.forEach(child=>{
                   const uSize=getDeviceUSize(child.key);
-                  const assignedU=child.rackSlot!=null?child.rackSlot:-1;
-                  // Find slot or use assigned
-                  let startU=assignedU>=0&&assignedU+uSize<=rackU?assignedU:-1;
+                  let startU=child.rackSlot>=0&&child.rackSlot+uSize<=rackU?child.rackSlot:-1;
                   if(startU<0){for(let u=0;u<=rackU-uSize;u++){let free=true;for(let s=0;s<uSize;s++)if(slots[u+s]!=null){free=false;break}if(free){startU=u;break}}}
                   if(startU>=0){for(let s=0;s<uSize;s++)slots[startU+s]=child.id;
                     childSlots.push({child,startU,uSize});
-                    if(child.rackSlot!==startU) updateDevice(child.id,{rackSlot:startU});
-                  }
+                    if(child.rackSlot!==startU)updateDevice(child.id,{rackSlot:startU});}
                 });
-                const usedU=slots.filter(s=>s!=null).length;
-                const isSel=selectedDevice===rack.id;
+                const usedU=slots.filter(s=>s!=null).length;const isSel=selectedDevice===rack.id;
                 return (
-                  <div key={'rack-bg-'+rack.id}
-                    style={{position:'absolute',left:rack.x-30,top:rack.y-20,width:rackW,height:rackH,
-                      background:'linear-gradient(180deg,#1e293b 0%,#0f172a 100%)',
-                      border:`2px solid ${isSel?'var(--azul2)':'#475569'}`,
-                      borderRadius:6,zIndex:0,pointerEvents:'none',boxShadow:'0 4px 20px rgba(0,0,0,.35)'}}>
-                    {/* Rack header */}
+                  <div key={'rack-bg-'+rack.id} style={{position:'absolute',left:rack.x-30,top:rack.y-20,
+                    width:rackW,height:rackH,background:'#1a1f2e',
+                    border:`2px solid ${isSel?'var(--azul2)':'#3b4252'}`,
+                    borderRadius:4,zIndex:0,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
                     <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
-                      padding:'0 8px',borderBottom:'1px solid #334155'}}>
-                      <span style={{fontSize:10,fontWeight:700,color:'#e2e8f0',letterSpacing:'.5px'}}>{rack.name}</span>
-                      <span style={{fontSize:9,color:usedU>=rackU?'#ef4444':usedU>rackU*0.7?'#f59e0b':'#22c55e',fontWeight:600}}>
-                        {usedU}/{rackU}U
-                      </span>
+                      padding:'0 6px',borderBottom:'1px solid #2e3440',pointerEvents:'auto',cursor:'pointer'}}
+                      onClick={()=>{setSelectedDevice(rack.id);setRightTab('props')}}>
+                      <span style={{fontSize:9,fontWeight:700,color:'#d8dee9'}}>{rack.name}</span>
+                      <span style={{fontSize:8,color:usedU>=rackU?'#bf616a':usedU>rackU*.7?'#ebcb8b':'#a3be8c',fontWeight:700}}>
+                        {usedU}/{rackU}U</span>
                     </div>
-                    {/* U slots grid */}
                     {Array.from({length:rackU}).map((_,u)=>{
-                      const occupant=childSlots.find(cs=>cs.startU===u);
-                      const isOccupied=slots[u]!=null;
-                      const isStartOfDevice=occupant!=null;
-                      if(isOccupied&&!isStartOfDevice) return null; // continuation of multi-U device
-                      const slotDev=isStartOfDevice?occupant.child:null;
-                      const slotUSize=isStartOfDevice?occupant.uSize:1;
-                      const thumb=slotDev?DEVICE_THUMBNAILS[slotDev.key]:null;
-                      const slotColor=slotDev?(DEVICE_LIB.find(c=>c.items.some(i=>i.key===slotDev.key))?.color||'#6b7280'):'transparent';
+                      const occ=childSlots.find(cs=>cs.startU===u);
+                      if(slots[u]!=null&&!occ) return null;
+                      const dev=occ?.child;const uSz=occ?.uSize||1;
+                      const catColor=dev?(DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key))?.color||'#6b7280'):'transparent';
                       return (
-                        <div key={'u'+u} style={{position:'absolute',left:4,right:4,
-                          top:headerH+u*uH,height:slotUSize*uH-1,
-                          background:isStartOfDevice?'rgba(255,255,255,.08)':'transparent',
-                          borderBottom:isStartOfDevice?'none':'1px solid rgba(255,255,255,.04)',
-                          borderRadius:isStartOfDevice?3:0,display:'flex',alignItems:'center',
-                          gap:6,padding:'0 6px'}}>
-                          <span style={{fontSize:8,color:'#64748b',fontWeight:600,width:16,textAlign:'right',flexShrink:0}}>
-                            {u+1}
-                          </span>
-                          {isStartOfDevice?(
-                            <>
-                              <div style={{width:slotUSize*uH-6,height:slotUSize*uH-6,flexShrink:0,
-                                borderRadius:3,overflow:'hidden',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                {thumb?<img src={thumb} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:
-                                  <span style={{fontSize:12}}>{ICONS[getDeviceIconKey(slotDev.key)]?.('#94a3b8')}</span>}
+                        <div key={'u'+u} style={{position:'absolute',left:2,right:2,
+                          top:headerH+u*uH,height:uSz*uH-1,
+                          display:'flex',alignItems:'center',gap:4,padding:'0 4px',
+                          background:dev?'#2e3440':'transparent',
+                          borderRadius:dev?2:0,
+                          borderLeft:dev?`3px solid ${catColor}`:'none',
+                          borderBottom:dev?'none':'1px dotted #2e3440'}}>
+                          <span style={{fontSize:7,color:'#4c566a',width:14,textAlign:'right',flexShrink:0,fontWeight:600}}>{u+1}</span>
+                          {dev?(
+                            <div style={{display:'flex',alignItems:'center',flex:1,minWidth:0,gap:4,pointerEvents:'auto'}}>
+                              <div style={{flex:1,minWidth:0,cursor:'pointer'}}
+                                onClick={()=>{setSelectedDevice(dev.id);setRightTab('props')}}>
+                                <div style={{fontSize:8,fontWeight:700,color:'#eceff4',overflow:'hidden',
+                                  textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dev.name}</div>
+                                {uSz>1&&<div style={{fontSize:7,color:'#4c566a'}}>{uSz}U</div>}
                               </div>
-                              <div style={{minWidth:0,flex:1}}>
-                                <div style={{fontSize:9,fontWeight:700,color:'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{slotDev.name}</div>
-                                <div style={{fontSize:8,color:'#94a3b8'}}>{slotUSize}U · {slotDev.key}</div>
-                              </div>
-                              <div style={{width:6,height:slotUSize*uH-8,borderRadius:2,background:slotColor,flexShrink:0,opacity:.6}}/>
-                            </>
-                          ):(
-                            <div style={{flex:1,borderBottom:'1px dashed rgba(255,255,255,.06)'}}/>
-                          )}
-                        </div>
-                      );
+                              <span style={{fontSize:9,color:'#bf616a',cursor:'pointer',padding:'0 2px',
+                                pointerEvents:'auto',opacity:.6,fontWeight:700}} title="Remover do rack"
+                                onClick={(e)=>{e.stopPropagation();updateDevice(dev.id,{parentRack:null,rackSlot:null})}}>✕</span>
+                            </div>
+                          ):null}
+                        </div>);
                     })}
-                    {children.length===0&&!cableMode&&<div style={{position:'absolute',top:headerH+8,left:0,right:0,
-                      fontSize:9,color:'#64748b',textAlign:'center',lineHeight:1.5,pointerEvents:'none'}}>
-                      Arraste equipamentos<br/>para dentro do rack
-                    </div>}
-                  </div>
-                );
+                    {children.length===0&&<div style={{position:'absolute',top:headerH+4,left:0,right:0,
+                      fontSize:8,color:'#4c566a',textAlign:'center',lineHeight:1.5,pointerEvents:'none'}}>
+                      Arraste equipamentos<br/>para o rack</div>}
+                  </div>);
               })}
 
               {/* Quadro de Comando containers */}
