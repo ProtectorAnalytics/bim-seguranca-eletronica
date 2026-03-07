@@ -4487,6 +4487,19 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                     </div>
                   </div>
                   <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                    letterSpacing:.5,marginBottom:6,marginTop:12}}>Especificações</div>
+                  {def?.props&&Object.entries(def.props).map(([k,v])=>(
+                    <div key={k} className="prop-row">
+                      <span className="pr-label" style={{textTransform:'capitalize'}}>{k}:</span>
+                      <span className="pr-value" style={{fontWeight:600,color:'var(--azul)'}}>{v}</span>
+                    </div>
+                  ))}
+                  {def?.poe&&(
+                    <div className="prop-row">
+                      <span className="pr-label">PoE:</span>
+                      <span className="pr-value" style={{fontWeight:600,color:'var(--verde)'}}>{def.poeW}W</span>
+                    </div>
+                  )}
 
                   {/* NVR Assignment for cameras */}
                   {isCamera(selectedDev.key)&&(()=>{
@@ -4567,19 +4580,6 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                       </div>
                     );
                   })()}
-                    letterSpacing:.5,marginBottom:6,marginTop:12}}>Especificações</div>
-                  {def?.props&&Object.entries(def.props).map(([k,v])=>(
-                    <div key={k} className="prop-row">
-                      <span className="pr-label" style={{textTransform:'capitalize'}}>{k}:</span>
-                      <span className="pr-value" style={{fontWeight:600,color:'var(--azul)'}}>{v}</span>
-                    </div>
-                  ))}
-                  {def?.poe&&(
-                    <div className="prop-row">
-                      <span className="pr-label">PoE:</span>
-                      <span className="pr-value" style={{fontWeight:600,color:'var(--verde)'}}>{def.poeW}W</span>
-                    </div>
-                  )}
 
                   {/* Configuration fields for nobreak_ac */}
                   {selectedDev.key==='nobreak_ac'&&(
