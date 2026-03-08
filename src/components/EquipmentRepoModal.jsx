@@ -3,9 +3,9 @@ import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { EQUIPMENT_SCHEMAS } from '@/data/equipment-schemas';
 import { ICONS } from '@/icons';
-import { getDeviceInterfaces } from '@/lib/helpers';
+import { getDeviceInterfaces, getDeviceOverrides, saveDeviceOverrides, getHiddenDevices, saveHiddenDevices } from '@/lib/helpers';
 
-export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep}){
+export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep,onRefreshDefaults}){
   // Wizard steps: 1=category, 2=base device, 3=dados gerais, 4=interfaces, 5=specs, 6=revisão
   const WIZARD_STEPS=[
     {id:1,label:'Categoria',icon:'📂'},
@@ -17,6 +17,11 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   ];
   const [step,setStep]=useState(startAtStep||0); // 0=list, 1-6=wizard steps
   const [editingDevice,setEditingDevice]=useState(null);
+  const [repoTab,setRepoTab]=useState('custom'); // 'custom' | 'default'
+  const [defSearch,setDefSearch]=useState('');
+  const [defCatFilter,setDefCatFilter]=useState('all');
+  const [hiddenDevices,setHiddenDevices]=useState(()=>getHiddenDevices());
+  const [deviceOverrides,setDeviceOverrides]=useState(()=>getDeviceOverrides());
   const [formState,setFormState]=useState({
     category:'camera',baseDeviceType:'cam_dome',brand:'',model:'',descricao:'',
     referencia:'',preco:'',specs:{},datasheetText:'',
@@ -90,6 +95,22 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
 
   const handleSave=()=>{
     if(!formState.brand||!formState.model||!formState.baseDeviceType){alert('Preencha marca, modelo e tipo base');return;}
+    // Saving override for a default device
+    if(editingDevice?._isDefault){
+      const key=editingDevice._originalKey;
+      const ov={...deviceOverrides};
+      ov[key]={name:formState.brand+' '+formState.model,brand:formState.brand,model:formState.model,
+        descricao:formState.descricao,referencia:formState.referencia,preco:formState.preco,
+        specs:formState.specs,customIfaces:formState.customIfaces.filter(i=>i.label),
+        datasheetText:formState.datasheetText};
+      setDeviceOverrides(ov);
+      saveDeviceOverrides(ov);
+      onRefreshDefaults?.();
+      setStep(0);setEditingDevice(null);
+      setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});
+      return;
+    }
+    // Normal custom device save
     const ts=Date.now();const devId=editingDevice?.id||('custom_'+ts);const devKey=editingDevice?.key||devId;
     const customDev={id:devId,key:devKey,name:formState.brand+' '+formState.model,
       category:formState.category,deviceType:formState.baseDeviceType,
@@ -99,6 +120,52 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
       createdAt:new Date().toISOString().split('T')[0],datasheetText:formState.datasheetText};
     onSave(customDev);setStep(0);setEditingDevice(null);
     setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});
+  };
+
+  // Edit a default device (override in localStorage)
+  const startEditDefault=(item,cat)=>{
+    setEditingDevice({...item, _isDefault:true, _originalKey:item.key});
+    const override=deviceOverrides[item.key]||{};
+    setFormState({
+      category:catKeyFromLabel(cat.cat)||'camera',
+      baseDeviceType:item.key,
+      brand:override.brand||item.ref?.split(',')[0]?.trim()||item.name.split(' ')[0]||'',
+      model:override.model||item.name,
+      descricao:override.descricao||'',
+      referencia:override.referencia||item.ref||'',
+      preco:override.preco||'',
+      specs:override.specs||item.props||{},
+      datasheetText:override.datasheetText||'',
+      customIfaces:override.customIfaces||[]
+    });
+    setStep(3);
+  };
+
+  const catKeyFromLabel=(label)=>{
+    const map={'CFTV IP':'camera','CFTV Analógico':'camera','Controle de Acesso':'acesso','Fechaduras':'fechadura',
+      'Alarme':'alarme','Sensores':'sensor','Switches e Rede':'switch_rede','Gravadores':'gravador',
+      'Fontes de Energia':'fonte_energia','Nobreaks':'nobreak','Infraestrutura':'infra'};
+    return map[label]||'camera';
+  };
+
+  const hideDefaultDevice=(key)=>{
+    if(!confirm('Ocultar este dispositivo padrão? Você pode restaurá-lo depois.')) return;
+    const updated=[...hiddenDevices,key];
+    setHiddenDevices(updated);
+    saveHiddenDevices(updated);
+    onRefreshDefaults?.();
+  };
+
+  const restoreDefaultDevice=(key)=>{
+    const updated=hiddenDevices.filter(k=>k!==key);
+    setHiddenDevices(updated);
+    saveHiddenDevices(updated);
+    // Also remove override if exists
+    const ov={...deviceOverrides};
+    delete ov[key];
+    setDeviceOverrides(ov);
+    saveDeviceOverrides(ov);
+    onRefreshDefaults?.();
   };
 
   const startEdit=(dev)=>{
@@ -146,37 +213,113 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
 
   // ── STEP 0: DEVICE LIST ──
   if(step===0){
+    const allDefDevices=DEVICE_LIB.flatMap(cat=>cat.items.map(item=>({...item,_cat:cat})));
+    const filteredDef=allDefDevices.filter(item=>{
+      if(defCatFilter!=='all'&&catKeyFromLabel(item._cat.cat)!==defCatFilter) return false;
+      if(defSearch&&!item.name.toLowerCase().includes(defSearch.toLowerCase())&&!item.key.includes(defSearch.toLowerCase())&&!(item.ref||'').toLowerCase().includes(defSearch.toLowerCase())) return false;
+      return true;
+    });
+    const hiddenSet=new Set(hiddenDevices);
+
     return <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:720,maxHeight:'85vh',overflow:'auto'}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:760,maxHeight:'85vh',overflow:'auto'}}>
         <h3 style={{fontSize:16,marginBottom:4}}>📦 Repositório de Equipamentos</h3>
-        <p style={{fontSize:11,color:'var(--cinza)',margin:'0 0 16px'}}>Seus equipamentos personalizados. Clique em "+ Novo" para cadastrar.</p>
-        <div style={{maxHeight:360,overflowY:'auto',marginBottom:16}}>
-          {customDevices.length===0?
-            <div style={{textAlign:'center',padding:'40px 16px',color:'var(--cinza)',fontSize:13}}>
-              Nenhum equipamento ainda.<br/>O assistente vai guiar você passo a passo.
-            </div>:
-            customDevices.map(dev=>{
-              const cc=categoryColors[dev.category]||'#999';
-              return <div key={dev.id} style={{padding:12,marginBottom:8,background:'#f8f9fa',borderRadius:8,
-                borderLeft:`4px solid ${cc}`,display:'flex',alignItems:'center',gap:12}}>
-                <div style={{width:40,height:40,borderRadius:8,background:cc+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {ICONS[dev.deviceType]?.(cc)}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:'var(--azul)'}}>{dev.name}</div>
-                  <div style={{fontSize:10,color:'var(--cinza)',marginTop:2}}>
-                    <span style={{background:cc+'20',color:cc,padding:'1px 6px',borderRadius:3,fontWeight:600,fontSize:9}}>{categoryLabels[dev.category]}</span>
-                    {dev.referencia&&<span style={{marginLeft:6}}>SKU: {dev.referencia}</span>}
-                    {dev.customIfaces?.length>0&&<span style={{marginLeft:6}}>+{dev.customIfaces.length} interfaces</span>}
-                  </div>
-                </div>
-                <div style={{display:'flex',gap:4}}>
-                  <button onClick={()=>startEdit(dev)} style={{padding:'5px 12px',fontSize:10,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Editar</button>
-                  <button onClick={()=>onDelete(dev.key)} style={{padding:'5px 12px',fontSize:10,background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>×</button>
-                </div>
-              </div>;
-            })}
+        {/* Tabs */}
+        <div style={{display:'flex',gap:0,marginBottom:12,borderBottom:'2px solid #e5e8eb'}}>
+          <button onClick={()=>setRepoTab('custom')} style={{padding:'8px 16px',fontSize:12,fontWeight:600,
+            border:'none',background:'transparent',cursor:'pointer',borderBottom:repoTab==='custom'?'2px solid var(--azul2)':'2px solid transparent',
+            color:repoTab==='custom'?'var(--azul2)':'var(--cinza)',marginBottom:-2}}>
+            Customizados ({customDevices.length})
+          </button>
+          <button onClick={()=>setRepoTab('default')} style={{padding:'8px 16px',fontSize:12,fontWeight:600,
+            border:'none',background:'transparent',cursor:'pointer',borderBottom:repoTab==='default'?'2px solid var(--azul2)':'2px solid transparent',
+            color:repoTab==='default'?'var(--azul2)':'var(--cinza)',marginBottom:-2}}>
+            Padrão ({allDefDevices.length})
+          </button>
         </div>
+
+        {/* CUSTOM TAB */}
+        {repoTab==='custom'&&<>
+          <p style={{fontSize:11,color:'var(--cinza)',margin:'0 0 12px'}}>Seus equipamentos personalizados. Clique em "+ Novo" para cadastrar.</p>
+          <div style={{maxHeight:360,overflowY:'auto',marginBottom:16}}>
+            {customDevices.length===0?
+              <div style={{textAlign:'center',padding:'40px 16px',color:'var(--cinza)',fontSize:13}}>
+                Nenhum equipamento ainda.<br/>O assistente vai guiar você passo a passo.
+              </div>:
+              customDevices.map(dev=>{
+                const cc=categoryColors[dev.category]||'#999';
+                return <div key={dev.id} style={{padding:12,marginBottom:8,background:'#f8f9fa',borderRadius:8,
+                  borderLeft:`4px solid ${cc}`,display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:8,background:cc+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {ICONS[dev.deviceType]?.(cc)}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13,color:'var(--azul)'}}>{dev.name}</div>
+                    <div style={{fontSize:10,color:'var(--cinza)',marginTop:2}}>
+                      <span style={{background:cc+'20',color:cc,padding:'1px 6px',borderRadius:3,fontWeight:600,fontSize:9}}>{categoryLabels[dev.category]}</span>
+                      {dev.referencia&&<span style={{marginLeft:6}}>SKU: {dev.referencia}</span>}
+                      {dev.customIfaces?.length>0&&<span style={{marginLeft:6}}>+{dev.customIfaces.length} interfaces</span>}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>startEdit(dev)} style={{padding:'5px 12px',fontSize:10,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Editar</button>
+                    <button onClick={()=>onDelete(dev.key)} style={{padding:'5px 12px',fontSize:10,background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>×</button>
+                  </div>
+                </div>;
+              })}
+          </div>
+        </>}
+
+        {/* DEFAULT TAB */}
+        {repoTab==='default'&&<>
+          <p style={{fontSize:11,color:'var(--cinza)',margin:'0 0 8px'}}>Dispositivos da biblioteca padrão. Edite para personalizar specs ou oculte os que não utiliza.</p>
+          <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
+            <input value={defSearch} onChange={e=>setDefSearch(e.target.value)} placeholder="Buscar..."
+              style={{flex:1,minWidth:120,fontSize:11,padding:'5px 8px',border:'1px solid #d1d5db',borderRadius:5}}/>
+            <select value={defCatFilter} onChange={e=>setDefCatFilter(e.target.value)}
+              style={{fontSize:11,padding:'5px 8px',border:'1px solid #d1d5db',borderRadius:5}}>
+              <option value="all">Todas categorias</option>
+              {Object.entries(categoryLabels).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div style={{maxHeight:340,overflowY:'auto',marginBottom:16}}>
+            {filteredDef.length===0?
+              <div style={{textAlign:'center',padding:'30px 16px',color:'var(--cinza)',fontSize:12}}>Nenhum dispositivo encontrado.</div>:
+              filteredDef.map(item=>{
+                const cc=item._cat.color;const isHidden=hiddenSet.has(item.key);const isOverridden=!!deviceOverrides[item.key];
+                const displayName=isOverridden?(deviceOverrides[item.key].name||item.name):item.name;
+                return <div key={item.key} style={{padding:10,marginBottom:6,background:isHidden?'#fef2f2':'#f8f9fa',borderRadius:8,
+                  borderLeft:`4px solid ${isHidden?'#fca5a5':cc}`,display:'flex',alignItems:'center',gap:10,opacity:isHidden?.5:1}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:cc+'15',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {ICONS[item.icon||item.key]?.(cc)}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:12,color:'var(--azul)',display:'flex',alignItems:'center',gap:4}}>
+                      {displayName}
+                      {isOverridden&&<span style={{fontSize:8,background:'#dbeafe',color:'#2563eb',padding:'1px 5px',borderRadius:3}}>editado</span>}
+                      {isHidden&&<span style={{fontSize:8,background:'#fee2e2',color:'#dc2626',padding:'1px 5px',borderRadius:3}}>oculto</span>}
+                    </div>
+                    <div style={{fontSize:9,color:'var(--cinza)',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {item._cat.cat} {item.ref?`• ${item.ref}`:''} {Object.entries(item.props||{}).slice(0,3).map(([k,v])=>`• ${v}`).join(' ')}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:4,flexShrink:0}}>
+                    {isHidden?
+                      <button onClick={()=>restoreDefaultDevice(item.key)} style={{padding:'4px 10px',fontSize:9,background:'#dcfce7',color:'#16a34a',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Restaurar</button>:
+                      <>
+                        <button onClick={()=>startEditDefault(item,item._cat)} style={{padding:'4px 10px',fontSize:9,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Editar</button>
+                        <button onClick={()=>hideDefaultDevice(item.key)} style={{padding:'4px 10px',fontSize:9,background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Ocultar</button>
+                      </>
+                    }
+                  </div>
+                </div>;
+              })}
+          </div>
+          {hiddenDevices.length>0&&<p style={{fontSize:10,color:'var(--cinza)',marginBottom:8}}>
+            {hiddenDevices.length} dispositivo(s) oculto(s). Use o filtro para encontrá-los e restaurar.
+          </p>}
+        </>}
+
         <div style={{display:'flex',gap:8}}>
           <button className="mc-btn mc-btn-secondary" onClick={onClose} style={{fontSize:12}}>Fechar</button>
           <button className="mc-btn mc-btn-primary" onClick={()=>{setStep(1);setEditingDevice(null);

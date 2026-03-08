@@ -35,6 +35,22 @@ export function saveCustomDevices(devices){
   localStorage.setItem('bim_custom_devices',JSON.stringify(devices));
 }
 
+// ====================================================================
+// DEFAULT DEVICE OVERRIDES & HIDDEN
+// ====================================================================
+export function getDeviceOverrides(){
+  try{ return JSON.parse(localStorage.getItem('bim_device_overrides')||'{}'); }catch{ return {}; }
+}
+export function saveDeviceOverrides(overrides){
+  localStorage.setItem('bim_device_overrides',JSON.stringify(overrides));
+}
+export function getHiddenDevices(){
+  try{ return JSON.parse(localStorage.getItem('bim_device_hidden')||'[]'); }catch{ return []; }
+}
+export function saveHiddenDevices(hidden){
+  localStorage.setItem('bim_device_hidden',JSON.stringify(hidden));
+}
+
 export function getDeviceIconKey(deviceKey){
   if(deviceKey.startsWith('custom_')){
     const custom=getCustomDevices().find(c=>c.key===deviceKey);
@@ -102,6 +118,10 @@ import { CABLE_TYPES } from '@/data/cable-types';
 import { resolveInterfacesByKey } from '@/data/device-interfaces';
 
 export function findDevDef(key){
+  // Check overrides first (edited default devices)
+  const overrides=getDeviceOverrides();
+  if(overrides[key]) return {...overrides[key], key, _overridden:true};
+  // Check default library
   for(const cat of DEVICE_LIB) for(const item of cat.items) if(item.key===key) return item;
   // Check custom devices
   try {

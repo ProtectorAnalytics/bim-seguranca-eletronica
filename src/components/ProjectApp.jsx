@@ -51,6 +51,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const toggleCat=(catName)=>setCollapsedCats(prev=>({...prev,[catName]:!prev[catName]}));
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
   const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
+  const [defRefreshKey,setDefRefreshKey]=useState(0);
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
@@ -842,14 +843,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             </div>
             <button className={`tool-btn ${showCableLabels?'active':''}`} title="Mostrar/ocultar nomes dos cabos"
               style={{width:30,height:30,fontSize:12,marginLeft:4}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
-            <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
-              <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
-                onClick={undo}>↩</button>
-              <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
-                onClick={redo}>↪</button>
-            </div>
             </>
           )}
+          <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
+            <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
+              onClick={undo}>↩</button>
+            <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
+              onClick={redo}>↪</button>
+          </div>
         </div>
         <div className="sim-toggle">
           <span className="tool-label">Dispositivos: {devices.reduce((s,d)=>s+(d.qty||1),0)}</span>
@@ -878,7 +879,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               collapsedCats={collapsedCats} toggleCat={toggleCat}
               pendingDevice={pendingDevice} setPendingDevice={setPendingDevice}
               setTool={setTool} customDevices={customDevices} DEVICE_LIB={DEVICE_LIB}
-              showEquipmentRepo={showEquipmentRepo} setShowEquipmentRepo={setShowEquipmentRepo}/>}
+              showEquipmentRepo={showEquipmentRepo} setShowEquipmentRepo={setShowEquipmentRepo} refreshKey={defRefreshKey}/>}
             {leftTab==='environments'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Clique para adicionar ao piso:</div>
               {ENV_COLORS.map(ec=>(
@@ -2275,7 +2276,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       {/* EQUIPMENT REPOSITORY MODAL */}
       {showEquipmentRepo&&<EquipmentRepoModal customDevices={customDevices}
         onSave={saveCustomDevice} onDelete={deleteCustomDevice}
-        onClose={()=>setShowEquipmentRepo(false)}/>}
+        onClose={()=>setShowEquipmentRepo(false)}
+        onRefreshDefaults={()=>setDefRefreshKey(k=>k+1)}/>}
 
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}

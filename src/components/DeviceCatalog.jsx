@@ -1,8 +1,11 @@
 import React from 'react';
 import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { ICONS } from '@/icons';
+import { getHiddenDevices, getDeviceOverrides } from '@/lib/helpers';
 
-export default function DeviceCatalog({search, setSearch, collapsedCats, toggleCat, pendingDevice, setPendingDevice, setTool, customDevices, DEVICE_LIB, showEquipmentRepo, setShowEquipmentRepo}){
+export default function DeviceCatalog({search, setSearch, collapsedCats, toggleCat, pendingDevice, setPendingDevice, setTool, customDevices, DEVICE_LIB, showEquipmentRepo, setShowEquipmentRepo, refreshKey}){
+  const hiddenSet=new Set(getHiddenDevices());
+  const overrides=getDeviceOverrides();
   return (
     <>
       <input className="lp-search" placeholder="Buscar dispositivo..." value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -14,7 +17,12 @@ export default function DeviceCatalog({search, setSearch, collapsedCats, toggleC
         📦 Repositório
       </button>
       {DEVICE_LIB.map(cat=>{
-        const filtered=cat.items.filter(i=>!search||i.name.toLowerCase().includes(search.toLowerCase())||i.key.includes(search.toLowerCase()));
+        const filtered=cat.items.filter(i=>{
+          if(hiddenSet.has(i.key)) return false;
+          const displayName=overrides[i.key]?.name||i.name;
+          if(search&&!displayName.toLowerCase().includes(search.toLowerCase())&&!i.key.includes(search.toLowerCase())) return false;
+          return true;
+        });
         if(!filtered.length) return null;
         const isOpen=search||!collapsedCats[cat.cat];
         return (
@@ -34,8 +42,8 @@ export default function DeviceCatalog({search, setSearch, collapsedCats, toggleC
                   <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
                 ):ICONS[item.icon]?.(cat.color)}</div>
                 <div className="di-info">
-                  <div className="di-name">{item.name}</div>
-                  <div className="di-spec">{item.props?.resolucao||item.props?.portas||item.props?.potencia||''}</div>
+                  <div className="di-name">{overrides[item.key]?.name||item.name}</div>
+                  <div className="di-spec">{(overrides[item.key]?.specs||item.props)?.resolucao||(overrides[item.key]?.specs||item.props)?.portas||(overrides[item.key]?.specs||item.props)?.potencia||''}</div>
                 </div>
                 {item.poe&&<span className="di-tag tag-poe">PoE</span>}
                 {item.ampDC&&<span className="di-tag tag-dc">DC</span>}
