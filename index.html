@@ -4223,6 +4223,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                         cursor:'pointer',boxShadow:'0 1px 3px rgba(0,0,0,.4)',fontSize:9,color:'#fff',fontWeight:900,zIndex:15}}
                         title="Excluir dispositivo"
                         onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
+                        onDoubleClick={e=>e.stopPropagation()}
                         onClick={e=>{e.stopPropagation();
                           updateFloor(f=>({...f,
                             devices:f.devices.filter(d=>d.id!==dev.id),
@@ -4243,13 +4244,16 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                       <div style={{position:'absolute',bottom:-22,left:'50%',transform:'translateX(-50%)',
                         display:'flex',alignItems:'center',gap:2,background:'#1e293b',borderRadius:4,padding:'2px 4px',
                         boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:15,whiteSpace:'nowrap'}}
-                        onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}>
+                        onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
+                        onDoubleClick={e=>e.stopPropagation()}>
                         <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                          onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1)updateDevice(dev.id,{qty:cur-1})}}>−</button>
                         <span style={{fontSize:8,color:'#e2e8f0',fontWeight:700,minWidth:14,textAlign:'center'}}>{dev.qty||1}</span>
                         <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                          onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
                       </div>
                     )}
@@ -4587,6 +4591,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                                 <button style={{width:16,height:16,fontSize:11,background:myQty>0?'#fee2e2':'#f1f5f9',
                                   border:'1px solid #e2e8f0',borderRadius:3,cursor:'pointer',display:'flex',
                                   alignItems:'center',justifyContent:'center',color:myQty>0?'#ef4444':'#94a3b8'}}
+                                  onDoubleClick={e=>e.stopPropagation()}
                                   onClick={e=>{e.stopPropagation();
                                     if(myQty<=0) return;
                                     let newA=assignments.map(a=>a.nvrId===nvr.id?{...a,qty:a.qty-1}:a).filter(a=>a.qty>0);
@@ -4597,6 +4602,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                                 <button style={{width:16,height:16,fontSize:11,background:unassigned>0?'#dbeafe':'#f1f5f9',
                                   border:'1px solid #e2e8f0',borderRadius:3,cursor:'pointer',display:'flex',
                                   alignItems:'center',justifyContent:'center',color:unassigned>0?'#3b82f6':'#94a3b8'}}
+                                  onDoubleClick={e=>e.stopPropagation()}
                                   onClick={e=>{e.stopPropagation();
                                     if(unassigned<=0) return;
                                     let newA=[...assignments];
