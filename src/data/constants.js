@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 11, build: 0,
-  date: '2026-03-07',
+  major: 3, minor: 12, build: 0,
+  date: '2026-03-08',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.12.0',date:'2026-03-08',changes:['Ícone 🔌 na tomada visível no canvas','Edição completa de cabos na barra lateral (cor, seção, rota, tag)','Rack Elevation: view detalhada ao dar duplo-clique no rack','Tags de ambiente nos dispositivos com filtro visual no canvas']},
     {ver:'3.11.0',date:'2026-03-07',changes:['Redesign completo: Mix UniFi (canvas dark) + Figma (sidebar light)','Tipografia moderna: fontes maiores e legíveis em todo o app','Alertas de excesso: portas RJ45 e canais CFTV na aba Validação','Canvas dark theme com contraste otimizado']},
     {ver:'3.10.0',date:'2026-03-07',changes:['Regra de ocupação de portas RJ45: bloqueia + qty e conexão quando switch está cheio','Cascata automática: diminuir qty da câmera ajusta nvrAssignments proporcionalmente','Fix: double-click nos overlays não ativa mais modo cabo']},
     {ver:'3.9.1',date:'2026-03-07',changes:['Fix crítico: syncUid previne IDs duplicados ao carregar projetos','Migração automática: dedup de dispositivos com IDs collididos','Persistência do auto-assign corrigida']},

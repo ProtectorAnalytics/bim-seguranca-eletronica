@@ -25,6 +25,13 @@ import TopoNode from './TopoNode';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
 import EquipmentRepoModal from './EquipmentRepoModal';
+import DeviceCatalog from './DeviceCatalog';
+import CablePropertiesPanel from './CablePropertiesPanel';
+import RackElevationModal from './RackElevationModal';
+import EnvironmentFilterBar from './EnvironmentFilterBar';
+import ValidationPanel from './ValidationPanel';
+import TopologyPanel from './TopologyPanel';
+import EquipmentPanel from './EquipmentPanel';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
@@ -47,6 +54,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
+  const [rackElevationId,setRackElevationId]=useState(null);
+  const [envFilterTag,setEnvFilterTag]=useState(null);
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -121,6 +130,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Update device properties
   const updateDevice=(devId,updates)=>{
     updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,...updates}:d)}));
+  };
+
+  // Update connection properties
+  const updateConnection=(connId,updates)=>{
+    updateFloor(f=>({...f,connections:f.connections.map(c=>c.id===connId?{...c,...updates}:c)}));
   };
 
   // Copy device
@@ -846,6 +860,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           {validations.length>0&&<span className="sb-dot sb-warn"/>}
           {validations.length===0&&devices.length>0&&<span className="sb-dot sb-ok"/>}
         </div>
+        <EnvironmentFilterBar devices={devices} envFilterTag={envFilterTag}
+          setEnvFilterTag={setEnvFilterTag} ENV_COLORS={ENV_COLORS}/>
       </div>
 
       {/* ===== MAIN CONTENT ===== */}
@@ -858,67 +874,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <div className={`lp-tab ${leftTab==='floors'?'active':''}`} onClick={()=>setLeftTab('floors')}>Piso</div>
           </div>
           <div className="lp-content">
-            {leftTab==='devices'&&<>
-              <input className="lp-search" placeholder="Buscar dispositivo..." value={search} onChange={e=>setSearch(e.target.value)}/>
-              <button onClick={()=>setShowEquipmentRepo(true)}
-                style={{width:'100%',padding:'8px 10px',marginBottom:8,background:'rgba(243,156,18,.1)',border:'1px solid #f39c12',
-                  borderRadius:5,color:'#f39c12',fontSize:11,fontWeight:600,cursor:'pointer',transition:'.15s'}}
-                onMouseOver={e=>e.currentTarget.style.background='rgba(243,156,18,.15)'}
-                onMouseOut={e=>e.currentTarget.style.background='rgba(243,156,18,.1)'}>
-                📦 Repositório
-              </button>
-              {DEVICE_LIB.map(cat=>{
-                const filtered=cat.items.filter(i=>!search||i.name.toLowerCase().includes(search.toLowerCase())||i.key.includes(search.toLowerCase()));
-                if(!filtered.length) return null;
-                const isOpen=search||!collapsedCats[cat.cat];
-                return (
-                  <div key={cat.cat} className="dev-category">
-                    <div className="dev-cat-title" style={{color:cat.color,cursor:'pointer',userSelect:'none',display:'flex',alignItems:'center',gap:4}}
-                      onClick={()=>toggleCat(cat.cat)}>
-                      <span style={{fontSize:9,transition:'.15s',transform:isOpen?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>
-                      {cat.cat} <span className="cnt">{filtered.length}</span>
-                    </div>
-                    {isOpen&&filtered.map(item=>(
-                      <div key={item.key} className="dev-item"
-                        draggable
-                        onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
-                        onClick={()=>{setPendingDevice(item.key);setTool('device')}}
-                        style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
-                        <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
-                          <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
-                        ):ICONS[item.icon]?.(cat.color)}</div>
-                        <div className="di-info">
-                          <div className="di-name">{item.name}</div>
-                          <div className="di-spec">{item.props?.resolucao||item.props?.portas||item.props?.potencia||''}</div>
-                        </div>
-                        {item.poe&&<span className="di-tag tag-poe">PoE</span>}
-                        {item.ampDC&&<span className="di-tag tag-dc">DC</span>}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-              {customDevices.length>0&&(
-                <div className="dev-category">
-                  <div className="dev-cat-title" style={{color:'#f39c12'}}>
-                    📦 Customizados <span className="cnt">{customDevices.length}</span>
-                  </div>
-                  {customDevices.map(item=>(
-                    <div key={item.key} className="dev-item"
-                      draggable
-                      onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
-                      onClick={()=>{setPendingDevice(item.key);setTool('device')}}
-                      style={pendingDevice===item.key?{background:'#fef9e7',borderColor:'#f39c12'}:{cursor:'grab'}}>
-                      <div className="di-icon" style={{color:'#f39c12'}}>⚙️</div>
-                      <div className="di-info">
-                        <div className="di-name">{item.name}</div>
-                        <div className="di-spec">{item.deviceType}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>}
+            {leftTab==='devices'&&<DeviceCatalog search={search} setSearch={setSearch}
+              collapsedCats={collapsedCats} toggleCat={toggleCat}
+              pendingDevice={pendingDevice} setPendingDevice={setPendingDevice}
+              setTool={setTool} customDevices={customDevices} DEVICE_LIB={DEVICE_LIB}
+              showEquipmentRepo={showEquipmentRepo} setShowEquipmentRepo={setShowEquipmentRepo}/>}
             {leftTab==='environments'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Clique para adicionar ao piso:</div>
               {ENV_COLORS.map(ec=>(
@@ -1013,7 +973,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               <svg className="conn-svg" width="2000" height="2000" style={{pointerEvents:tool==='select'?'auto':'none'}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
-                  const R=26;
+                  const R=29;
                   const cx=dev.x+R,cy=dev.y+R;
                   const anchors=[[0,-1],[1,0],[0,1],[-1,0]];
                   const ts=validTargets[dev.id];
@@ -1034,7 +994,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
                   const isSel=selectedConn===conn.id;
 
-                  const R=26;
+                  const R=29;
                   const fcx=from.x+R, fcy=from.y+R;
                   const tcx=to.x+R, tcy=to.y+R;
 
@@ -1170,7 +1130,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 {cableMode&&(()=>{
                   const from=devices.find(d=>d.id===cableMode.from);
                   if(!from) return null;
-                  const R=26;
+                  const R=29;
                   const cx=from.x+R,cy=from.y+R;
                   return <circle cx={cx} cy={cy} r={R+3} fill="none"
                     stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" opacity=".6"/>;
@@ -1303,11 +1263,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       ...(isSource?{outline:'2px solid #f59e0b',outlineOffset:2,borderRadius:10}:{}),
                       ...(targetStatus==='valid'?{outline:'2px solid #22c55e',outlineOffset:2,borderRadius:10,boxShadow:'0 0 12px rgba(34,197,94,.4)'}:{}),
                       ...(targetStatus==='invalid'?{opacity:.35,filter:'grayscale(0.8)'}:{}),
+                      ...(envFilterTag&&dev.ambiente!==envFilterTag?{opacity:.3,pointerEvents:'none'}:{}),
                       cursor:cableMode?(targetStatus==='valid'?'crosshair':'not-allowed'):'pointer'
                     }}
                     onClick={(e)=>handleDeviceClick(e,dev.id)}
                     onMouseDown={(e)=>handleDeviceMouseDown(e,dev.id)}
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
+                      if(dev.key==='rack'){setRackElevationId(dev.id);return;}
                       setCableMode({from:dev.id});setTool('cable')}}>
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
                       ...(DEVICE_THUMBNAILS[dev.key]?{padding:2,overflow:'hidden'}:{})}}>
@@ -1336,6 +1298,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                               y:(dev.y*zoom+pan.y-10)});
                           }}>⚡</div>
                       );
+                    })()}
+                    {dev.ambiente&&(()=>{
+                      const ec=ENV_COLORS.find(e=>e.name===dev.ambiente);
+                      return <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',
+                        fontSize:7,fontWeight:700,padding:'1px 6px',borderRadius:8,whiteSpace:'nowrap',zIndex:14,
+                        background:ec?.color||'#6b7280',color:'#fff',border:'1.5px solid #fff',
+                        boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}>{dev.ambiente}</div>;
                     })()}
                     <div className="doc-label">{dev.name}</div>
                     {dev.model&&<div className="doc-model">{dev.model}</div>}
@@ -1666,9 +1635,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     <div className="prop-row">
                       <span className="pr-label">Ambiente:</span>
                       <span className="pr-value">
-                        <select value={selectedDev.envId||''} onChange={e=>updateDevice(selectedDev.id,{envId:e.target.value||null})}>
+                        <select value={selectedDev.ambiente||''} onChange={e=>updateDevice(selectedDev.id,{ambiente:e.target.value||null})}>
                           <option value="">Nenhum</option>
-                          {environments.map(env=><option key={env.id} value={env.id}>{env.name}</option>)}
+                          {ENV_COLORS.map(env=><option key={env.name} value={env.name}>{env.name}</option>)}
+                          <option value="">---</option>
+                          {Array.from(new Set(devices.map(d=>d.ambiente).filter(a=>a&&!ENV_COLORS.find(e=>e.name===a)))).map(amb=>(
+                            <option key={amb} value={amb}>{amb}</option>
+                          ))}
                         </select>
                       </span>
                     </div>
@@ -2135,97 +2108,41 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 </div>
               );
             })()}
-            {rightTab==='props'&&!selectedDev&&(
+            {rightTab==='props'&&!selectedDev&&!selectedConn&&(
               <div style={{textAlign:'center',padding:'40px 20px',color:'var(--cinza)'}}>
                 <div style={{fontSize:32,opacity:.3,marginBottom:12}}>🖱️</div>
-                <p style={{fontSize:12}}>Selecione um dispositivo para ver propriedades</p>
+                <p style={{fontSize:12}}>Selecione um dispositivo ou cabo para ver propriedades</p>
                 <p style={{fontSize:10,opacity:.5,marginTop:4}}>Ou adicione dispositivos da paleta</p>
               </div>
             )}
+            {rightTab==='props'&&!selectedDev&&selectedConn&&(()=>{
+              const conn=connections.find(c=>c.id===selectedConn);
+              if(!conn) return null;
+              const ct=CABLE_TYPES.find(c=>c.id===conn.type);
+              const fromDev=devices.find(d=>d.id===conn.from);
+              const toDev=devices.find(d=>d.id===conn.to);
+              return <CablePropertiesPanel conn={conn} cableType={ct}
+                fromDev={fromDev} toDev={toDev}
+                updateConnection={updateConnection}
+                onDelete={()=>deleteConnection(conn.id)}
+                onClose={()=>setSelectedConn(null)}/>;
+            })()}
 
             {/* TOPOLOGY */}
             {rightTab==='topology'&&(
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>
-                  Topologia de Rede — {floor.name}
-                </div>
-                {topology.map((node,i)=><TopoNode key={i} node={node} devices={devices} level={0}
-                  onSelect={(id)=>{setSelectedDevice(id);setRightTab('props')}}/>)}
-                {devices.length===0&&<div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
-                  Sem dispositivos no piso</div>}
-              </div>
+              <TopologyPanel topology={topology} devices={devices} floorName={floor?.name}
+                setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}/>
             )}
 
             {/* EQUIPMENT LIST */}
             {rightTab==='equipment'&&(
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>
-                  Lista de Materiais — Projeto Completo
-                </div>
-                {bom.length>0?(
-                  <>
-                    <table className="eq-table">
-                      <thead><tr><th>Equipamento</th><th>Qtd</th><th>Unidade</th><th>Total</th></tr></thead>
-                      <tbody>
-                        {bom.map(item=>(
-                          <tr key={item.key}>
-                            <td>
-                              <div style={{fontWeight:600,fontSize:11}}>{item.name}</div>
-                              <div style={{fontSize:9,color:'var(--cinza)'}}>{item.model||item.key}</div>
-                            </td>
-                            <td style={{textAlign:'center'}}>{item.unit==='m'?item.totalMeters||item.qty:item.qty}</td>
-                            <td style={{textAlign:'center',fontSize:9,color:'var(--cinza)'}}>{item.unit}</td>
-                            <td className="eq-total" style={{textAlign:'right'}}>{item.unit==='m'?item.totalMeters||item.qty:item.qty}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="eq-footer">
-                      <div className="ef-row"><span>Itens únicos:</span><span>{bom.length}</span></div>
-                      <div className="ef-row"><span>Total dispositivos:</span><span>{allDevices.length}</span></div>
-                      <div className="ef-row"><span>Cabos estimados:</span><span>
-                        {connections.reduce((a,c)=>a+c.distance,0)}m</span></div>
-                      <div className="ef-row total"><span>Subtotal:</span><span>Sem preços definidos</span></div>
-                    </div>
-                  </>
-                ):(
-                  <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
-                    Adicione dispositivos para gerar BOM</div>
-                )}
-              </div>
+              <EquipmentPanel bom={bom} allDevices={allDevices} connections={connections}/>
             )}
 
             {/* VALIDATION */}
             {rightTab==='validation'&&(
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'var(--azul)'}}>Validação IA</span>
-                  {validations.length===0&&devices.length>0&&
-                    <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:'#E8F8F0',
-                      color:'var(--verde)',fontWeight:700}}>✓ OK</span>}
-                  {validations.length>0&&
-                    <span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:'#FEF5E7',
-                      color:'#E67E22',fontWeight:700}}>⚠ {validations.length} alerta(s)</span>}
-                </div>
-                {validations.map((v,i)=>(
-                  <div key={i} className={`val-card ${v.sev.toLowerCase()}`}>
-                    <div className="val-title">
-                      <span className={`val-sev sev-${v.sev.toLowerCase()}`}>{v.sev}</span>
-                      {v.cat}
-                    </div>
-                    <div className="val-body">{v.regra}</div>
-                    <div className="val-body" style={{fontWeight:600,marginTop:2}}>{v.msg}</div>
-                  </div>
-                ))}
-                {validations.length===0&&devices.length===0&&(
-                  <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
-                    Adicione dispositivos para validação</div>
-                )}
-                <div style={{marginTop:16,fontSize:10,color:'var(--cinza)',lineHeight:1.5}}>
-                  <strong>Regras ativas:</strong> {REGRAS.length}<br/>
-                  Categorias: Elétrica, Rede, CFTV, Acesso, Infra, Arquitetura
-                </div>
-              </div>
+              <ValidationPanel validations={validations} devices={devices}
+                setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}/>
             )}
             {/* UNIFILAR - Diagrama Unifilar Elétrico */}
             {rightTab==='unifilar'&&(()=>{
@@ -2363,6 +2280,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
         connections={project.floors.flatMap(f=>f.connections)} onClose={()=>setShowExport(false)}/>}
+
+      {/* RACK ELEVATION MODAL */}
+      {rackElevationId&&<RackElevationModal
+        rack={devices.find(d=>d.id===rackElevationId)}
+        devices={devices}
+        onClose={()=>setRackElevationId(null)}/>}
     </div>
   );
 }

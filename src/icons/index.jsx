@@ -295,16 +295,7 @@ export const ICONS = {
     </g>)}
     <line x1="4" y1="24" x2="44" y2="24" stroke={c} strokeWidth="1.5" opacity=".3"/>
   </svg>,
-  tomada:(c='#6b7280')=><svg viewBox="0 0 48 48" width="28" height="28">
-    <rect x="8" y="6" width="32" height="36" rx="4" fill={c} opacity=".06" stroke={c} strokeWidth="2"/>
-    <rect x="12" y="10" width="24" height="14" rx="3" fill="none" stroke={c} strokeWidth="1.5" opacity=".4"/>
-    <circle cx="18" cy="17" r="2" fill={c} opacity=".4"/><circle cx="30" cy="17" r="2" fill={c} opacity=".4"/>
-    <line x1="24" y1="14" x2="24" y2="20" stroke={c} strokeWidth="1.5" opacity=".3"/>
-    <rect x="12" y="28" width="24" height="14" rx="3" fill="none" stroke={c} strokeWidth="1.5" opacity=".4"/>
-    <circle cx="18" cy="35" r="2" fill={c} opacity=".4"/><circle cx="30" cy="35" r="2" fill={c} opacity=".4"/>
-    <line x1="24" y1="32" x2="24" y2="38" stroke={c} strokeWidth="1.5" opacity=".3"/>
-    <text x="24" y="27" textAnchor="middle" fill={c} fontSize="4" opacity=".5" fontWeight="700">10A</text>
-  </svg>,
+  tomada:(c='#6b7280')=><span style={{fontSize:24,lineHeight:1}}>🔌</span>,
   quadro_eletrico:(c='#6b7280')=><svg viewBox="0 0 48 48" width="28" height="28">
     <rect x="4" y="4" width="40" height="40" rx="3" fill={c} opacity=".06" stroke={c} strokeWidth="2.2"/>
     <line x1="24" y1="4" x2="24" y2="44" stroke={c} strokeWidth="1" opacity=".2"/>
