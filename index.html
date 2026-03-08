@@ -16,6 +16,9 @@
 --azul:#1B4F72;--azul2:#2E86C1;--azulD:#154360;--laranja:#F39C12;--verde:#27AE60;--vermelho:#E74C3C;
 --roxo:#8E44AD;--cinza:#5D6D7E;--cinzaL:#F8F9FA;--cinzaM:#E5E8EB;--branco:#FFF;
 --sombra:0 2px 12px rgba(0,0,0,.08);--radius:10px;
+--surface:#1e2a3a;--surface-light:#ffffff;
+--fs-xs:11px;--fs-sm:13px;--fs-base:15px;--fs-md:16px;--fs-lg:18px;--fs-xl:22px;
+--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;
 }
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F5;color:#2C3E50;overflow:hidden;height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
@@ -59,14 +62,14 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .app-topbar .tb-btn.primary{background:var(--laranja);border-color:var(--laranja);color:#000;font-weight:700}
 
 /* ===== TOOLBAR ===== */
-.toolbar{height:44px;background:var(--branco);border-bottom:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 14px;gap:6px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.toolbar{height:52px;background:var(--branco);border-bottom:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .tool-group{display:flex;align-items:center;gap:3px;padding:0 8px;border-right:1px solid var(--cinzaM)}
 .tool-group:last-child{border-right:none}
-.tool-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:16px;color:var(--cinza);transition:.15s}
+.tool-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:18px;color:var(--cinza);transition:.15s}
 .tool-btn:hover{background:var(--cinzaL);color:var(--azul)}
 .tool-btn.active{background:#EBF5FB;color:var(--azul2)}
 .tool-sep{width:1px;height:26px;background:var(--cinzaM)}
-.tool-label{font-size:12px;color:var(--cinza);padding:0 4px;font-weight:500}
+.tool-label{font-size:14px;color:var(--cinza);padding:0 4px;font-weight:500}
 
 /* Simulation toggle */
 .sim-toggle{display:flex;align-items:center;gap:8px;margin-left:auto;padding:0 10px}
@@ -79,30 +82,30 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .main-area{flex:1;display:flex;overflow:hidden}
 
 /* ===== LEFT PANEL ===== */
-.left-panel{width:260px;background:var(--branco);border-right:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,.04)}
+.left-panel{width:280px;background:var(--branco);border-right:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,.04)}
 .lp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
-.lp-tab{flex:1;padding:10px 6px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.lp-tab{flex:1;padding:10px 6px;font-size:14px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
 .lp-tab.active{color:var(--azul);border-color:var(--azul2)}
 .lp-content{flex:1;overflow-y:auto;padding:10px}
-.lp-search{width:100%;padding:9px 12px;border:1px solid var(--cinzaM);border-radius:6px;font-size:13px;margin-bottom:10px}
+.lp-search{width:100%;padding:12px 12px;border:1px solid var(--cinzaM);border-radius:6px;font-size:14px;margin-bottom:10px}
 .lp-search:focus{outline:none;border-color:var(--azul2);box-shadow:0 0 0 2px rgba(46,134,193,.15)}
 .dev-category{margin-bottom:12px}
-.dev-cat-title{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);padding:5px 6px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
+.dev-cat-title{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);padding:5px 6px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
 .dev-cat-title .cnt{font-size:11px;background:var(--cinzaL);padding:2px 6px;border-radius:8px}
-.dev-item{display:flex;align-items:center;gap:10px;padding:9px 10px;margin:3px 0;border-radius:8px;cursor:grab;transition:.12s;font-size:13px;border:1px solid transparent}
+.dev-item{display:flex;align-items:center;gap:10px;padding:12px 10px;margin:3px 0;border-radius:8px;cursor:grab;transition:.12s;font-size:14px;border:1px solid transparent}
 .dev-item:hover{background:#F0F7FD;border-color:#D6EAF8;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .dev-item:active{cursor:grabbing;opacity:.7;transform:scale(.97)}
 .dev-item .di-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .dev-item .di-icon svg{width:100%;height:100%}
 .dev-item .di-info{flex:1;min-width:0}
-.dev-item .di-name{font-weight:600;color:var(--azul);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dev-item .di-spec{font-size:11px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dev-item .di-tag{font-size:10px;padding:3px 7px;border-radius:4px;font-weight:700;flex-shrink:0}
+.dev-item .di-name{font-weight:600;color:var(--azul);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.dev-item .di-spec{font-size:12px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-item .di-tag{font-size:11px;padding:3px 7px;border-radius:4px;font-weight:700;flex-shrink:0}
 .tag-poe{background:#E8F8F0;color:var(--verde)}
 .tag-dc{background:#FEF5E7;color:#E67E22}
 
 /* ===== CANVAS AREA ===== */
-.canvas-area{flex:1;position:relative;overflow:hidden;background:#fafbfc}
+.canvas-area{flex:1;position:relative;overflow:hidden;background:#1a2332}
 .canvas-viewport{position:absolute;inset:0;overflow:hidden}
 .canvas-transform{transform-origin:0 0;position:absolute;top:0;left:0}
 .canvas-grid{position:absolute;top:0;left:0;pointer-events:none}
@@ -113,12 +116,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Device nodes on canvas */
 .device-on-canvas{position:absolute;cursor:move;user-select:none;z-index:5;display:flex;flex-direction:column;align-items:center}
-.device-on-canvas .doc-icon{width:52px;height:52px;background:var(--branco);border:2.5px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:.15s}
+.device-on-canvas .doc-icon{width:58px;height:58px;background:var(--branco);border:3px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:.15s}
 .device-on-canvas .doc-icon svg{width:28px;height:28px}
 .device-on-canvas:hover .doc-icon{box-shadow:0 6px 20px rgba(0,0,0,.25);transform:scale(1.08)}
 .device-on-canvas.selected .doc-icon{border-color:var(--laranja);box-shadow:0 0 0 5px rgba(243,156,18,.25)}
-.device-on-canvas .doc-label{font-size:12px;font-weight:700;color:var(--azul);margin-top:3px;text-align:center;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.95);padding:2px 7px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.1);text-shadow:0 0 1px rgba(0,0,0,.05)}
-.device-on-canvas .doc-model{font-size:10px;color:var(--cinza);font-weight:500;text-shadow:0 0 1px rgba(0,0,0,.05)}
+.device-on-canvas .doc-label{font-size:13px;font-weight:700;color:#fff;margin-top:3px;text-align:center;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(30,42,58,.85);padding:3px 8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3);text-shadow:0 0 1px rgba(0,0,0,.3)}
+.device-on-canvas .doc-model{font-size:12px;color:#d0d0d0;font-weight:500;text-shadow:0 0 1px rgba(0,0,0,.3)}
 
 /* Connection port popup */
 .port-popup-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:900;background:rgba(0,0,0,.15)}
@@ -151,34 +154,34 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .conn-hit-area{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;pointer-events:stroke}
 .conn-g:hover .conn-line-path{stroke-opacity:.85;filter:brightness(1.2)}
 .conn-selected .conn-line-path{filter:drop-shadow(0 0 3px rgba(59,130,246,.6))}
-.cable-label{font-size:10px;fill:var(--cinza);text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
+.cable-label{font-size:12px;fill:var(--cinza);text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
 .seg-hit{fill:none;stroke:transparent;stroke-width:16;cursor:grab;pointer-events:stroke}
 .seg-hit:hover~.seg-highlight{opacity:1}
 .seg-highlight{opacity:0;fill:none;stroke:#3b82f6;stroke-width:3;stroke-dasharray:4 3;pointer-events:none;transition:opacity .12s}
 
 /* Environments/rooms overlay */
 .env-rect{position:absolute;border:2px dashed;border-radius:8px;z-index:1;pointer-events:none}
-.env-label{position:absolute;top:-16px;left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.env-label{position:absolute;top:-16px;left:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)}
 
 /* Canvas controls */
 .canvas-controls{position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:4px;z-index:20}
-.canvas-controls button{width:38px;height:38px;background:var(--branco);border:1px solid var(--cinzaM);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--cinza);transition:.15s;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-.canvas-controls button:hover{background:#EBF5FB;color:var(--azul);box-shadow:0 3px 10px rgba(0,0,0,.12)}
-.scale-indicator{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.95);padding:5px 12px;border-radius:5px;font-size:11px;color:var(--cinza);border:1px solid var(--cinzaM);z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.canvas-controls button{width:42px;height:42px;background:var(--branco);border:1px solid #ddd;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#333;transition:.15s;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.canvas-controls button:hover{background:#f5f5f5;color:var(--azul);box-shadow:0 3px 10px rgba(0,0,0,.15)}
+.scale-indicator{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.95);padding:6px 14px;border-radius:5px;font-size:12px;color:#333;border:1px solid #ddd;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 
 /* Toast animation */
 @keyframes fadeIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
 /* Canvas hint */
-.canvas-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--cinza);pointer-events:none;z-index:1}
+.canvas-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#888;pointer-events:none;z-index:1}
 .canvas-hint .ch-icon{font-size:56px;opacity:.3;margin-bottom:14px}
-.canvas-hint p{font-size:15px;opacity:.5;font-weight:500}
-.canvas-hint .ch-sub{font-size:12px;opacity:.3;margin-top:6px}
+.canvas-hint p{font-size:17px;opacity:.6;font-weight:500}
+.canvas-hint .ch-sub{font-size:12px;opacity:.4;margin-top:6px}
 
 /* ===== RIGHT PANEL ===== */
-.right-panel{width:340px;background:var(--branco);border-left:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:-2px 0 8px rgba(0,0,0,.04)}
+.right-panel{width:370px;background:var(--branco);border-left:1px solid var(--cinzaM);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:-2px 0 8px rgba(0,0,0,.04)}
 .rp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
-.rp-tab{flex:1;padding:10px 6px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
+.rp-tab{flex:1;padding:10px 6px;font-size:14px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s}
 .rp-tab.active{color:var(--azul);border-color:var(--azul2)}
 .rp-content{flex:1;overflow-y:auto;padding:14px}
 
@@ -187,17 +190,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .prop-header{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cinzaM);margin-bottom:10px}
 .prop-header .ph-icon{width:42px;height:42px;background:#EBF5FB;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .prop-header .ph-info{flex:1}
-.prop-header .ph-name{font-size:15px;font-weight:700;color:var(--azul)}
-.prop-header .ph-model{font-size:12px;color:var(--cinza)}
-.prop-header .ph-replace{font-size:12px;color:var(--azul2);cursor:pointer;font-weight:600}
+.prop-header .ph-name{font-size:17px;font-weight:700;color:var(--azul)}
+.prop-header .ph-model{font-size:13px;color:var(--cinza)}
+.prop-header .ph-replace{font-size:13px;color:var(--azul2);cursor:pointer;font-weight:600}
 .prop-header .ph-replace:hover{text-decoration:underline}
-.prop-row{display:flex;align-items:center;padding:7px 0;font-size:13px}
-.prop-row .pr-label{width:110px;color:var(--cinza);font-weight:500;flex-shrink:0}
+.prop-row{display:flex;align-items:center;padding:7px 0;font-size:14px}
+.prop-row .pr-label{width:120px;color:var(--cinza);font-weight:500;flex-shrink:0}
 .prop-row .pr-value{flex:1}
-.prop-row input,.prop-row select{width:100%;padding:7px 10px;border:1px solid var(--cinzaM);border-radius:5px;font-size:13px}
+.prop-row input,.prop-row select{width:100%;padding:7px 10px;border:1px solid var(--cinzaM);border-radius:5px;font-size:14px}
 .prop-row input:focus,.prop-row select:focus{outline:none;border-color:var(--azul2);box-shadow:0 0 0 2px rgba(46,134,193,.15)}
 .prop-actions{display:flex;gap:8px;margin-top:10px}
-.prop-actions button{flex:1;padding:9px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.prop-actions button{flex:1;padding:9px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
 .btn-apply{background:var(--verde);color:#fff}
 .btn-apply:hover{background:#229954}
 .btn-delete{background:transparent;border:1px solid var(--vermelho)!important;color:var(--vermelho)}
@@ -206,12 +209,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .btn-copy:hover{background:#EBF5FB}
 
 /* Topology view */
-.topo-node{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;background:var(--cinzaL);border-radius:8px;font-size:13px;border-left:4px solid var(--azul2);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.topo-node{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;background:var(--cinzaL);border-radius:8px;font-size:14px;border-left:4px solid var(--azul2);box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .topo-node .tn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
 .topo-node .tn-info{flex:1}
-.topo-node .tn-name{font-weight:600;color:var(--azul);font-size:13px}
-.topo-node .tn-detail{font-size:11px;color:var(--cinza)}
-.topo-node .tn-ports{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+.topo-node .tn-name{font-weight:600;color:var(--azul);font-size:14px}
+.topo-node .tn-detail{font-size:12px;color:var(--cinza)}
+.topo-node .tn-ports{font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px}
 .ports-ok{background:#E8F8F0;color:var(--verde)}
 .ports-warn{background:#FEF5E7;color:#E67E22}
 .ports-full{background:#FDEDEC;color:var(--vermelho)}
@@ -219,8 +222,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .topo-disconnected{border-left-color:var(--vermelho);background:#FDEDEC}
 
 /* Equipment List */
-.eq-table{width:100%;border-collapse:collapse;font-size:13px}
-.eq-table th{text-align:left;padding:8px 10px;background:var(--cinzaL);border-bottom:1px solid var(--cinzaM);font-weight:700;color:var(--cinza);position:sticky;top:0;font-size:12px}
+.eq-table{width:100%;border-collapse:collapse;font-size:14px}
+.eq-table th{text-align:left;padding:8px 10px;background:var(--cinzaL);border-bottom:1px solid var(--cinzaM);font-weight:700;color:var(--cinza);position:sticky;top:0;font-size:13px}
 .eq-table td{padding:7px 10px;border-bottom:1px solid #f0f0f0}
 .eq-table tr:hover{background:#FAFBFC}
 .eq-table .eq-total{font-weight:700;color:var(--azul)}
@@ -236,13 +239,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .val-card.alta{background:#FEF5E7;border-color:#E67E22}
 .val-card.media{background:#EBF5FB;border-color:var(--azul2)}
 .val-card.obrigatoria{background:#F5EEF8;border-color:var(--roxo)}
-.val-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px}
-.val-sev{font-size:10px;padding:3px 8px;border-radius:4px;color:#fff;font-weight:700}
+.val-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:5px}
+.val-sev{font-size:11px;padding:3px 8px;border-radius:4px;color:#fff;font-weight:700}
 .sev-critica{background:var(--vermelho)}
 .sev-alta{background:#E67E22}
 .sev-media{background:var(--azul2)}
 .sev-obrigatoria{background:var(--roxo)}
-.val-body{font-size:12px;color:var(--cinza);margin-top:4px;line-height:1.5}
+.val-body{font-size:13px;color:var(--cinza);margin-top:4px;line-height:1.5}
 
 /* Export dialog */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
@@ -257,8 +260,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .mc-btn-secondary{background:var(--cinzaL);color:var(--cinza);border:1px solid var(--cinzaM)!important}
 
 /* Floor tabs */
-.floor-tabs{display:flex;align-items:center;gap:3px;padding:0 10px;border-bottom:1px solid var(--cinzaM);background:var(--cinzaL);height:36px;flex-shrink:0}
-.floor-tab{padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;border-radius:5px 5px 0 0;color:var(--cinza);transition:.12s;border:1px solid transparent;border-bottom:none}
+.floor-tabs{display:flex;align-items:center;gap:3px;padding:0 10px;border-bottom:1px solid var(--cinzaM);background:var(--cinzaL);height:40px;flex-shrink:0}
+.floor-tab{padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;border-radius:5px 5px 0 0;color:var(--cinza);transition:.12s;border:1px solid transparent;border-bottom:none}
 .floor-tab.active{background:var(--branco);color:var(--azul);border-color:var(--cinzaM);box-shadow:0 -1px 4px rgba(0,0,0,.04)}
 .floor-tab:hover{background:rgba(255,255,255,.5)}
 .floor-add{padding:6px 10px;font-size:14px;cursor:pointer;color:var(--azul2);font-weight:700;border:none;background:transparent;border-radius:5px}
@@ -269,7 +272,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .env-badge:hover{filter:brightness(.9)}
 
 /* Status bar */
-.status-bar{height:30px;background:var(--cinzaL);border-top:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 14px;gap:18px;font-size:12px;color:var(--cinza);flex-shrink:0}
+.status-bar{height:34px;background:var(--cinzaL);border-top:1px solid var(--cinzaM);display:flex;align-items:center;padding:0 14px;gap:18px;font-size:13px;color:var(--cinza);flex-shrink:0}
 .status-bar .sb-item{display:flex;align-items:center;gap:5px}
 .sb-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .sb-ok{background:var(--verde)}
@@ -277,7 +280,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .sb-err{background:var(--vermelho)}
 
 /* Keyboard shortcut hints */
-.shortcut{font-size:9px;background:var(--cinzaL);padding:1px 4px;border-radius:2px;color:var(--cinza);border:1px solid var(--cinzaM);font-family:monospace}
+.shortcut{font-size:11px;background:var(--cinzaL);padding:1px 4px;border-radius:2px;color:var(--cinza);border:1px solid var(--cinzaM);font-family:monospace}
 
 /* ===== DASHBOARD ===== */
 .dashboard-container{height:100vh;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%);color:#fff;overflow-y:auto;padding:24px}
@@ -331,11 +334,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 10, build: 0,
+  major: 3, minor: 11, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.11.0',date:'2026-03-07',changes:['Redesign completo: Mix UniFi (canvas dark) + Figma (sidebar light)','Tipografia moderna: fontes maiores e legíveis em todo o app','Alertas de excesso: portas RJ45 e canais CFTV na aba Validação','Canvas dark theme com contraste otimizado']},
     {ver:'3.10.0',date:'2026-03-07',changes:['Regra de ocupação de portas RJ45: bloqueia + qty e conexão quando switch está cheio','Cascata automática: diminuir qty da câmera ajusta nvrAssignments proporcionalmente','Fix: double-click nos overlays não ativa mais modo cabo']},
     {ver:'3.9.1',date:'2026-03-07',changes:['Fix crítico: syncUid previne IDs duplicados ao carregar projetos','Migração automática: dedup de dispositivos com IDs collididos','Persistência do auto-assign corrigida']},
     {ver:'3.9.0',date:'2026-03-07',changes:['Sistema de Assignment Câmera↔NVR com capacidade','Badges de capacidade no canvas (NVR canais, Switch portas)','Auto-distribuição por topologia de rede','Painel de canais no NVR e portas no Switch']},
@@ -2042,6 +2046,34 @@ const REGRAS=[
       const sensores=devices.filter(d=>isSensorZona(d.key)||isSirene(d.key)).length;
       const centrais=devices.filter(d=>isCentralAlarme(d.key)).length;
       if(sensores>0&&centrais===0) return `${sensores} sensor(es)/sirene(s) sem central de alarme`;
+      return null;
+    }},
+  {cat:'Rede',regra:'Portas RJ45 ocupadas em switch (por dispositivo)',sev:'CRÍTICA',
+    check:(devices,connections)=>{
+      const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+      const issues=[];
+      devices.filter(d=>isSwitch(d.key)||isGravador(d.key)).forEach(nd=>{
+        const capacity=getSwitchPorts(nd);
+        let used=0;
+        connections.filter(c=>(c.from===nd.id||c.to===nd.id)&&dataTypes.has(c.type)).forEach(c=>{
+          const oid=c.from===nd.id?c.to:c.from;
+          const other=devices.find(d=>d.id===oid);
+          if(other) used+=(isCamera(other.key)?(other.qty||1):1);
+        });
+        if(used>capacity) issues.push(`${nd.name}: ${used}/${capacity} portas`);
+      });
+      if(issues.length) return `Excesso de portas: ${issues.join('; ')}`;
+      return null;
+    }},
+  {cat:'CFTV',regra:'Canais CFTV: câmeras atribuídas excede capacidade do NVR',sev:'CRÍTICA',
+    check:(devices)=>{
+      const issues=[];
+      devices.filter(d=>isGravador(d.key)).forEach(nvr=>{
+        const ch=getNvrChannels(nvr);
+        const used=getNvrUsedChannels(nvr.id,devices);
+        if(used>ch) issues.push(`${nvr.name}: ${used}/${ch} canais`);
+      });
+      if(issues.length) return `Excesso de canais CFTV: ${issues.join('; ')}`;
       return null;
     }},
 ];
@@ -4290,9 +4322,9 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                     )}
                     {/* Quantity badge for cameras */}
                     {isCamera(dev.key)&&(dev.qty||1)>1&&(
-                      <div style={{position:'absolute',bottom:-4,right:-4,minWidth:16,height:16,borderRadius:8,
+                      <div style={{position:'absolute',bottom:-4,right:-4,minWidth:20,height:20,borderRadius:10,
                         background:'#3b82f6',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',
-                        fontSize:8,color:'#fff',fontWeight:900,padding:'0 3px',zIndex:13,
+                        fontSize:11,color:'#fff',fontWeight:900,padding:'0 3px',zIndex:13,
                         boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>×{dev.qty}</div>
                     )}
                     {/* Quantity setter for cameras when selected */}
@@ -4302,7 +4334,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                         boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:15,whiteSpace:'nowrap'}}
                         onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
                         onDoubleClick={e=>e.stopPropagation()}>
-                        <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
+                        <button style={{width:16,height:16,fontSize:12,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1){
@@ -4310,8 +4342,8 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                             const trimmed=trimNvrAssignments(dev,newQty);
                             updateDevice(dev.id,{qty:newQty,nvrAssignments:trimmed});
                           }}}>−</button>
-                        <span style={{fontSize:8,color:'#e2e8f0',fontWeight:700,minWidth:14,textAlign:'center'}}>{dev.qty||1}</span>
-                        <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
+                        <span style={{fontSize:10,color:'#e2e8f0',fontWeight:700,minWidth:16,textAlign:'center'}}>{dev.qty||1}</span>
+                        <button style={{width:16,height:16,fontSize:12,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();
@@ -4331,8 +4363,8 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                       const isOver=used>ch;
                       return (
                         <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
-                          minWidth:28,height:14,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:7,fontWeight:800,padding:'0 4px',zIndex:13,whiteSpace:'nowrap',
+                          minWidth:32,height:18,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:10,fontWeight:800,padding:'0 5px',zIndex:13,whiteSpace:'nowrap',
                           background:isOver?'#ef4444':used>0?'#22c55e':'#94a3b8',
                           color:'#fff',border:'1.5px solid #fff',
                           boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{used}/{ch}ch</div>
@@ -4347,8 +4379,8 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                       const isOver=usedP>totalP;
                       return usedP>0?(
                         <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
-                          minWidth:28,height:14,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:7,fontWeight:800,padding:'0 4px',zIndex:13,whiteSpace:'nowrap',
+                          minWidth:32,height:18,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:10,fontWeight:800,padding:'0 5px',zIndex:13,whiteSpace:'nowrap',
                           background:isOver?'#ef4444':'#3b82f6',
                           color:'#fff',border:'1.5px solid #fff',
                           boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{usedP}/{totalP}p</div>
@@ -4360,9 +4392,9 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                       const assigned=(dev.nvrAssignments||[]).reduce((s,a)=>s+(a.qty||0),0);
                       const allAssigned=assigned>=total;
                       return (
-                        <div style={{position:'absolute',top:-6,left:-6,minWidth:14,height:14,borderRadius:7,
+                        <div style={{position:'absolute',top:-6,left:-6,minWidth:18,height:18,borderRadius:9,
                           display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:7,fontWeight:800,padding:'0 3px',zIndex:14,
+                          fontSize:10,fontWeight:800,padding:'0 3px',zIndex:14,
                           background:allAssigned?'#22c55e':'#f59e0b',
                           color:'#fff',border:'1.5px solid #fff',
                           boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>
@@ -4370,9 +4402,9 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                         </div>
                       );
                     })()}
-                    {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:14,height:14,
+                    {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:18,height:18,
                       borderRadius:'50%',background:'#22c55e',display:'flex',alignItems:'center',justifyContent:'center',
-                      fontSize:8,color:'#fff',fontWeight:900}}>✓</div>}
+                      fontSize:11,color:'#fff',fontWeight:900}}>✓</div>}
                   </div>
                 );
               })}
@@ -4857,7 +4889,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                                 <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                                   {cam.name}{(cam.qty||1)>1?' ×'+(cam.qty||1):''}
                                 </span>
-                                <span style={{fontSize:9,fontWeight:700,color:'var(--azul)'}}>{a?.qty||0}ch</span>
+                                <span style={{fontSize:11,fontWeight:700,color:'var(--azul)'}}>{a?.qty||0}ch</span>
                               </div>
                             );
                           })
@@ -4867,7 +4899,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                           </div>
                         )}
                         {assignedCams.length===0&&(
-                          <button style={{marginTop:6,width:'100%',padding:'4px 8px',fontSize:9,fontWeight:600,
+                          <button style={{marginTop:6,width:'100%',padding:'6px 10px',fontSize:11,fontWeight:600,
                             background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}
                             onClick={()=>{
                               const updates=autoAssignCameras(devices,connections);
@@ -4921,10 +4953,10 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                             <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                               {d.name}{(d.qty||1)>1?' ×'+(d.qty||1):''}
                             </span>
-                            <span style={{fontSize:9,color:'var(--cinza)'}}>{d.qty||1}p</span>
+                            <span style={{fontSize:11,color:'var(--cinza)'}}>{d.qty||1}p</span>
                           </div>
                         ))}
-                        {uplinkDevs.length>0&&<div style={{fontSize:9,fontWeight:600,color:'var(--cinza)',marginTop:6,marginBottom:4}}>
+                        {uplinkDevs.length>0&&<div style={{fontSize:11,fontWeight:600,color:'var(--cinza)',marginTop:6,marginBottom:4}}>
                           UPLINKS ({usedUplinks})</div>}
                         {uplinkDevs.map(d=>(
                           <div key={d.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
@@ -4932,7 +4964,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                             onClick={()=>{setSelectedDevice(d.id);setRightTab('props')}}>
                             <span style={{width:8,height:8,borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>
                             <span style={{flex:1}}>{d.name}</span>
-                            <span style={{fontSize:9,color:'var(--cinza)'}}>1p</span>
+                            <span style={{fontSize:11,color:'var(--cinza)'}}>1p</span>
                           </div>
                         ))}
                       </>
@@ -4941,7 +4973,7 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                   {/* Configuration fields for rack */}
                   {selectedDev.key==='rack'&&(
                     <>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                      <div style={{fontSize:12,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
                         letterSpacing:.5,marginBottom:6,marginTop:12}}>Configuração Rack</div>
 
                       <div className="prop-row">
