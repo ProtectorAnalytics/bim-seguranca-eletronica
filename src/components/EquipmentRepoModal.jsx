@@ -1,0 +1,406 @@
+import React, { useState } from 'react';
+import { DEVICE_LIB } from '@/data/device-lib';
+import { CABLE_TYPES } from '@/data/cable-types';
+import { EQUIPMENT_SCHEMAS } from '@/data/equipment-schemas';
+import { ICONS } from '@/icons';
+import { getDeviceInterfaces } from '@/lib/helpers';
+
+export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep}){
+  // Wizard steps: 1=category, 2=base device, 3=dados gerais, 4=interfaces, 5=specs, 6=revisão
+  const WIZARD_STEPS=[
+    {id:1,label:'Categoria',icon:'📂'},
+    {id:2,label:'Tipo Base',icon:'🔧'},
+    {id:3,label:'Dados',icon:'📋'},
+    {id:4,label:'Interfaces',icon:'🔌'},
+    {id:5,label:'Specs',icon:'⚙️'},
+    {id:6,label:'Revisão',icon:'✅'},
+  ];
+  const [step,setStep]=useState(startAtStep||0); // 0=list, 1-6=wizard steps
+  const [editingDevice,setEditingDevice]=useState(null);
+  const [formState,setFormState]=useState({
+    category:'camera',baseDeviceType:'cam_dome',brand:'',model:'',descricao:'',
+    referencia:'',preco:'',specs:{},datasheetText:'',
+    customIfaces:[] // [{type,cables:[],label,required}]
+  });
+
+  const categoryLabels={
+    camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores',
+    switch_rede:'Switches',gravador:'Gravador',fonte_energia:'Fonte',nobreak:'Nobreak',infra:'Infraestrutura'
+  };
+  const categoryIcons={
+    camera:'📷',acesso:'🔐',fechadura:'🔒',alarme:'🚨',sensor:'📡',
+    switch_rede:'🌐',gravador:'💾',fonte_energia:'⚡',nobreak:'🔋',infra:'🏗️'
+  };
+  const categoryColors={
+    camera:'#f59e0b',acesso:'#3b82f6',fechadura:'#8b5cf6',alarme:'#ef4444',sensor:'#84cc16',
+    switch_rede:'#06b6d4',gravador:'#059669',fonte_energia:'#eab308',nobreak:'#dc2626',infra:'#6b7280'
+  };
+
+  const getCategoryDevices=(category)=>{
+    const map={camera:['cam_dome','cam_bullet','cam_ptz','cam_fisheye','cam_lpr'],
+      acesso:['leitor_facial','controladora','leitor_tag'],fechadura:['fechadura'],alarme:['alarme_central'],
+      sensor:['sensor_presenca','sensor_abertura','sirene'],switch_rede:['sw_poe','sw_normal'],gravador:['nvr'],
+      fonte_energia:['fonte'],nobreak:['nobreak_ac','nobreak_dc'],
+      infra:['quadro','rack','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate']};
+    return DEVICE_LIB.flatMap(c=>c.items).filter(i=>(map[category]||[]).includes(i.key));
+  };
+
+  const handleSpecChange=(key,value)=>setFormState(f=>({...f,specs:{...f.specs,[key]:value}}));
+  const handleFieldChange=(key,value)=>setFormState(f=>({...f,[key]:value}));
+
+  const IFACE_TYPE_OPTIONS=[
+    {value:'data_in',label:'Entrada dados (RJ45/Rede)'},
+    {value:'data_io',label:'Dados bidirecional (switch)'},
+    {value:'power_in',label:'Entrada energia'},
+    {value:'power_out',label:'Saída energia'},
+    {value:'signal_in',label:'Entrada sensor (alarme/NA/NF)'},
+    {value:'signal_out',label:'Saída contato seco (relay)'},
+    {value:'automation_in',label:'Entrada automação'},
+    {value:'automation_out',label:'Saída automação'},
+    {value:'passthrough',label:'Passagem/emenda'},
+  ];
+  const CABLE_OPTIONS=CABLE_TYPES.map(c=>({value:c.id,label:c.name}));
+
+  const addCustomIface=()=>setFormState(f=>({...f,
+    customIfaces:[...f.customIfaces,{type:'signal_in',cables:['pp2v_05'],label:'',required:false}]}));
+  const removeCustomIface=(idx)=>setFormState(f=>({...f,
+    customIfaces:f.customIfaces.filter((_,i)=>i!==idx)}));
+  const updateCustomIface=(idx,key,val)=>setFormState(f=>{
+    const ifaces=[...f.customIfaces];
+    ifaces[idx]={...ifaces[idx],[key]:val};
+    return {...f,customIfaces:ifaces};
+  });
+
+  const parseDatasheet=()=>{
+    const text=formState.datasheetText;const specs={...formState.specs};
+    const vm=text.match(/(\d+[\.,]?\d*)\s*(V|Vcc|VDC|VAC|volts?)/gi);
+    if(vm&&formState.category==='fechadura') specs.tensao=vm[0].replace(/[^\d.,]/g,'').replace(',','.').substring(0,5)+' V';
+    const cm=text.match(/(\d+[\.,]?\d*)\s*(A|mA|ampere)/gi);
+    if(cm&&formState.category==='fechadura') specs.corrente=cm[0].replace(/[^\d.,]/g,'').replace(',','.')+' A';
+    const pm=text.match(/(\d+[\.,]?\d*)\s*(W|VA|watts?)/gi);
+    if(pm){const v=pm[0].replace(/[^\d.,]/g,'').replace(',','.');
+      if(formState.category==='fonte_energia')specs.potencia=v+' W';
+      if(formState.category==='nobreak')specs.potencia_w=parseInt(v)||0;}
+    const rm=text.match(/(\d+)\s*MP/i);if(rm&&formState.category==='camera')specs.resolucao=rm[1]+'MP';
+    const ptm=text.match(/(\d+)\s*(portas?|ports?)/i);
+    if(ptm){const n=parseInt(ptm[1]);if(formState.category==='switch_rede')specs.portas=n;}
+    const ipm=text.match(/IP\s*(\d{2})/i);if(ipm&&formState.category==='camera')specs.ip_rating='IP '+ipm[1];
+    setFormState(f=>({...f,specs}));
+  };
+
+  const handleSave=()=>{
+    if(!formState.brand||!formState.model||!formState.baseDeviceType){alert('Preencha marca, modelo e tipo base');return;}
+    const ts=Date.now();const devId=editingDevice?.id||('custom_'+ts);const devKey=editingDevice?.key||devId;
+    const customDev={id:devId,key:devKey,name:formState.brand+' '+formState.model,
+      category:formState.category,deviceType:formState.baseDeviceType,
+      brand:formState.brand,model:formState.model,descricao:formState.descricao,
+      referencia:formState.referencia,preco:formState.preco,specs:formState.specs,
+      customIfaces:formState.customIfaces.filter(i=>i.label),
+      createdAt:new Date().toISOString().split('T')[0],datasheetText:formState.datasheetText};
+    onSave(customDev);setStep(0);setEditingDevice(null);
+    setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});
+  };
+
+  const startEdit=(dev)=>{
+    setEditingDevice(dev);
+    setFormState({category:dev.category,baseDeviceType:dev.deviceType,brand:dev.brand,model:dev.model,
+      descricao:dev.descricao,referencia:dev.referencia,preco:dev.preco,specs:dev.specs||{},
+      datasheetText:dev.datasheetText||'',customIfaces:dev.customIfaces||[]});
+    setStep(3);
+  };
+
+  // ── STEP INDICATOR BAR ──
+  const StepBar=()=>{
+    if(step<1)return null;
+    return <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:20,padding:'0 4px'}}>
+      {WIZARD_STEPS.map((s,i)=>{
+        const isActive=step===s.id;const isDone=step>s.id;
+        const color=isDone?'#22c55e':isActive?'var(--laranja)':'#d1d5db';
+        return <React.Fragment key={s.id}>
+          {i>0&&<div style={{flex:1,height:2,background:isDone?'#22c55e':'#e5e8eb',margin:'0 2px'}}/>}
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,minWidth:50,cursor:isDone?'pointer':'default',opacity:step<s.id?.5:1}}
+            onClick={()=>{if(isDone)setStep(s.id);}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:isActive?'var(--laranja)':isDone?'#22c55e':'#f3f4f6',
+              border:`2px solid ${color}`,display:'flex',alignItems:'center',justifyContent:'center',
+              fontSize:12,fontWeight:700,color:isActive||isDone?'#fff':'#9ca3af',transition:'.2s'}}>
+              {isDone?'✓':s.icon}
+            </div>
+            <span style={{fontSize:8,fontWeight:isActive?700:500,color:isActive?'var(--azul)':'#9ca3af',textAlign:'center',lineHeight:1.1}}>{s.label}</span>
+          </div>
+        </React.Fragment>;
+      })}
+    </div>;
+  };
+
+  const NavButtons=({canNext=true,nextLabel='Próximo →'})=>(
+    <div style={{display:'flex',gap:8,marginTop:16,borderTop:'1px solid #e5e8eb',paddingTop:12}}>
+      <button className="mc-btn mc-btn-secondary" style={{flex:1,fontSize:12}} onClick={()=>setStep(step<=1?0:step-1)}>
+        ← {step<=1?'Lista':'Voltar'}
+      </button>
+      {step<6&&<button className="mc-btn mc-btn-primary" style={{flex:1,fontSize:12}} disabled={!canNext}
+        onClick={()=>setStep(step+1)}>{nextLabel}</button>}
+      {step===6&&<button className="mc-btn mc-btn-primary" style={{flex:1,fontSize:12,background:'#22c55e'}}
+        onClick={handleSave}>{editingDevice?'✓ Atualizar':'✓ Criar'} Equipamento</button>}
+    </div>
+  );
+
+  // ── STEP 0: DEVICE LIST ──
+  if(step===0){
+    return <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:720,maxHeight:'85vh',overflow:'auto'}}>
+        <h3 style={{fontSize:16,marginBottom:4}}>📦 Repositório de Equipamentos</h3>
+        <p style={{fontSize:11,color:'var(--cinza)',margin:'0 0 16px'}}>Seus equipamentos personalizados. Clique em "+ Novo" para cadastrar.</p>
+        <div style={{maxHeight:360,overflowY:'auto',marginBottom:16}}>
+          {customDevices.length===0?
+            <div style={{textAlign:'center',padding:'40px 16px',color:'var(--cinza)',fontSize:13}}>
+              Nenhum equipamento ainda.<br/>O assistente vai guiar você passo a passo.
+            </div>:
+            customDevices.map(dev=>{
+              const cc=categoryColors[dev.category]||'#999';
+              return <div key={dev.id} style={{padding:12,marginBottom:8,background:'#f8f9fa',borderRadius:8,
+                borderLeft:`4px solid ${cc}`,display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:40,height:40,borderRadius:8,background:cc+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {ICONS[dev.deviceType]?.(cc)}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:'var(--azul)'}}>{dev.name}</div>
+                  <div style={{fontSize:10,color:'var(--cinza)',marginTop:2}}>
+                    <span style={{background:cc+'20',color:cc,padding:'1px 6px',borderRadius:3,fontWeight:600,fontSize:9}}>{categoryLabels[dev.category]}</span>
+                    {dev.referencia&&<span style={{marginLeft:6}}>SKU: {dev.referencia}</span>}
+                    {dev.customIfaces?.length>0&&<span style={{marginLeft:6}}>+{dev.customIfaces.length} interfaces</span>}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:4}}>
+                  <button onClick={()=>startEdit(dev)} style={{padding:'5px 12px',fontSize:10,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>Editar</button>
+                  <button onClick={()=>onDelete(dev.key)} style={{padding:'5px 12px',fontSize:10,background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:5,cursor:'pointer',fontWeight:600}}>×</button>
+                </div>
+              </div>;
+            })}
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="mc-btn mc-btn-secondary" onClick={onClose} style={{fontSize:12}}>Fechar</button>
+          <button className="mc-btn mc-btn-primary" onClick={()=>{setStep(1);setEditingDevice(null);
+            setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});}}
+            style={{fontSize:12}}>+ Novo equipamento</button>
+        </div>
+      </div>
+    </div>;
+  }
+
+  // ── WIZARD CONTAINER ──
+  return <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:620,maxHeight:'88vh',overflow:'auto'}}>
+      <StepBar/>
+
+      {/* STEP 1: CATEGORY */}
+      {step===1&&<>
+        <h3 style={{fontSize:14,marginBottom:12}}>Selecione a categoria</h3>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {Object.entries(categoryLabels).map(([cat,label])=>{
+            const cc=categoryColors[cat];const sel=formState.category===cat;
+            return <button key={cat} onClick={()=>{handleFieldChange('category',cat);handleFieldChange('baseDeviceType','');}}
+              style={{padding:14,border:`2px solid ${sel?cc:'#e5e8eb'}`,background:sel?cc+'10':'#fafafa',borderRadius:10,
+                fontSize:12,fontWeight:600,cursor:'pointer',transition:'.15s',textAlign:'left',display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:18}}>{categoryIcons[cat]}</span>
+              <span style={{color:sel?cc:'#374151'}}>{label}</span>
+            </button>;
+          })}
+        </div>
+        <NavButtons canNext={!!formState.category}/>
+      </>}
+
+      {/* STEP 2: BASE DEVICE */}
+      {step===2&&<>
+        <h3 style={{fontSize:14,marginBottom:4}}>Tipo base: {categoryLabels[formState.category]}</h3>
+        <p style={{fontSize:10,color:'var(--cinza)',margin:'0 0 12px'}}>Herda ícone e interfaces padrão. Você poderá adicionar mais interfaces depois.</p>
+        <div style={{maxHeight:280,overflowY:'auto'}}>
+          {getCategoryDevices(formState.category).map(dev=>{
+            const sel=formState.baseDeviceType===dev.key;const cc=categoryColors[formState.category];
+            const ifaces=getDeviceInterfaces(dev.key)||[];
+            return <button key={dev.key} onClick={()=>handleFieldChange('baseDeviceType',dev.key)}
+              style={{display:'flex',width:'100%',textAlign:'left',padding:12,marginBottom:6,
+                border:`2px solid ${sel?cc:'#e5e8eb'}`,background:sel?cc+'08':'#fafafa',borderRadius:8,cursor:'pointer',alignItems:'center',gap:10}}>
+              <div style={{width:36,height:36,borderRadius:8,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {ICONS[dev.key]?.(sel?cc:'#6b7280')}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,color:sel?cc:'var(--azul)',fontSize:12}}>{dev.name}</div>
+                <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
+                  {ifaces.length} interface(s) • {ifaces.filter(i=>i.required).length} obrigatória(s)
+                </div>
+              </div>
+              {sel&&<span style={{color:cc,fontWeight:700,fontSize:14}}>✓</span>}
+            </button>;
+          })}
+        </div>
+        <NavButtons canNext={!!formState.baseDeviceType}/>
+      </>}
+
+      {/* STEP 3: GENERAL DATA */}
+      {step===3&&<>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Dados do equipamento</h3>
+        <div style={{maxHeight:340,overflowY:'auto'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Marca *</label>
+              <input value={formState.brand} onChange={e=>handleFieldChange('brand',e.target.value)} placeholder="Ex: Intelbras, Hikvision"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Modelo *</label>
+              <input value={formState.model} onChange={e=>handleFieldChange('model',e.target.value)} placeholder="Ex: VIP 3230 D"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
+            <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Descrição</label>
+            <textarea value={formState.descricao} onChange={e=>handleFieldChange('descricao',e.target.value)}
+              style={{minHeight:50,fontSize:11,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff',resize:'vertical'}} placeholder="Breve descrição do equipamento"/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Referência (SKU)</label>
+              <input value={formState.referencia} onChange={e=>handleFieldChange('referencia',e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Preço (R$)</label>
+              <input value={formState.preco} onChange={e=>handleFieldChange('preco',e.target.value)} type="number"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
+            </div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Datasheet (colar texto)</label>
+            <textarea value={formState.datasheetText} onChange={e=>handleFieldChange('datasheetText',e.target.value)}
+              style={{minHeight:60,fontSize:9,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff',resize:'vertical'}} placeholder="Cole texto do datasheet para extração automática"/>
+            {formState.datasheetText&&<button onClick={parseDatasheet}
+              style={{marginTop:4,padding:'4px 10px',fontSize:9,background:'var(--azul2)',color:'#fff',border:'none',borderRadius:4,cursor:'pointer'}}>
+              🔍 Extrair specs</button>}
+          </div>
+        </div>
+        <NavButtons canNext={!!(formState.brand&&formState.model)}/>
+      </>}
+
+      {/* STEP 4: INTERFACES */}
+      {step===4&&<>
+        <h3 style={{fontSize:14,marginBottom:4}}>Interfaces de conexão</h3>
+        <p style={{fontSize:10,color:'var(--cinza)',margin:'0 0 10px'}}>
+          Interfaces herdadas do tipo base + interfaces adicionais que você pode personalizar.
+        </p>
+
+        {/* Inherited interfaces */}
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--azul)',marginBottom:6}}>Interfaces do tipo base ({formState.baseDeviceType})</div>
+          {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>(
+            <div key={i} style={{padding:6,marginBottom:4,background:'#f0fdf4',borderRadius:5,fontSize:10,display:'flex',alignItems:'center',gap:6,
+              borderLeft:'3px solid #22c55e'}}>
+              <span style={{fontWeight:600,color:'#16a34a',minWidth:100}}>{iface.type}</span>
+              <span style={{flex:1,color:'#374151'}}>{iface.label}</span>
+              <span style={{fontSize:8,color:'#9ca3af'}}>{iface.required?'obrigatória':'opcional'}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Custom interfaces */}
+        <div style={{marginBottom:8}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--laranja)',marginBottom:6,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span>Interfaces adicionais</span>
+            <button onClick={addCustomIface} style={{padding:'3px 10px',fontSize:9,background:'var(--laranja)',color:'#000',border:'none',borderRadius:4,cursor:'pointer',fontWeight:700}}>+ Adicionar</button>
+          </div>
+          {formState.customIfaces.length===0&&<div style={{fontSize:10,color:'#9ca3af',padding:8,textAlign:'center'}}>
+            Nenhuma interface adicional. Adicione entradas de sensor, saídas de contato seco, PoE/12V, etc.
+          </div>}
+          {formState.customIfaces.map((iface,idx)=>(
+            <div key={idx} style={{padding:8,marginBottom:6,background:'#fffbeb',borderRadius:6,border:'1px solid #fde68a'}}>
+              <div style={{display:'flex',gap:6,marginBottom:4,alignItems:'center'}}>
+                <select value={iface.type} onChange={e=>updateCustomIface(idx,'type',e.target.value)}
+                  style={{flex:1,fontSize:10,padding:'3px 4px',borderRadius:4,border:'1px solid #d1d5db'}}>
+                  {IFACE_TYPE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <label style={{fontSize:9,display:'flex',alignItems:'center',gap:3}}>
+                  <input type="checkbox" checked={iface.required} onChange={e=>updateCustomIface(idx,'required',e.target.checked)}/>Obrig.
+                </label>
+                <button onClick={()=>removeCustomIface(idx)} style={{fontSize:12,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>×</button>
+              </div>
+              <input value={iface.label} onChange={e=>updateCustomIface(idx,'label',e.target.value)}
+                placeholder="Descrição (ex: Entrada sensor 1 NA/NF)" style={{width:'100%',fontSize:10,padding:'3px 6px',borderRadius:4,border:'1px solid #d1d5db',marginBottom:4}}/>
+              <select multiple value={iface.cables} onChange={e=>updateCustomIface(idx,'cables',[...e.target.selectedOptions].map(o=>o.value))}
+                style={{width:'100%',fontSize:9,height:50,borderRadius:4,border:'1px solid #d1d5db'}}>
+                {CABLE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+        <NavButtons/>
+      </>}
+
+      {/* STEP 5: SPECS */}
+      {step===5&&<>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Especificações técnicas</h3>
+        <div style={{maxHeight:340,overflowY:'auto'}}>
+          {(EQUIPMENT_SCHEMAS[formState.category]||[]).map(field=>(
+            <div key={field.key} style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
+              <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>{field.label}{field.required?' *':''}{field.unit?` (${field.unit})`:''}</label>
+              {field.type==='text'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>}
+              {field.type==='number'&&<input value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)} type="number"
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>}
+              {field.type==='select'&&<select value={formState.specs[field.key]||''} onChange={e=>handleSpecChange(field.key,e.target.value)}
+                style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}>
+                <option value="">Selecionar...</option>{field.options.map(o=><option key={o} value={o}>{o}</option>)}</select>}
+              {field.type==='bool'&&<label style={{display:'flex',alignItems:'center',gap:6}}>
+                <input type="checkbox" checked={!!formState.specs[field.key]} onChange={e=>handleSpecChange(field.key,e.target.checked)}/><span style={{fontSize:11,color:'#374151'}}>{field.label}</span></label>}
+            </div>
+          ))}
+          {(EQUIPMENT_SCHEMAS[formState.category]||[]).length===0&&<div style={{textAlign:'center',padding:20,color:'#9ca3af',fontSize:11}}>Sem especificações padrão para esta categoria.</div>}
+        </div>
+        <NavButtons/>
+      </>}
+
+      {/* STEP 6: REVIEW */}
+      {step===6&&<>
+        <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Revisão final</h3>
+        <div style={{background:'#f8f9fa',borderRadius:10,padding:14,marginBottom:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+            <div style={{width:44,height:44,borderRadius:10,background:categoryColors[formState.category]+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {ICONS[formState.baseDeviceType]?.(categoryColors[formState.category])}
+            </div>
+            <div>
+              <div style={{fontWeight:700,fontSize:14,color:'#1e40af'}}>{formState.brand} {formState.model}</div>
+              <div style={{fontSize:10,color:'#6b7280'}}>
+                <span style={{background:categoryColors[formState.category]+'20',color:categoryColors[formState.category],padding:'1px 6px',borderRadius:3,fontWeight:600,fontSize:9}}>{categoryLabels[formState.category]}</span>
+                <span style={{marginLeft:6}}>Base: {formState.baseDeviceType}</span>
+              </div>
+            </div>
+          </div>
+          {formState.descricao&&<p style={{fontSize:10,color:'#6b7280',margin:'0 0 8px'}}>{formState.descricao}</p>}
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',fontSize:10,color:'#374151'}}>
+            {formState.referencia&&<span>SKU: {formState.referencia}</span>}
+            {formState.preco&&<span>R$ {formState.preco}</span>}
+          </div>
+        </div>
+
+        {/* Interfaces summary */}
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:4}}>Interfaces ({(getDeviceInterfaces(formState.baseDeviceType)||[]).length} base + {formState.customIfaces.filter(i=>i.label).length} custom)</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+            {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>
+              <span key={i} style={{fontSize:8,background:'#dcfce7',color:'#166534',padding:'2px 6px',borderRadius:3}}>{iface.type}: {iface.label.substring(0,30)}</span>)}
+            {formState.customIfaces.filter(i=>i.label).map((iface,i)=>
+              <span key={'c'+i} style={{fontSize:8,background:'#fef3c7',color:'#92400e',padding:'2px 6px',borderRadius:3}}>{iface.type}: {iface.label.substring(0,30)}</span>)}
+          </div>
+        </div>
+
+        {/* Specs summary */}
+        {Object.keys(formState.specs).length>0&&<div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:4}}>Especificações</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+            {Object.entries(formState.specs).filter(([,v])=>v).map(([k,v])=>
+              <span key={k} style={{fontSize:8,background:'#e5e8eb',color:'#374151',padding:'2px 6px',borderRadius:3}}>{k}: {String(v)}</span>)}
+          </div>
+        </div>}
+        <NavButtons/>
+      </>}
+    </div>
+  </div>;
+}

@@ -1,0 +1,115 @@
+// ====================================================================
+// VERSION CONTROL
+// ====================================================================
+export const APP_VERSION = {
+  major: 3, minor: 11, build: 0,
+  date: '2026-03-07',
+  get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
+  get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
+  changelog: [
+    {ver:'3.11.0',date:'2026-03-07',changes:['Redesign completo: Mix UniFi (canvas dark) + Figma (sidebar light)','Tipografia moderna: fontes maiores e legíveis em todo o app','Alertas de excesso: portas RJ45 e canais CFTV na aba Validação','Canvas dark theme com contraste otimizado']},
+    {ver:'3.10.0',date:'2026-03-07',changes:['Regra de ocupação de portas RJ45: bloqueia + qty e conexão quando switch está cheio','Cascata automática: diminuir qty da câmera ajusta nvrAssignments proporcionalmente','Fix: double-click nos overlays não ativa mais modo cabo']},
+    {ver:'3.9.1',date:'2026-03-07',changes:['Fix crítico: syncUid previne IDs duplicados ao carregar projetos','Migração automática: dedup de dispositivos com IDs collididos','Persistência do auto-assign corrigida']},
+    {ver:'3.9.0',date:'2026-03-07',changes:['Sistema de Assignment Câmera↔NVR com capacidade','Badges de capacidade no canvas (NVR canais, Switch portas)','Auto-distribuição por topologia de rede','Painel de canais no NVR e portas no Switch']},
+    {ver:'3.6.0',date:'2026-03-07',changes:[
+      'Categorias colapsáveis na paleta (▶ para expandir/recolher)',
+      'Auto-reset do modo cabo após conexão (sem precisar ESC)',
+      'Toggle de labels de cabo no canvas (botão Aa na toolbar)',
+      'Rack estilo UniFi: grid de U, auto-posicionamento, visual dark com slots',
+      'Quadro de Comando como container: drag-and-drop de dispositivos',
+      'Gerador de Diagrama Unifilar Elétrico: circuitos, dimensionamento, proteção (aba Unifilar)',
+    ]},
+    {ver:'3.5.1',date:'2026-03-07',changes:[
+      'Fotos reais dos produtos Intelbras substituem ícones SVG no canvas, paleta, propriedades e topologia (69 produtos com cobertura)',
+    ]},
+    {ver:'3.4.0',date:'2026-03-07',changes:[
+      'Biblioteca expandida: 160 dispositivos genéricos em 22 categorias (baseado no catálogo Intelbras 12ª edição)',
+      'Novos ícones SVG: eletrificador, barreira, teclado, detectores incêndio, cancela, AP WiFi, luminária emergência e mais',
+      'Interfaces de conexão por padrão: resolução automática de interfaces para todos os novos tipos de dispositivo',
+      'Funções de classificação de dispositivos (isCamera, isGravador, isCentralAlarme, etc.) para validação robusta',
+      'Auto-cabeamento expandido: suporte a DVR+MHD, centrais incêndio, catracas, periféricos de alarme',
+      'Novas regras de validação: incêndio sem central, sensores sem central de alarme',
+      'Campo ref em cada dispositivo com modelos Intelbras de referência',
+    ]},
+    {ver:'3.3.2',date:'2026-03-07',changes:[
+      'Roteamento ortogonal estilo draw.io — cabos com ângulos retos e curvas suaves nas dobras',
+      'Arraste segmentos inteiros para reposicionar trechos do cabo',
+      'Handles quadrados ■ nos pontos de dobra — arraste para ajustar, dbl-clique para remover',
+      'Auto-rota Z inteligente — gera caminho ortogonal automaticamente entre equipamentos',
+      'Cantos arredondados nas curvas de 90° para visual profissional',
+      'Highlight azul ao passar mouse sobre segmentos arrastáveis',
+      'Fix: proteção contra drag acidental durante criação de cabo'
+    ]},
+    {ver:'3.2.0',date:'2026-03-06',changes:[
+      'Ícones SVG profissionais — todos redesenhados com detalhes realistas (fonte com portas 12V, switches com LEDs, câmeras com lentes)',
+      'Interfaces flexíveis — câmeras suportam PoE + 12VDC alternativo, entradas de sensor alarme (1-4), saídas contato seco',
+      'Repositório wizard — carrossel com 6 etapas guiadas: Categoria → Tipo Base → Dados → Interfaces → Specs → Revisão',
+      'Editor de interfaces customizadas — adicione sensor inputs, contatos secos e automação a qualquer equipamento',
+      'Barra de progresso visual com etapas clicáveis no wizard do repositório'
+    ]},
+    {ver:'3.1.0',date:'2026-03-06',changes:[
+      'Sistema de cabos PP — cabo padrão de segurança eletrônica (PP 2 e 4 vias: 0,5 / 1,0 / 1,5 / 2,5mm²)',
+      'Auto-cálculo de seção PP por distância: 0-30m→0,5mm², 31-60m→1,0mm², 61-100m→1,5mm², >100m→2,5mm²',
+      'Indicador de portas em uso — popup de portas mostra quais estão conectadas e para qual dispositivo',
+      'Contador de portas (X/Y em uso) no título do popup',
+      'Roteamento de cabos — 3 tipos: Reto (padrão), Curva (bezier), Ângulo (L-shape)',
+      'Seletor de rota na toolbar com botões visuais ━ ⌒ ⌐',
+      'Conexões armazenam tipo de rota (straight/curve/angle)',
+      'SVG: paths curvos (quadratic bezier) e angulares (elbow) para visualização profissional',
+      'Repositório de Equipamentos — redesenhado como página inline (sem modal-sobre-modal)',
+      'Fix: exclusão de equipamento customizado (ID/key mismatch resolvido)',
+      'Fix: edição sem duplicação de prefixo "custom_custom_"',
+      'Fix: filtro de dispositivos por categoria corrigido (mapeamento explícito)',
+      'Toolbar: seletor de cabos com grupos PP 2v e PP 4v identificados',
+      'Cabos PP com indicação "(auto por dist.)" no seletor',
+    ]},
+    {ver:'3.1.1',date:'2026-03-06',changes:[
+      'Conexões profissionais — linhas saem da borda do círculo do dispositivo (não do centro)',
+      'Anchor dots visuais nos pontos de conexão (bolinhas na cor do cabo)',
+      'Anchor dots N/E/S/W aparecem nos dispositivos durante modo cabo',
+      'Curva bezier refinada — controle proporcional a 25% do segmento',
+      'Ângulo inteligente — escolhe orientação H-first ou V-first conforme layout',
+      'Cable labels com stroke branco para legibilidade sobre qualquer fundo',
+      'Indicador visual do dispositivo fonte: anel tracejado laranja',
+      'Múltiplas conexões entre mesmo par com offset aumentado (10px)',
+    ]},
+    {ver:'3.0.2',date:'2026-03-06',changes:['Acessibilidade universal — app otimizado para jovens e idosos','Ícones do canvas: 40px→52px com SVG 28px, borda mais espessa e sombra reforçada','Labels do canvas: 10px→12px com background sólido e box-shadow para leitura em qualquer fundo','Painel esquerdo ampliado: 240→260px, ícones 26→32px, fontes da paleta 12→13px','Painel direito ampliado: 320→340px, propriedades 12→13px, inputs com sombra de foco','Toolbar: botões 32→36px, labels 11→12px, sim-pill 11→12px','Topbar: 52→54px, logo 13→14px, projeto 15→16px, botões com padding maior','Box-shadow em todos os painéis, cards, stat-cards, módulos, validações e port popup','Text-shadow sutil em labels do canvas e ambientes para legibilidade','Topology nodes: 12→13px com sombra, border-left 3→4px','Equipamentos: tabela 12→13px, inputs com sombra de foco','Floor tabs: 32→36px, font 11→12px, botão add 12→14px','Status bar: 26→30px, font 11→12px','Font-smoothing antialiased e line-height 1.5 no body']},
+    {ver:'3.0.1',date:'2026-03-06',changes:['Melhoria global de tipografia — fontes ampliadas em todos os componentes','Labels de formulário: 10px→12px, inputs: 12px→14px, placeholders mais legíveis','Dashboard: cards, stats e badges com fontes maiores e mais contraste','Formulário de cliente ampliado (max-width 680px) com campos mais espaçados','Configurações e Assinatura: layout mais largo (720px) e campos maiores','Paleta de dispositivos, topbar, toolbar e painéis laterais com fontes legíveis','Tabelas de equipamentos, validações e port popup com fontes incrementadas','Botões: 12px→14px em todo o app']},
+    {ver:'3.0.0',date:'2026-03-06',changes:['Dashboard de Gerenciamento — hub central com stats, módulos e navegação SaaS','Persistência de Projetos — auto-save em localStorage, lista para reabrir projetos salvos','Gestão de Clientes — lista de clientes com histórico, reutilização em novos projetos','Configurações da Empresa — dados corporativos, taxa padrão, persistidos','Página de Assinatura — placeholder para integração com gerenciador de assinatura externo','Repositório de Equipamentos elevado a módulo do dashboard (acesso direto)','Fluxo refatorado: Dashboard → Cliente → Cenário → Projeto (4 etapas)','Novo fluxo: reabrir projetos salvos direto do dashboard']},
+    {ver:'2.3.0',date:'2026-03-06',changes:['Repositório de Equipamentos — cadastro de dispositivos customizados com campos dinâmicos por tipo','Parser de datasheet — cola texto do datasheet e extrai specs automaticamente (tensão, corrente, resolução, portas, IP rating, etc)','Schemas por categoria: câmera, acesso, fechadura, alarme, sensor, switch, gravador, fonte, nobreak, infra','Equipamentos custom aparecem na paleta (📦 Customizados) com herança de ícone e interfaces','Persistência via localStorage — equipamentos salvos entre sessões','Fechadura eletroímã: adicionada saída sensor porta NF/C (vai pro facial, controladora ou fonte)','Fonte 12V: adicionada entrada alarme/aterramento para sensor de porta']},
+    {ver:'2.2.3',date:'2026-03-06',changes:['Switch não-PoE (SG 800 Q+): alimentação DC 12-30V via fonte/nobreak como interface opcional','Switch não-PoE: PoE Passivo porta 1 (12-30V pinos 4,5+/7,8-) como interface opcional','Labels atualizadas com especificações reais do datasheet Intelbras']},
+    {ver:'2.2.2',date:'2026-03-06',changes:['Fix: busca CNPJ corrigida — só sobrescreve campos com dados reais da API','Fix: telefone com DDD tratado corretamente (formato DDD+número junto)','Fix: campos vazios da API não apagam dados já preenchidos','Fix: stale closure resolvido — usa setData(prev=>) para merge seguro']},
+    {ver:'2.2.1',date:'2026-03-06',changes:['Busca automática de CNPJ via BrasilAPI — preenche razão social, nome fantasia, endereço, telefone, email','Busca automática de CEP via BrasilAPI — preenche endereço, cidade e UF','Auto-trigger ao completar 14 dígitos (CNPJ) ou 8 dígitos (CEP)','Botão de busca manual + status visual (✓ encontrado / ✕ erro)']},
+    {ver:'2.2.0',date:'2026-03-06',changes:['Tela de cadastro do cliente (PJ/PF) antes da seleção de cenário','Dados: razão social, CNPJ/CPF, endereço, contato, referência do projeto','Máscaras automáticas: CNPJ, CPF, CEP, telefone','Fluxo: Cliente → Cenário → Projeto (3 etapas)','Dados do cliente salvos no projeto, exibidos na topbar e no export','Nome do cliente exibido na tela de seleção de cenário']},
+    {ver:'2.1.4',date:'2026-03-06',changes:['Múltiplas conexões distintas entre mesmo par de dispositivos (ex: 12V + sensor facial→fechadura)','Conexões armazenam ifaceType e ifaceLabel (metadado de porta)','Offset visual perpendicular para cabos múltiplos entre mesmo par','Label da porta exibida no indicador de cable mode e no painel de propriedades','Auto-seleção de cabo compatível com a porta escolhida']},
+    {ver:'2.1.3',date:'2026-03-06',changes:['Pop-up de portas no dispositivo (⚡) em vez de bolinhas — limpo e descritivo','Cada porta mostra: label, tipo, cabos compatíveis e se é obrigatória/opcional','Clique na porta inicia conexão do tipo correto','Interfaces reais: leitor facial 8 portas, controladora 6 portas, fechadura 2 portas']},
+    {ver:'2.1.2',date:'2026-03-06',changes:['Connection handles coloridos por tipo de interface','Interfaces detalhadas com portas reais de hardware (Hikvision K1T671TM, FA 1220S)']},
+    {ver:'2.1.1',date:'2026-03-06',changes:['Drag-and-drop da paleta para canvas','Nobreak AC/DC como dispositivo configurável com catálogo de modelos','Bateria externa + cabo de engate + módulo de baterias','Rack como container (arrastar equipamentos para dentro)','Acessórios de rack com gestão de U','BOM completa: dispositivos, cabos, baterias, acessórios','SNMP condicional no nobreak AC','7 modelos reais no catálogo (Intelbras + MCM)']},
+    {ver:'2.0.0',date:'2026-03-05',changes:['Reescrita completa baseada em análise do Omada Design Hub','Engine de conexões com regras de compatibilidade','Automação: leitor facial/LPR/tag → motor/quadro via borne SAK','Cabos de automação com estilo visual próprio','Validação de projeto em tempo real']},
+    {ver:'1.0.0',date:'2026-03-04',changes:['MVP inicial com canvas e paleta de dispositivos','Kit Quadro de Conectividade (QCA/QCAC/QCAF)','Cenários predefinidos']},
+  ]
+};
+
+// Scenarios
+export const SCENARIOS = [
+  {id:'condominio',name:'Condomínio',icon:'🏘️',desc:'Residencial, comercial'},
+  {id:'empresa',name:'Empresa/Escritório',icon:'🏢',desc:'Corporativo'},
+  {id:'industria',name:'Indústria/Fábrica',icon:'🏭',desc:'Área fabril'},
+  {id:'comercio',name:'Comércio/Loja',icon:'🏪',desc:'Varejo'},
+  {id:'escola',name:'Escola/Campus',icon:'🎓',desc:'Educacional'},
+  {id:'hospital',name:'Hospital/Clínica',icon:'🏥',desc:'Saúde'},
+  {id:'hotel',name:'Hotel/Pousada',icon:'🏨',desc:'Hospitalidade'},
+  {id:'custom',name:'Personalizado',icon:'⚙️',desc:'Projeto livre'},
+];
+
+// Environment colors
+export const ENV_COLORS = [
+  {name:'Recepção',color:'#3b82f6',bg:'rgba(59,130,246,.08)'},
+  {name:'Corredor',color:'#6b7280',bg:'rgba(107,114,128,.08)'},
+  {name:'Sala Técnica',color:'#ef4444',bg:'rgba(239,68,68,.08)'},
+  {name:'Estacionamento',color:'#f59e0b',bg:'rgba(245,158,11,.08)'},
+  {name:'Perímetro',color:'#10b981',bg:'rgba(16,185,129,.08)'},
+  {name:'Área Comum',color:'#8b5cf6',bg:'rgba(139,92,246,.08)'},
+  {name:'Escritório',color:'#06b6d4',bg:'rgba(6,182,212,.08)'},
+  {name:'Depósito',color:'#78716c',bg:'rgba(120,113,108,.08)'},
+];
