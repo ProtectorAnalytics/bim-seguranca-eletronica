@@ -3,7 +3,7 @@ import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES, ROUTE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
 import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
-import { ENV_COLORS, APP_VERSION } from '@/data/constants';
+import { SCENARIOS, ENV_COLORS, APP_VERSION } from '@/data/constants';
 import { REGRAS } from '@/data/validation-rules';
 import { ICONS } from '@/icons';
 import {
