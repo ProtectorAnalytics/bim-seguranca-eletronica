@@ -331,11 +331,12 @@ const {useState,useMemo,useCallback,useEffect,useRef} = React;
 // VERSION CONTROL
 // ====================================================================
 const APP_VERSION = {
-  major: 3, minor: 9, build: 1,
+  major: 3, minor: 10, build: 0,
   date: '2026-03-07',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.10.0',date:'2026-03-07',changes:['Regra de ocupação de portas RJ45: bloqueia + qty e conexão quando switch está cheio','Cascata automática: diminuir qty da câmera ajusta nvrAssignments proporcionalmente','Fix: double-click nos overlays não ativa mais modo cabo']},
     {ver:'3.9.1',date:'2026-03-07',changes:['Fix crítico: syncUid previne IDs duplicados ao carregar projetos','Migração automática: dedup de dispositivos com IDs collididos','Persistência do auto-assign corrigida']},
     {ver:'3.9.0',date:'2026-03-07',changes:['Sistema de Assignment Câmera↔NVR com capacidade','Badges de capacidade no canvas (NVR canais, Switch portas)','Auto-distribuição por topologia de rede','Painel de canais no NVR e portas no Switch']},
     {ver:'3.6.0',date:'2026-03-07',changes:[
@@ -1485,6 +1486,44 @@ const getCameraUnassigned = (cam) => {
   const assigned=(cam.nvrAssignments||[]).reduce((s,a)=>s+(a.qty||0),0);
   return total-assigned;
 };
+/* ── Port usage for network devices (Switch/NVR RJ45 ports) ── */
+const getPortUsage = (netDevId, devs, conns) => {
+  const netDev=devs.find(d=>d.id===netDevId);
+  if(!netDev) return {capacity:0,used:0,available:0};
+  const capacity=isSwitch(netDev.key)?getSwitchPorts(netDev)
+    :isGravador(netDev.key)?getSwitchPorts(netDev):0; // NVRs also have RJ45 ports (parsed from key or default 0)
+  // Count used: each data cable connection × qty of device on the other end
+  const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+  let used=0;
+  conns.filter(c=>(c.from===netDevId||c.to===netDevId)&&dataTypes.has(c.type))
+    .forEach(c=>{
+      const otherId=c.from===netDevId?c.to:c.from;
+      const other=devs.find(d=>d.id===otherId);
+      if(other) used+=(isCamera(other.key)?(other.qty||1):1);
+    });
+  return {capacity,used,available:capacity-used};
+};
+/* ── Find connected network device(s) for a given device ── */
+const getConnectedNetDevices = (devId, devs, conns) => {
+  const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+  return conns.filter(c=>(c.from===devId||c.to===devId)&&dataTypes.has(c.type))
+    .map(c=>{const oid=c.from===devId?c.to:c.from;return devs.find(d=>d.id===oid);})
+    .filter(d=>d&&(isSwitch(d.key)||isGravador(d.key)));
+};
+/* ── Trim nvrAssignments when camera qty decreases ── */
+const trimNvrAssignments = (cam, newQty) => {
+  const assignments=[...(cam.nvrAssignments||[])];
+  let total=assignments.reduce((s,a)=>s+(a.qty||0),0);
+  if(total<=newQty) return assignments;
+  // Trim from last assignment backwards
+  for(let i=assignments.length-1;i>=0&&total>newQty;i--){
+    const excess=total-newQty;
+    if(assignments[i].qty<=excess){total-=assignments[i].qty;assignments.splice(i,1);}
+    else{assignments[i].qty-=excess;total=newQty;}
+  }
+  return assignments;
+};
+
 const autoAssignCameras = (devs, conns) => {
   const updates=[];
   const nvrs=devs.filter(d=>isGravador(d.key));
@@ -3071,6 +3110,23 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
     });
     if(dupExists){showConnToast('Conexão deste tipo já existe entre estes dispositivos','warn');setCableMode(null);setTool('select');return}
 
+    // Port capacity check for data cables on network devices
+    const dataCableTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+    const chosenCableCheck=type||cableType;
+    if(dataCableTypes.has(chosenCableCheck)){
+      for(const nd of [fromDev,toDev]){
+        if(isSwitch(nd.key)||isGravador(nd.key)){
+          const pu=getPortUsage(nd.id,devices,connections);
+          const otherDev=(nd.id===fromId)?toDev:fromDev;
+          const needed=isCamera(otherDev.key)?(otherDev.qty||1):1;
+          if(pu.available<needed){
+            showConnToast(`${nd.name}: sem portas livres (${pu.used}/${pu.capacity}). Necessário: ${needed}`,'warn');
+            setCableMode(null);setTool('select');return;
+          }
+        }
+      }
+    }
+
     const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
     const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
 
@@ -4249,12 +4305,23 @@ function ProjectApp({project,setProject,undo,redo,onBack}){
                         <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
-                          onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1)updateDevice(dev.id,{qty:cur-1})}}>−</button>
+                          onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1){
+                            const newQty=cur-1;
+                            const trimmed=trimNvrAssignments(dev,newQty);
+                            updateDevice(dev.id,{qty:newQty,nvrAssignments:trimmed});
+                          }}}>−</button>
                         <span style={{fontSize:8,color:'#e2e8f0',fontWeight:700,minWidth:14,textAlign:'center'}}>{dev.qty||1}</span>
                         <button style={{width:14,height:14,fontSize:10,background:'#334155',border:'none',borderRadius:3,
                           color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
-                          onClick={e=>{e.stopPropagation();updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
+                          onClick={e=>{e.stopPropagation();
+                            // Check port availability on connected switch
+                            const netDevs=getConnectedNetDevices(dev.id,devices,connections);
+                            for(const nd of netDevs){
+                              const pu=getPortUsage(nd.id,devices,connections);
+                              if(pu.available<=0){showConnToast(`${nd.name}: sem portas livres (${pu.used}/${pu.capacity})`,'warn');return;}
+                            }
+                            updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
                       </div>
                     )}
                     {/* NVR capacity badge */}
