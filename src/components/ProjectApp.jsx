@@ -57,10 +57,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
   const [rackElevationId,setRackElevationId]=useState(null);
   const [envFilterTag,setEnvFilterTag]=useState(null);
+  const [snapToGrid,setSnapToGrid]=useState(true);
+  const [gridSize]=useState(20); // snap to half-grid (visual grid is 40px)
+  const [multiSelect,setMultiSelect]=useState(new Set()); // multi-selected device IDs
+  const [selectionRect,setSelectionRect]=useState(null); // {startX,startY,x,y} canvas coords for lasso
+  const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
   const [dragging,setDragging]=useState(null);
+  const snap=(v)=>snapToGrid?Math.round(v/gridSize)*gridSize:v;
 
   const floor=project.floors.find(f=>f.id===project.activeFloor);
   const devices=floor?.devices||[];
@@ -103,7 +109,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       config.model=def.model;
     }
 
-    const newDev={id:uid(),key:deviceKey,name:def.name,x:x||200+Math.random()*400,y:y||150+Math.random()*300,
+    const newDev={id:uid(),key:deviceKey,name:def.name,x:snap(x||200+Math.random()*400),y:snap(y||150+Math.random()*300),
       model:selectedModel?.model||'',envId:null,config,props:{...def.props}};
     updateFloor(f=>({...f,devices:[...f.devices,newDev]}));
     setSelectedDevice(newDev.id);
@@ -113,9 +119,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     setTool('select');
   };
 
-  // Move device
+  // Move device (with snap-to-grid)
   const moveDevice=(devId,x,y)=>{
-    updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,x,y}:d)}));
+    updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,x:snap(x),y:snap(y)}:d)}));
   };
 
   // Delete device
@@ -638,8 +644,56 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     } else if(tool==='select'){
       setSelectedDevice(null);
       setSelectedConn(null);
+      if(!e.shiftKey) setMultiSelect(new Set());
     }
   };
+
+  // Lasso selection (mousedown on canvas background)
+  const handleCanvasMouseDown=(e)=>{
+    if(tool!=='select') return;
+    // Only start lasso on direct canvas click (not on devices)
+    if(e.target!==e.currentTarget&&!e.target.closest('.canvas-transform')) return;
+    if(e.target.closest('.device-on-canvas')||e.target.closest('.env-rect')) return;
+    const rect=canvasRef.current?.getBoundingClientRect();
+    if(!rect) return;
+    const cx=(e.clientX-rect.left-pan.x)/zoom;
+    const cy=(e.clientY-rect.top-pan.y)/zoom;
+    setSelectionRect({startX:cx,startY:cy,x:cx,y:cy});
+  };
+
+  // Lasso selection mouse handlers
+  useEffect(()=>{
+    if(!selectionRect) return;
+    const onMove=(e)=>{
+      const rect=canvasRef.current?.getBoundingClientRect();
+      if(!rect) return;
+      const cx=(e.clientX-rect.left-pan.x)/zoom;
+      const cy=(e.clientY-rect.top-pan.y)/zoom;
+      setSelectionRect(r=>r?{...r,x:cx,y:cy}:null);
+    };
+    const onUp=()=>{
+      if(selectionRect){
+        const x1=Math.min(selectionRect.startX,selectionRect.x);
+        const y1=Math.min(selectionRect.startY,selectionRect.y);
+        const x2=Math.max(selectionRect.startX,selectionRect.x);
+        const y2=Math.max(selectionRect.startY,selectionRect.y);
+        // Only select if rectangle has meaningful size
+        if(Math.abs(x2-x1)>10&&Math.abs(y2-y1)>10){
+          const selected=new Set();
+          devices.forEach(d=>{
+            const dcx=d.x+29,dcy=d.y+29; // center of device (R=29)
+            if(dcx>=x1&&dcx<=x2&&dcy>=y1&&dcy<=y2) selected.add(d.id);
+          });
+          setMultiSelect(selected);
+          if(selected.size>0) setSelectedDevice(null);
+        }
+      }
+      setSelectionRect(null);
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+  },[selectionRect,zoom,pan,devices]);
 
   // Compute valid targets when in cable mode
   const validTargets=useMemo(()=>{
@@ -687,6 +741,29 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     if(tool!=='select'&&tool!=='device') return;
     e.stopPropagation();
     e.preventDefault();
+
+    // Shift+click toggles multi-select
+    if(e.shiftKey){
+      setMultiSelect(prev=>{
+        const next=new Set(prev);
+        if(next.has(devId)) next.delete(devId); else next.add(devId);
+        return next;
+      });
+      return;
+    }
+
+    // If device is in multi-select group, drag the entire group
+    if(multiSelect.has(devId)&&multiSelect.size>1){
+      const origPositions=[...multiSelect].map(id=>{
+        const d=devices.find(dev=>dev.id===id);
+        return d?{id,x:d.x,y:d.y}:null;
+      }).filter(Boolean);
+      setGroupDragging({startX:e.clientX,startY:e.clientY,origPositions});
+      return;
+    }
+
+    // Single device drag
+    setMultiSelect(new Set());
     setDragging({id:devId,startX:e.clientX,startY:e.clientY,
       origX:devices.find(d=>d.id===devId)?.x||0,
       origY:devices.find(d=>d.id===devId)?.y||0});
@@ -738,6 +815,24 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     window.addEventListener('mouseup',onUp);
     return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
   },[dragging,zoom]);
+
+  // Group dragging (multi-select)
+  useEffect(()=>{
+    if(!groupDragging) return;
+    const onMove=(e)=>{
+      const dx=(e.clientX-groupDragging.startX)/zoom;
+      const dy=(e.clientY-groupDragging.startY)/zoom;
+      updateFloor(f=>({...f,devices:f.devices.map(d=>{
+        const orig=groupDragging.origPositions.find(o=>o.id===d.id);
+        if(!orig) return d;
+        return {...d,x:snap(orig.x+dx),y:snap(orig.y+dy)};
+      })}));
+    };
+    const onUp=()=>setGroupDragging(null);
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+  },[groupDragging,zoom,snapToGrid]);
 
   // Keyboard shortcuts
   useEffect(()=>{
@@ -851,6 +946,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
               onClick={redo}>↪</button>
           </div>
+          <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
+            <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Snap ativo (clique para desativar)':'Snap desativado (clique para ativar)'}
+              style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
+            <span className="tool-label" style={{fontSize:9,opacity:.7}}>Snap</span>
+          </div>
         </div>
         <div className="sim-toggle">
           <span className="tool-label">Dispositivos: {devices.reduce((s,d)=>s+(d.qty||1),0)}</span>
@@ -940,7 +1040,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         </div>
 
         {/* CANVAS */}
-        <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onWheel={handleWheel}
+        <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onWheel={handleWheel}
           onDragOver={(e)=>{e.preventDefault();e.dataTransfer.dropEffect='copy'}}
           onDrop={(e)=>{
             e.preventDefault();
@@ -1257,10 +1357,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 const inRack=null;
                 return (
                   <div key={dev.id}
-                    className={`device-on-canvas ${selectedDevice===dev.id?'selected':''}`}
+                    className={`device-on-canvas ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
                     style={{left:dev.x,top:dev.y,
                       ...(dev.key==='rack'?{zIndex:1}:{}),
                       ...(inRack?{zIndex:2}:{}),
+                      ...(multiSelect.has(dev.id)?{outline:'2px solid #3498db',outlineOffset:2,borderRadius:10,boxShadow:'0 0 8px rgba(52,152,219,.4)'}:{}),
                       ...(isSource?{outline:'2px solid #f59e0b',outlineOffset:2,borderRadius:10}:{}),
                       ...(targetStatus==='valid'?{outline:'2px solid #22c55e',outlineOffset:2,borderRadius:10,boxShadow:'0 0 12px rgba(34,197,94,.4)'}:{}),
                       ...(targetStatus==='invalid'?{opacity:.35,filter:'grayscale(0.8)'}:{}),
@@ -1416,8 +1517,33 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   </div>
                 );
               })}
+
+              {/* Lasso selection rectangle */}
+              {selectionRect&&(()=>{
+                const x=Math.min(selectionRect.startX,selectionRect.x);
+                const y=Math.min(selectionRect.startY,selectionRect.y);
+                const w=Math.abs(selectionRect.x-selectionRect.startX);
+                const h=Math.abs(selectionRect.y-selectionRect.startY);
+                return <div style={{position:'absolute',left:x,top:y,width:w,height:h,
+                  border:'1.5px dashed #3498db',background:'rgba(52,152,219,0.08)',
+                  pointerEvents:'none',zIndex:100,borderRadius:2}}/>;
+              })()}
             </div>
           </div>
+
+          {/* Multi-select info badge */}
+          {multiSelect.size>1&&(
+            <div style={{position:'absolute',bottom:10,left:'50%',transform:'translateX(-50%)',
+              background:'#3498db',color:'#fff',padding:'6px 16px',borderRadius:20,
+              fontSize:11,fontWeight:600,boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:50,
+              display:'flex',alignItems:'center',gap:8}}>
+              <span>{multiSelect.size} dispositivos selecionados</span>
+              <span style={{fontSize:9,opacity:.8}}>Arraste para mover grupo</span>
+              <button onClick={()=>setMultiSelect(new Set())}
+                style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',
+                  padding:'2px 6px',borderRadius:10,cursor:'pointer',fontSize:10}}>✕</button>
+            </div>
+          )}
 
           {/* Port connection popup */}
           {portPopup&&(()=>{
