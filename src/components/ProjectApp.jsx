@@ -37,7 +37,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
   const [selectedDevice,setSelectedDevice]=useState(null);
-  const [tool,setTool]=useState('select'); // select | device | cable | env | measure
+  const [tool,setTool]=useState('select'); // select | device | cable | env | measure | pan
   const [pendingDevice,setPendingDevice]=useState(null);
   const [cableType,setCableType]=useState('cat6');
   const [routeType,setRouteType]=useState('straight'); // straight | curve | angle
@@ -65,6 +65,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [bgOpacity,setBgOpacity]=useState(0.3);
   const bgFileRef=useRef(null);
   const lassoEndedRef=useRef(false); // prevents click from clearing lasso selection
+  const [isPanning,setIsPanning]=useState(false); // for cursor styling
+  const isPanningRef=useRef(false);
+  const panStartRef=useRef({x:0,y:0,panX:0,panY:0});
+  const prevToolRef=useRef(null); // for space-held temporary pan
   // Layers: toggle visibility of canvas elements
   const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
@@ -685,6 +689,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // Lasso selection (mousedown on canvas background)
   const handleCanvasMouseDown=(e)=>{
+    // Pan tool: left-click starts panning
+    if(tool==='pan'&&e.button===0){
+      e.preventDefault();
+      isPanningRef.current=true;setIsPanning(true);
+      panStartRef.current={x:e.clientX,y:e.clientY,panX:pan.x,panY:pan.y};
+      return;
+    }
     if(tool!=='select') return;
     if(e.button!==0) return; // only left click
     // Only start lasso on direct canvas click (not on devices)
@@ -896,7 +907,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         }
       }
       // Escape: cancel current action
-      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set())}
+      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set())}
+
+      // Tool shortcuts
+      if(!e.ctrlKey&&!e.metaKey){
+        if(e.key==='v'||e.key==='V'){setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
+        if(e.key==='h'||e.key==='H'){setTool('pan');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
+        // Space → temporary pan (hold to pan, release to restore previous tool)
+        if(e.key===' '&&!e.repeat&&tool!=='pan'){
+          e.preventDefault();
+          prevToolRef.current=tool;
+          setTool('pan');
+        }
+      }
 
       // Ctrl shortcuts only
       if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
@@ -904,9 +927,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       if((e.ctrlKey||e.metaKey)&&e.key==='a'){e.preventDefault();setMultiSelect(new Set(devices.map(d=>d.id)));setTool('select')}
       if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print()}
     };
+    const keyupHandler=(e)=>{
+      // Release Space → restore previous tool
+      if(e.key===' '&&prevToolRef.current!==null){
+        setTool(prevToolRef.current);
+        prevToolRef.current=null;
+      }
+    };
     window.addEventListener('keydown',handler);
-    return ()=>window.removeEventListener('keydown',handler);
-  },[selectedDevice,selectedConn,connections,devices,multiSelect]);
+    window.addEventListener('keyup',keyupHandler);
+    return ()=>{window.removeEventListener('keydown',handler);window.removeEventListener('keyup',keyupHandler)};
+  },[selectedDevice,selectedConn,connections,devices,multiSelect,tool]);
 
   // Wheel zoom
   const handleWheel=(e)=>{
@@ -914,6 +945,25 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     const delta=e.deltaY>0?-0.1:0.1;
     setZoom(z=>Math.max(0.3,Math.min(3,z+delta)));
   };
+
+  // Pan drag handlers (middle-click, hand tool, space+drag)
+  useEffect(()=>{
+    const onMove=(e)=>{
+      if(!isPanningRef.current) return;
+      const dx=e.clientX-panStartRef.current.x;
+      const dy=e.clientY-panStartRef.current.y;
+      setPan({x:panStartRef.current.panX+dx,y:panStartRef.current.panY+dy});
+    };
+    const onUp=()=>{
+      if(isPanningRef.current){
+        isPanningRef.current=false;
+        setIsPanning(false);
+      }
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+  },[]);
 
   const selectedDev=devices.find(d=>d.id===selectedDevice);
 
@@ -952,6 +1002,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <div className="tool-group">
           <button className={`tool-btn ${tool==='select'?'active':''}`} title="Selecionar (V)"
             onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}}>🖱️</button>
+          <button className={`tool-btn ${tool==='pan'?'active':''}`} title="Mão / Arrastar (H / Space / Scroll-click)"
+            onClick={()=>{setTool('pan');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}}>✋</button>
           <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear"
             onClick={()=>{setTool('cable');setPendingDevice(null);setMeasureStart(null)}}>🔗</button>
           <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente"
@@ -1187,6 +1239,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
         {/* CANVAS */}
         <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onWheel={handleWheel}
+          onMouseDownCapture={(e)=>{
+            // Middle-click → pan from anywhere (capture phase fires before device handlers)
+            if(e.button===1){e.preventDefault();e.stopPropagation();
+              isPanningRef.current=true;setIsPanning(true);
+              panStartRef.current={x:e.clientX,y:e.clientY,panX:pan.x,panY:pan.y}}
+          }}
+          style={{cursor:isPanning?'grabbing':tool==='pan'?'grab':undefined}}
           onDragOver={(e)=>{e.preventDefault();e.dataTransfer.dropEffect='copy'}}
           onDrop={(e)=>{
             e.preventDefault();
@@ -2696,6 +2755,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <div className="sb-item">
           <span className="shortcut">Delete</span> Excluir
           <span className="shortcut" style={{marginLeft:8}}>Dbl-Click</span> Cabear
+          <span className="shortcut" style={{marginLeft:8}}>H</span> Mão
+          <span className="shortcut" style={{marginLeft:8}}>Space</span> Pan
           <span className="shortcut" style={{marginLeft:8}}>ESC</span> Cancelar
         </div>
       </div>
