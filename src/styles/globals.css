@@ -137,7 +137,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .port-btn .pb-opt{font-size:9px;color:var(--cinza);font-style:italic}
 
 /* Connection lines -- draw.io style */
-.conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
+.conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:4}
 .conn-line-path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .conn-hit-area{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;pointer-events:stroke}
 .conn-g:hover .conn-line-path{stroke-opacity:.85;filter:brightness(1.2)}

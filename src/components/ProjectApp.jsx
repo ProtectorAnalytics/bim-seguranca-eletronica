@@ -1285,7 +1285,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               ))}
 
               {/* Connection lines */}
-              <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none'}}>
+              <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none',zIndex:4}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
                   const R=29;
@@ -1472,7 +1472,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   <div key={'rack-bg-'+rack.id} style={{position:'absolute',left:rack.x-30,top:rack.y-20,
                     width:rackW,height:rackH,background:'#1a1f2e',
                     border:`2px solid ${isSel?'var(--azul2)':'#3b4252'}`,
-                    borderRadius:4,zIndex:0,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
+                    borderRadius:4,zIndex:2,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
                     <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
                       padding:'0 6px',borderBottom:'1px solid #2e3440',pointerEvents:'auto',cursor:'pointer'}}
                       onClick={()=>{setSelectedDevice(rack.id);setRightTab('props')}}>
@@ -1526,7 +1526,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     style={{position:'absolute',left:qd.x-30,top:qd.y-20,width:qW,height:qH,
                       background:'linear-gradient(180deg,#f8fafc,#e2e8f0)',
                       border:`2px solid ${isSel?'var(--azul2)':'#94a3b8'}`,
-                      borderRadius:6,zIndex:0,pointerEvents:'none',boxShadow:'0 2px 12px rgba(0,0,0,.12)'}}>
+                      borderRadius:6,zIndex:2,pointerEvents:'none',boxShadow:'0 2px 12px rgba(0,0,0,.12)'}}>
                     <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
                       padding:'0 8px',borderBottom:'1px solid #cbd5e1'}}>
                       <span style={{fontSize:10,fontWeight:700,color:'#334155'}}>{qd.name}</span>

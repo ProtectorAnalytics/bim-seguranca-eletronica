@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 17, build: 3,
+  major: 3, minor: 17, build: 4,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.17.4',date:'2026-03-09',changes:['Fix: cabos (linhas de conexão) agora sempre renderizam acima dos containers Rack e Quadro de Comando','Fix: z-index explícito no SVG de conexões (z:4) e containers (z:2) para stacking correto']},
     {ver:'3.17.3',date:'2026-03-09',changes:['Ferramenta Mão (✋): arraste o canvas com botão esquerdo no modo Mão','Middle-click: scroll do mouse arrasta o canvas em qualquer ferramenta','Space+drag: segure Espaço para arrastar temporariamente','Atalhos: H=Mão, V=Selecionar, Space=Pan temporário','Cursor grab/grabbing durante arraste']},
     {ver:'3.17.2',date:'2026-03-09',changes:['Fix: seleção por laço (lasso) — SVG de conexões bloqueava mousedown no canvas (pointer-events corrigido)','Fix: click após lasso não limpa mais a seleção dos dispositivos (ref guard no handleCanvasClick)']},
     {ver:'3.17.1',date:'2026-03-09',changes:['Fix: todos os 160 dispositivos agora possuem porta de conexão (⚡ visível para todos)','Fix: interfaces de conexão para todos os tipos — WiFi, MHD, incêndio, S8000, automatizadores, infra','Fix: classificadores de dispositivo corrigidos (isEletrificador, isAutomatizador, isCentralIncendio, isAP, isLuminaria, etc.)','Fix: câmeras WiFi não recebem mais interface PoE incorreta','Fix: seleção por laço (lasso) mais robusta — apenas botão esquerdo, limpa seleção anterior']},
