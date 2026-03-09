@@ -869,9 +869,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Keyboard shortcuts
   useEffect(()=>{
     const handler=(e)=>{
-      // Ignore if user is typing in an input/textarea/select
+      // Ignore if user is typing in an input/textarea/select/button
       const tag=e.target.tagName;
-      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable) return;
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='BUTTON'||e.target.isContentEditable) return;
 
       if(e.key==='Delete'){
         // Delete selected devices (multi or single) or connection
