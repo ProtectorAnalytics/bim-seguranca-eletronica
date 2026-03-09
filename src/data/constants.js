@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 19, build: 2,
+  major: 3, minor: 19, build: 3,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.19.3',date:'2026-03-09',changes:['Calibrar escala da planta de fundo: clique em 2 pontos de referência e informe a distância real','Imagem redimensiona automaticamente para alinhar com a grade 40px=1m','Input manual de escala (0.1x a 20x) e botão de reset','Preview visual: pontos roxos pulsantes e linha tracejada durante calibração','Modal de distância com Enter para confirmar e Escape para cancelar','Compatibilidade: projetos existentes sem bgScale renderizam normalmente']},
     {ver:'3.19.2',date:'2026-03-09',changes:['Ocultar/exibir famílias: botão 👁️ na paleta com popover de toggles para cada família de dispositivos','Gerenciador de famílias no Repositório: aba Padrão com grid de switches para visibilidade','Famílias ocultas não aparecem na paleta lateral nem no filtro de categorias','Persistência em localStorage (bim_hidden_families): configuração mantida entre sessões','Indicador visual: badge de famílias ocultas na paleta com botão "Gerenciar"']},
     {ver:'3.19.1',date:'2026-03-09',changes:['Correção: variantes de resolução restauradas como dispositivos separados (cam_ip_bullet_2mp, _3mp, _4mp são dispositivos distintos)','Catálogo: 74 dispositivos genéricos em 9 famílias com keys originais por resolução/spec','KEY_MIGRATION_MAP simplificado: apenas famílias deletadas → legacy (sem unificações)','Thumbnails restaurados para todos os keys originais das famílias mantidas']},
     {ver:'3.19.0',date:'2026-03-09',changes:['Refatoração do catálogo: 13 famílias removidas (MHD, DVR, HDCVI, Veicular, Alarme, PIR, Eletrificadores, Periféricos, S8000, Incêndio Conv/End/Especiais, Morley, Iluminação Emergência)','Fabricante genérico: todas referências a fabricantes removidas, todos dispositivos com manufacturer:Genérico','Migração automática de projetos legados: dispositivos de famílias deletadas marcados como legado (⚠️)','Novas categorias no repositório de equipamentos: Wi-Fi e Automatizadores','Schemas de specs: novos schemas para Automatizador e Wi-Fi','PDF Export: categorização simplificada sem famílias deletadas','Regras de validação: removidas regras de incêndio e intrusão (famílias deletadas)']},

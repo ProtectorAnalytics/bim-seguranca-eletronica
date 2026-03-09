@@ -38,7 +38,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
   const [selectedDevice,setSelectedDevice]=useState(null);
-  const [tool,setTool]=useState('select'); // select | device | cable | env | measure | pan
+  const [tool,setTool]=useState('select'); // select | device | cable | env | measure | pan | calibrate
   const [pendingDevice,setPendingDevice]=useState(null);
   const [cableType,setCableType]=useState('cat6');
   const [routeType,setRouteType]=useState('straight'); // straight | curve | angle
@@ -75,6 +75,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
+  // Scale calibration
+  const [calibStart,setCalibStart]=useState(null); // {x,y} first calibration point
+  const [calibEnd,setCalibEnd]=useState(null); // {x,y} second calibration point
+  const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
+  const calibInputRef=useRef(null);
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -452,10 +457,23 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     updateFloor(f=>({...f,environments:[...f.environments,newEnv]}));
   };
 
+  // Scale calibration confirm
+  const confirmCalibration=(realMeters)=>{
+    if(!calibStart||!calibEnd||!realMeters||realMeters<=0) return;
+    const dx=calibEnd.x-calibStart.x,dy=calibEnd.y-calibStart.y;
+    const pixelDist=Math.sqrt(dx*dx+dy*dy);
+    if(pixelDist<1) return;
+    const currentScale=floor?.bgScale||1;
+    const newScale=(realMeters*40*currentScale)/pixelDist;
+    const clamped=Math.max(0.1,Math.min(20,newScale));
+    updateFloor(f=>({...f,bgScale:Math.round(clamped*1000)/1000}));
+    setCalibStart(null);setCalibEnd(null);setShowCalibModal(false);setTool('select');
+  };
+
   // Add floor
   const addFloor=()=>{
     const num=project.floors.length;
-    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[]};
+    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[],bgScale:1.0};
     setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
   };
 
@@ -734,6 +752,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         updateFloor(f=>({...f,dimensions:[...(f.dimensions||[]),dim]}));
         setMeasureStart(null);
       }
+    } else if(tool==='calibrate'){
+      // No snap — pixel precision on the background image
+      if(!calibStart){
+        setCalibStart({x:cx,y:cy});
+      } else {
+        setCalibEnd({x:cx,y:cy});
+        setShowCalibModal(true);
+      }
     } else if(tool==='select'){
       // Don't clear selection if a lasso drag just ended
       if(lassoEndedRef.current){lassoEndedRef.current=false;return;}
@@ -963,7 +989,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         }
       }
       // Escape: cancel current action
-      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set())}
+      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set());setCalibStart(null);setCalibEnd(null);setShowCalibModal(false)}
 
       // Tool shortcuts
       if(!e.ctrlKey&&!e.metaKey){
@@ -1225,7 +1251,49 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         }}/>
                       <span style={{fontSize:9,color:'var(--cinza)',minWidth:25}}>{Math.round(bgOpacity*100)}%</span>
                     </div>
-                    <button onClick={()=>{updateFloor(f=>({...f,bgImage:null,bgOpacity:0.3}));setBgOpacity(0.3)}}
+                    {/* Scale calibration UI */}
+                    <div style={{background:'rgba(142,68,173,.06)',border:'1px solid rgba(142,68,173,.2)',borderRadius:5,padding:8,marginBottom:6}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:9,fontWeight:700,color:'#8e44ad'}}>📐 Escala</span>
+                        <span style={{fontSize:9,color:'#64748b',fontWeight:600}}>{(floor?.bgScale||1).toFixed(2)}x</span>
+                      </div>
+                      <div style={{display:'flex',gap:4,marginBottom:4}}>
+                        <button onClick={()=>{setCalibStart(null);setCalibEnd(null);setShowCalibModal(false);setTool('calibrate')}}
+                          style={{flex:1,padding:'5px 6px',fontSize:9,fontWeight:600,cursor:'pointer',
+                            background:tool==='calibrate'?'#8e44ad':'rgba(142,68,173,.1)',
+                            color:tool==='calibrate'?'#fff':'#8e44ad',
+                            border:`1px solid ${tool==='calibrate'?'#8e44ad':'rgba(142,68,173,.3)'}`,borderRadius:4,transition:'.15s'}}>
+                          {tool==='calibrate'?(calibStart?'🎯 Clique ponto 2':'🎯 Clique ponto 1'):'📐 Calibrar'}
+                        </button>
+                        {(floor?.bgScale||1)!==1&&(
+                          <button onClick={()=>updateFloor(f=>({...f,bgScale:1.0}))}
+                            style={{padding:'5px 8px',fontSize:9,fontWeight:600,cursor:'pointer',
+                              background:'rgba(239,68,68,.08)',color:'#ef4444',
+                              border:'1px solid rgba(239,68,68,.25)',borderRadius:4}}>
+                            Resetar
+                          </button>
+                        )}
+                      </div>
+                      {/* Manual scale input */}
+                      <div style={{display:'flex',alignItems:'center',gap:4}}>
+                        <span style={{fontSize:8,color:'#94a3b8',minWidth:38}}>Manual:</span>
+                        <input type="number" min="0.1" max="20" step="0.01"
+                          value={floor?.bgScale||1}
+                          onChange={e=>{
+                            const v=parseFloat(e.target.value);
+                            if(!isNaN(v)&&v>=0.1&&v<=20) updateFloor(f=>({...f,bgScale:Math.round(v*1000)/1000}));
+                          }}
+                          style={{flex:1,padding:'3px 6px',fontSize:9,border:'1px solid #d1d5db',borderRadius:3,
+                            background:'#fff',color:'#374151',width:0}}/>
+                      </div>
+                      {tool==='calibrate'&&(
+                        <div style={{marginTop:4,fontSize:8,color:'#8e44ad',fontStyle:'italic',lineHeight:1.3}}>
+                          {!calibStart?'Clique no primeiro ponto de referência na planta':
+                           !calibEnd?'Agora clique no segundo ponto de referência':'Informe a distância real...'}
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={()=>{updateFloor(f=>({...f,bgImage:null,bgOpacity:0.3,bgScale:1.0}));setBgOpacity(0.3)}}
                       style={{width:'100%',padding:'4px 8px',fontSize:10,background:'#fdecea',color:'#e74c3c',
                         border:'1px solid #e74c3c',borderRadius:4,cursor:'pointer'}}>
                       🗑️ Remover planta
@@ -1249,7 +1317,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         if(file.size>10*1024*1024){alert('Imagem muito grande (máx 10MB)');return}
                         const reader=new FileReader();
                         reader.onload=ev=>{
-                          updateFloor(f=>({...f,bgImage:ev.target.result,bgOpacity:bgOpacity}));
+                          updateFloor(f=>({...f,bgImage:ev.target.result,bgOpacity:bgOpacity,bgScale:1.0}));
                         };
                         reader.readAsDataURL(file);
                         e.target.value='';
@@ -1326,7 +1394,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               {/* Background floor plan image */}
               {layers.bg&&floor?.bgImage&&(
                 <img src={floor.bgImage} alt="Planta de fundo"
-                  style={{position:'absolute',top:0,left:0,width:2000,height:2000,
+                  style={{position:'absolute',top:0,left:0,
+                    width:2000*(floor.bgScale||1),height:2000*(floor.bgScale||1),
                     objectFit:'contain',objectPosition:'top left',
                     opacity:bgOpacity,pointerEvents:'none',userSelect:'none',zIndex:0}}
                   draggable={false}/>
@@ -1823,6 +1892,23 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     <circle cx={measureStart.x} cy={measureStart.y} r={5} fill="#e74c3c" opacity={0.7}>
                       <animate attributeName="r" values="5;8;5" dur="1s" repeatCount="indefinite"/>
                     </circle>
+                  )}
+                  {/* Calibration preview: purple dots + dashed line */}
+                  {tool==='calibrate'&&calibStart&&(
+                    <>
+                      <circle cx={calibStart.x} cy={calibStart.y} r={6} fill="#8e44ad" opacity={0.8}>
+                        <animate attributeName="r" values="6;10;6" dur="1.2s" repeatCount="indefinite"/>
+                      </circle>
+                      {calibEnd&&(
+                        <>
+                          <line x1={calibStart.x} y1={calibStart.y} x2={calibEnd.x} y2={calibEnd.y}
+                            stroke="#8e44ad" strokeWidth={2} strokeDasharray="6 3" opacity={0.7}/>
+                          <circle cx={calibEnd.x} cy={calibEnd.y} r={6} fill="#8e44ad" opacity={0.8}>
+                            <animate attributeName="r" values="6;10;6" dur="1.2s" repeatCount="indefinite"/>
+                          </circle>
+                        </>
+                      )}
+                    </>
                   )}
                 </svg>
               )}
@@ -2701,6 +2787,46 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         onSave={saveCustomDevice} onDelete={deleteCustomDevice}
         onClose={()=>setShowEquipmentRepo(false)}
         onRefreshDefaults={()=>setDefRefreshKey(k=>k+1)}/>}
+
+      {/* CALIBRATION DISTANCE MODAL */}
+      {showCalibModal&&calibStart&&calibEnd&&(()=>{
+        const dx=calibEnd.x-calibStart.x,dy=calibEnd.y-calibStart.y;
+        const pixelDist=Math.sqrt(dx*dx+dy*dy);
+        const currentScale=floor?.bgScale||1;
+        const currentMeters=(pixelDist/(40*currentScale)).toFixed(2);
+        return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={e=>{if(e.target===e.currentTarget){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:340,boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+            <div style={{fontSize:14,fontWeight:700,color:'#8e44ad',marginBottom:4}}>📐 Calibrar Escala</div>
+            <div style={{fontSize:10,color:'#64748b',marginBottom:16,lineHeight:1.4}}>
+              Distância medida na imagem: <b>{currentMeters}m</b> (escala atual)
+              <br/>Informe a distância real entre os dois pontos marcados.
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:10,fontWeight:600,color:'#374151',marginBottom:4,display:'block'}}>Distância real (metros)</label>
+              <input ref={calibInputRef} type="number" min="0.1" step="0.1" autoFocus
+                defaultValue=""
+                placeholder="Ex: 12.5"
+                onKeyDown={e=>{if(e.key==='Enter'){const v=parseFloat(e.target.value);if(v>0)confirmCalibration(v)}
+                  if(e.key==='Escape'){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}
+                style={{width:'100%',padding:'10px 12px',fontSize:14,border:'2px solid #8e44ad',borderRadius:8,
+                  outline:'none',boxSizing:'border-box'}}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}
+                style={{flex:1,padding:'8px 12px',fontSize:11,fontWeight:600,background:'#f1f5f9',color:'#64748b',
+                  border:'1px solid #d1d5db',borderRadius:6,cursor:'pointer'}}>
+                Cancelar
+              </button>
+              <button onClick={()=>{const v=parseFloat(calibInputRef.current?.value);if(v>0)confirmCalibration(v);else calibInputRef.current?.focus()}}
+                style={{flex:1,padding:'8px 12px',fontSize:11,fontWeight:600,background:'#8e44ad',color:'#fff',
+                  border:'none',borderRadius:6,cursor:'pointer'}}>
+                ✅ Aplicar Escala
+              </button>
+            </div>
+          </div>
+        </div>;
+      })()}
 
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}

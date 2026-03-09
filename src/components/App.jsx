@@ -108,7 +108,7 @@ export default function App(){
       name:clientData.projetoNome||'Novo Projeto',
       scenario,
       client:{...clientData},
-      floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[],racks:[]}],
+      floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[],racks:[],bgScale:1.0}],
       activeFloor:'f1',
       settings:{taxRate:0,additionalFees:[]},
     };
