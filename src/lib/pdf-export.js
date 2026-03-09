@@ -44,11 +44,13 @@ function drawFooter(doc) {
 }
 
 // ── Main export function ───────────────────────────
-export async function exportProjectPDF({ project, bom, allDevices, connections, options = {} }) {
+export async function exportProjectPDF({ project, bom, allDevices, connections, validationResults = [], options = {} }) {
   const {
     includeEquipment = true,
     includeTopology = true,
     includeFloorplan = true,
+    includeSummary = true,
+    includeValidation = true,
     author = 'Protector Sistemas',
     company = 'Protector Sistemas',
   } = options;
@@ -177,7 +179,141 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
 
   drawFooter(doc);
 
-  // ── PAGE 2+: BOM (Bill of Materials) ─────────────
+  // ── PAGE 2: Executive Summary ────────────────────
+  if (includeSummary) {
+    doc.addPage();
+    currentPage++;
+
+    drawHeader(doc, project.name || '', currentPage, '?');
+
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Executivo', 14, 30);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COLORS.gray);
+    doc.text('Visão geral do projeto de segurança eletrônica', 14, 36);
+
+    let sy = 44;
+
+    // ── Contagem por categoria ──
+    doc.setFillColor(...COLORS.lightGray);
+    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Equipamentos por Categoria', 20, sy + 2);
+    sy += 10;
+
+    // Group devices by category
+    const catCounts = {};
+    allDevices.forEach(d => {
+      const k = d.key || '';
+      let cat = 'Outros';
+      if (k.startsWith('cam_')) cat = 'CFTV — Câmeras';
+      else if (k.startsWith('nvr_') || k.startsWith('dvr_') || k === 'nvr') cat = 'CFTV — Gravadores';
+      else if (k.startsWith('sw_') || k === 'router') cat = 'Rede';
+      else if (k.startsWith('ap_')) cat = 'WiFi';
+      else if (k.startsWith('alarme_') || k.startsWith('pir_') || k.startsWith('barreira_') || k === 'sensor_abertura' || k.startsWith('sirene_') || k.startsWith('teclado_') || k.startsWith('comunicador_') || k.startsWith('expansor_') || k.startsWith('receptor_') || k.startsWith('controle_')) cat = 'Intrusão / Alarme';
+      else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_')) cat = 'Controle de Acesso';
+      else if (k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_')) cat = 'Incêndio';
+      else if (k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor') cat = 'Automatização';
+      else if (k.startsWith('eletrif_')) cat = 'Cerca Elétrica';
+      else if (k === 'nobreak_ac' || k === 'nobreak_dc' || k === 'fonte' || k === 'bateria_ext' || k === 'modulo_bat') cat = 'Energia';
+      else if (k === 'rack' || k === 'quadro' || k === 'quadro_eletrico' || k === 'dio' || k === 'borne_sak') cat = 'Infraestrutura';
+      else if (k.startsWith('lumin_')) cat = 'Iluminação';
+      if (!catCounts[cat]) catCounts[cat] = 0;
+      catCounts[cat]++;
+    });
+
+    const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+    doc.setFontSize(9);
+    catEntries.forEach(([cat, count]) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...COLORS.dark);
+      doc.text(`• ${cat}`, 22, sy);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.primary);
+      doc.text(String(count), 100, sy);
+      sy += 5.5;
+    });
+
+    // Total
+    sy += 2;
+    doc.setDrawColor(...COLORS.lightGray);
+    doc.line(22, sy - 3, 110, sy - 3);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(10);
+    doc.text(`Total: ${allDevices.length} dispositivos`, 22, sy + 1);
+    sy += 12;
+
+    // ── Cabeamento ──
+    const totalCableM = connections.reduce((a, c) => a + (c.distance || 0), 0);
+    doc.setFillColor(...COLORS.lightGray);
+    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cabeamento', 20, sy + 2);
+    sy += 10;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`• Total de conexões: ${connections.length}`, 22, sy);
+    sy += 5.5;
+    doc.text(`• Metragem total estimada: ${totalCableM}m`, 22, sy);
+    sy += 5.5;
+
+    const cableTypes = {};
+    connections.forEach(c => {
+      const ct = CABLE_TYPES.find(t => t.id === c.type);
+      const name = ct?.name || c.type;
+      if (!cableTypes[name]) cableTypes[name] = { count: 0, meters: 0 };
+      cableTypes[name].count++;
+      cableTypes[name].meters += c.distance || 0;
+    });
+    Object.entries(cableTypes).sort((a, b) => b[1].meters - a[1].meters).forEach(([name, data]) => {
+      doc.text(`  → ${name}: ${data.count} lances, ${data.meters}m`, 22, sy);
+      sy += 5;
+    });
+    sy += 6;
+
+    // ── Validações resumo ──
+    doc.setFillColor(...COLORS.lightGray);
+    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Status de Validação', 20, sy + 2);
+    sy += 10;
+
+    const activeAlerts = validationResults.filter(v => v.msg);
+    doc.setFontSize(9);
+    if (activeAlerts.length === 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.green);
+      doc.text('OK — Nenhum alerta ativo. Projeto dentro das boas práticas.', 22, sy);
+    } else {
+      const criticas = activeAlerts.filter(v => v.sev === 'CRÍTICA').length;
+      const altas = activeAlerts.filter(v => v.sev === 'ALTA').length;
+      const obrig = activeAlerts.filter(v => v.sev === 'OBRIGATÓRIA').length;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...COLORS.dark);
+      if (criticas) { doc.setTextColor(231, 76, 60); doc.text(`• ${criticas} alerta(s) CRÍTICA(S)`, 22, sy); sy += 5.5; }
+      if (altas) { doc.setTextColor(243, 156, 18); doc.text(`• ${altas} alerta(s) ALTA(S)`, 22, sy); sy += 5.5; }
+      if (obrig) { doc.setTextColor(...COLORS.orange); doc.text(`• ${obrig} alerta(s) OBRIGATÓRIA(S)`, 22, sy); sy += 5.5; }
+      doc.setTextColor(...COLORS.gray);
+      doc.setFontSize(8);
+      doc.text('Veja a seção de Validação para detalhes completos.', 22, sy + 2);
+    }
+
+    drawFooter(doc);
+  }
+
+  // ── PAGE: BOM (Bill of Materials) ──────────────────
   if (includeEquipment && bom.length > 0) {
     doc.addPage();
     currentPage++;
@@ -430,6 +566,83 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     });
 
     drawFooter(doc);
+  }
+
+  // ── PAGE: Validation Alerts ───────────────────────
+  if (includeValidation && validationResults.length > 0) {
+    const activeAlerts = validationResults.filter(v => v.msg);
+    // Only add section if there are actual alerts
+    if (activeAlerts.length > 0) {
+      doc.addPage();
+      currentPage++;
+
+      drawHeader(doc, project.name || '', currentPage, '?');
+
+      doc.setTextColor(...COLORS.dark);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Alertas de Validação', 14, 30);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...COLORS.gray);
+      doc.text(`${activeAlerts.length} alerta(s) detectado(s) no projeto`, 14, 36);
+
+      const sevColors = {
+        'CRÍTICA': [231, 76, 60],
+        'ALTA': [243, 156, 18],
+        'OBRIGATÓRIA': [230, 126, 34],
+      };
+      const sevIcons = {
+        'CRÍTICA': 'CRITICA',
+        'ALTA': 'ALTA',
+        'OBRIGATÓRIA': 'OBRIG.',
+      };
+
+      doc.autoTable({
+        startY: 42,
+        head: [['Sev.', 'Categoria', 'Regra', 'Problema Detectado']],
+        body: activeAlerts.map(v => [
+          sevIcons[v.sev] || v.sev,
+          v.cat || '',
+          v.regra || '',
+          v.msg || '',
+        ]),
+        styles: { fontSize: 7, cellPadding: 2.5, lineColor: [220, 220, 220], lineWidth: 0.1 },
+        headStyles: { fillColor: COLORS.dark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
+        alternateRowStyles: { fillColor: [248, 249, 250] },
+        columnStyles: {
+          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 55 },
+          3: { cellWidth: 75, fontSize: 6.5 },
+        },
+        margin: { left: 14, right: 14 },
+        didDrawCell: (data) => {
+          // Color the severity cell background
+          if (data.section === 'body' && data.column.index === 0) {
+            const sev = activeAlerts[data.row.index]?.sev;
+            const color = sevColors[sev];
+            if (color) {
+              doc.setFillColor(...color);
+              doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(6);
+              doc.setFont('helvetica', 'bold');
+              doc.text(
+                sevIcons[sev] || sev,
+                data.cell.x + data.cell.width / 2,
+                data.cell.y + data.cell.height / 2 + 1,
+                { align: 'center' }
+              );
+            }
+          }
+        },
+        didDrawPage: () => drawFooter(doc),
+      });
+
+      drawFooter(doc);
+    }
   }
 
   // ── Update page numbers ──────────────────────────

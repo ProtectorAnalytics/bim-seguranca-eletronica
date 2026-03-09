@@ -1,19 +1,28 @@
 import React, { useState, useRef } from 'react';
 import { APP_VERSION } from '@/data/constants';
+import { exportBomCSV } from '@/lib/csv-export';
 
-export default function ExportModal({project, bom, allDevices, connections, onClose, onImport}){
+export default function ExportModal({project, bom, allDevices, connections, validationResults=[], onClose, onImport}){
   const [tab, setTab] = useState('export'); // export | import
-  const [checks, setChecks] = useState({equipment:true, topology:true, floorplan:true});
+  const [checks, setChecks] = useState({equipment:true, topology:true, floorplan:true, summary:true, validation:true});
   const [author, setAuthor] = useState('Protector Sistemas');
   const [company, setCompany] = useState('Protector Sistemas');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfResult, setPdfResult] = useState(null);
+  const [pngLoading, setPngLoading] = useState(false);
+  const [pngResult, setPngResult] = useState(null);
+  const [pngWhiteBg, setPngWhiteBg] = useState(false);
+  const [csvResult, setCsvResult] = useState(null);
   const [importError, setImportError] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
 
   const toggle = (k) => setChecks(c=>({...c,[k]:!c[k]}));
+
+  // Active floor info
+  const activeFloor = project.floors?.find(f => f.id === project.activeFloor);
+  const floorName = activeFloor?.name || '';
 
   // ── Export JSON ──────────────────────────────────
   const handleExportJSON = () => {
@@ -49,6 +58,41 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // ── Export PNG ──────────────────────────────────
+  const handleExportPNG = async () => {
+    setPngLoading(true); setPngResult(null);
+    try {
+      const { exportCanvasPNG } = await import('@/lib/png-export');
+      const result = await exportCanvasPNG({
+        projectName: project.name,
+        floorName,
+        whiteBg: pngWhiteBg,
+      });
+      setPngResult({ success: true, fileName: result.fileName });
+    } catch (err) {
+      console.error('PNG export error:', err);
+      setPngResult({ success: false, error: err.message });
+    } finally { setPngLoading(false); }
+  };
+
+  // ── Export CSV ──────────────────────────────────
+  const handleExportCSV = () => {
+    setCsvResult(null);
+    try {
+      const result = exportBomCSV({
+        projectName: project.name,
+        bom,
+        allDevices,
+        connections,
+        floors: project.floors || [],
+      });
+      setCsvResult({ success: true, fileName: result.fileName, rows: result.rows });
+    } catch (err) {
+      console.error('CSV export error:', err);
+      setCsvResult({ success: false, error: err.message });
+    }
   };
 
   // ── Import JSON ──────────────────────────────────
@@ -138,9 +182,17 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
     transition: '.15s'
   });
 
+  const btnStyle = (bg, hoverBg, loading) => ({
+    width:'100%',padding:'8px 12px',
+    background: loading ? '#95a5a6' : bg,
+    color:'#fff',border:'none',borderRadius:5,
+    cursor: loading ? 'wait' : 'pointer',
+    fontWeight:600,fontSize:12,transition:'.15s'
+  });
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:500,maxHeight:'90vh',overflowY:'auto'}}>
         <h3>📋 Projeto: Exportar / Importar</h3>
 
         {/* Tabs */}
@@ -168,15 +220,13 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
             </div>
 
             {/* JSON Export */}
-            <div style={{background:'#f0faf0', border:'1px solid #27ae60', borderRadius:6, padding:12, marginBottom:14}}>
+            <div style={{background:'#f0faf0', border:'1px solid #27ae60', borderRadius:6, padding:12, marginBottom:10}}>
               <div style={{fontWeight:600, fontSize:13, color:'#27ae60', marginBottom:6}}>💾 Backup JSON</div>
               <div style={{fontSize:11, color:'#666', marginBottom:8}}>
-                Salva todos os dados do projeto em um arquivo JSON. Inclui pavimentos, dispositivos, conexões, ambientes e dados do cliente.
-                Ideal para backup e restauração.
+                Salva todos os dados do projeto. Ideal para backup e restauração.
               </div>
               <button onClick={handleExportJSON}
-                style={{width:'100%',padding:'8px 12px',background:'#27ae60',color:'#fff',border:'none',
-                  borderRadius:5,cursor:'pointer',fontWeight:600,fontSize:12,transition:'.15s'}}
+                style={btnStyle('#27ae60','#219a52',false)}
                 onMouseOver={e=>e.currentTarget.style.background='#219a52'}
                 onMouseOut={e=>e.currentTarget.style.background='#27ae60'}>
                 ⬇️ Baixar Backup (.json)
@@ -184,24 +234,34 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
             </div>
 
             {/* PDF Export */}
-            <div style={{background:'#ebf5fb', border:'1px solid #3498db', borderRadius:6, padding:12}}>
+            <div style={{background:'#ebf5fb', border:'1px solid #3498db', borderRadius:6, padding:12, marginBottom:10}}>
               <div style={{fontWeight:600, fontSize:13, color:'#3498db', marginBottom:6}}>📄 Relatório PDF</div>
               <div style={{fontSize:11, color:'#666', marginBottom:8}}>
-                Gera relatório profissional com capa, lista de materiais, topologia e captura da planta.
+                Relatório profissional com capa, resumo executivo, BOM, topologia, planta e validações.
               </div>
-              <div className="mc-row" style={{marginBottom:4}}>
-                <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
-                <label onClick={()=>toggle('equipment')} style={{fontSize:11}}>Lista de Materiais (BOM)</label>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 12px',marginBottom:6}}>
+                <div className="mc-row" style={{marginBottom:2}}>
+                  <input type="checkbox" checked={checks.summary} onChange={()=>toggle('summary')}/>
+                  <label onClick={()=>toggle('summary')} style={{fontSize:11}}>Resumo Executivo</label>
+                </div>
+                <div className="mc-row" style={{marginBottom:2}}>
+                  <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
+                  <label onClick={()=>toggle('equipment')} style={{fontSize:11}}>Lista de Materiais</label>
+                </div>
+                <div className="mc-row" style={{marginBottom:2}}>
+                  <input type="checkbox" checked={checks.topology} onChange={()=>toggle('topology')}/>
+                  <label onClick={()=>toggle('topology')} style={{fontSize:11}}>Topologia de Rede</label>
+                </div>
+                <div className="mc-row" style={{marginBottom:2}}>
+                  <input type="checkbox" checked={checks.floorplan} onChange={()=>toggle('floorplan')}/>
+                  <label onClick={()=>toggle('floorplan')} style={{fontSize:11}}>Planta do Pavimento</label>
+                </div>
+                <div className="mc-row" style={{marginBottom:2}}>
+                  <input type="checkbox" checked={checks.validation} onChange={()=>toggle('validation')}/>
+                  <label onClick={()=>toggle('validation')} style={{fontSize:11}}>Alertas de Validação</label>
+                </div>
               </div>
-              <div className="mc-row" style={{marginBottom:4}}>
-                <input type="checkbox" checked={checks.topology} onChange={()=>toggle('topology')}/>
-                <label onClick={()=>toggle('topology')} style={{fontSize:11}}>Topologia de Rede</label>
-              </div>
-              <div className="mc-row" style={{marginBottom:4}}>
-                <input type="checkbox" checked={checks.floorplan} onChange={()=>toggle('floorplan')}/>
-                <label onClick={()=>toggle('floorplan')} style={{fontSize:11}}>Planta por Pavimento (captura do canvas)</label>
-              </div>
-              <div style={{display:'flex',gap:8,marginTop:8,marginBottom:8}}>
+              <div style={{display:'flex',gap:8,marginBottom:8}}>
                 <div style={{flex:1}}>
                   <div style={{fontSize:9,color:'#888',marginBottom:2}}>Autor</div>
                   <input value={author} onChange={e=>setAuthor(e.target.value)}
@@ -217,9 +277,10 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
                   setPdfLoading(true);setPdfResult(null);
                   try{
                     const {exportProjectPDF}=await import('@/lib/pdf-export');
-                    const result=await exportProjectPDF({project,bom,allDevices,connections,options:{
+                    const result=await exportProjectPDF({project,bom,allDevices,connections,validationResults,options:{
                       includeEquipment:checks.equipment,includeTopology:checks.topology,
-                      includeFloorplan:checks.floorplan,author,company}});
+                      includeFloorplan:checks.floorplan,includeSummary:checks.summary,
+                      includeValidation:checks.validation,author,company}});
                     setPdfResult({success:true,pages:result.pages,fileName:result.fileName});
                   }catch(err){
                     console.error('PDF export error:',err);
@@ -227,8 +288,7 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
                   }finally{setPdfLoading(false)}
                 }}
                 disabled={pdfLoading}
-                style={{width:'100%',padding:'8px 12px',background:pdfLoading?'#95a5a6':'#3498db',color:'#fff',border:'none',
-                  borderRadius:5,cursor:pdfLoading?'wait':'pointer',fontWeight:600,fontSize:12,transition:'.15s'}}
+                style={btnStyle('#3498db','#2980b9',pdfLoading)}
                 onMouseOver={e=>{if(!pdfLoading)e.currentTarget.style.background='#2980b9'}}
                 onMouseOut={e=>{if(!pdfLoading)e.currentTarget.style.background='#3498db'}}>
                 {pdfLoading?'⏳ Gerando PDF...':'📄 Gerar e Baixar PDF'}
@@ -243,6 +303,57 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
                   ❌ Erro: {pdfResult.error}
                 </div>
               )}
+            </div>
+
+            {/* PNG + CSV section */}
+            <div style={{display:'flex',gap:8}}>
+              {/* PNG Export */}
+              <div style={{flex:1,background:'#fef9ef',border:'1px solid #f39c12',borderRadius:6,padding:10}}>
+                <div style={{fontWeight:600, fontSize:12, color:'#f39c12', marginBottom:4}}>📷 Imagem PNG</div>
+                <div style={{fontSize:10, color:'#666', marginBottom:6}}>
+                  Captura da planta{floorName?` (${floorName})`:''} como imagem.
+                </div>
+                <div className="mc-row" style={{marginBottom:6}}>
+                  <input type="checkbox" checked={pngWhiteBg} onChange={()=>setPngWhiteBg(v=>!v)}/>
+                  <label onClick={()=>setPngWhiteBg(v=>!v)} style={{fontSize:10}}>Fundo branco</label>
+                </div>
+                <button onClick={handleExportPNG}
+                  disabled={pngLoading}
+                  style={{...btnStyle('#f39c12','#e67e22',pngLoading),fontSize:11,padding:'6px 10px'}}
+                  onMouseOver={e=>{if(!pngLoading)e.currentTarget.style.background='#e67e22'}}
+                  onMouseOut={e=>{if(!pngLoading)e.currentTarget.style.background='#f39c12'}}>
+                  {pngLoading?'⏳ Capturando...':'📷 Baixar PNG'}
+                </button>
+                {pngResult&&pngResult.success&&(
+                  <div style={{marginTop:4,fontSize:9,color:'#27ae60',fontWeight:600}}>✅ {pngResult.fileName}</div>
+                )}
+                {pngResult&&!pngResult.success&&(
+                  <div style={{marginTop:4,fontSize:9,color:'#e74c3c'}}>❌ {pngResult.error}</div>
+                )}
+              </div>
+
+              {/* CSV Export */}
+              <div style={{flex:1,background:'#f0fdf4',border:'1px solid #22c55e',borderRadius:6,padding:10}}>
+                <div style={{fontWeight:600, fontSize:12, color:'#22c55e', marginBottom:4}}>📊 BOM CSV</div>
+                <div style={{fontSize:10, color:'#666', marginBottom:6}}>
+                  Lista de materiais para Excel/planilha.
+                </div>
+                <div style={{fontSize:9,color:'#888',marginBottom:6}}>
+                  {bom.length} itens · sep: ponto-e-vírgula
+                </div>
+                <button onClick={handleExportCSV}
+                  style={{...btnStyle('#22c55e','#16a34a',false),fontSize:11,padding:'6px 10px'}}
+                  onMouseOver={e=>e.currentTarget.style.background='#16a34a'}
+                  onMouseOut={e=>e.currentTarget.style.background='#22c55e'}>
+                  📊 Baixar CSV
+                </button>
+                {csvResult&&csvResult.success&&(
+                  <div style={{marginTop:4,fontSize:9,color:'#27ae60',fontWeight:600}}>✅ {csvResult.fileName}</div>
+                )}
+                {csvResult&&!csvResult.success&&(
+                  <div style={{marginTop:4,fontSize:9,color:'#e74c3c'}}>❌ {csvResult.error}</div>
+                )}
+              </div>
             </div>
           </>
         )}
