@@ -19,6 +19,7 @@ export default function DeviceCatalog({search, setSearch, collapsedCats, toggleC
       {DEVICE_LIB.map(cat=>{
         const filtered=cat.items.filter(i=>{
           if(hiddenSet.has(i.key)) return false;
+          if(i.deprecated) return false;
           const displayName=overrides[i.key]?.name||i.name;
           if(search&&!displayName.toLowerCase().includes(search.toLowerCase())&&!i.key.includes(search.toLowerCase())) return false;
           return true;

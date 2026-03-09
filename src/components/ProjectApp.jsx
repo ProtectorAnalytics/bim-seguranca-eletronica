@@ -27,11 +27,12 @@ import ExportModal from './ExportModal';
 import EquipmentRepoModal from './EquipmentRepoModal';
 import DeviceCatalog from './DeviceCatalog';
 import CablePropertiesPanel from './CablePropertiesPanel';
-import RackElevationModal from './RackElevationModal';
+import RackPanel from './RackPanel';
 import EnvironmentFilterBar from './EnvironmentFilterBar';
 import ValidationPanel from './ValidationPanel';
 import TopologyPanel from './TopologyPanel';
 import EquipmentPanel from './EquipmentPanel';
+import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
@@ -55,7 +56,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
-  const [rackElevationId,setRackElevationId]=useState(null);
+  const [selectedRackId,setSelectedRackId]=useState(null);
   const [envFilterTag,setEnvFilterTag]=useState(null);
   const [snapToGrid,setSnapToGrid]=useState(true);
   const [gridSize]=useState(20); // snap to half-grid (visual grid is 40px)
@@ -85,9 +86,21 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const connections=floor?.connections||[];
   const environments=floor?.environments||[];
   const dimensions=floor?.dimensions||[];
+  const racks=floor?.racks||[];
 
   // Sync bgOpacity when floor changes
   useEffect(()=>{setBgOpacity(floor?.bgOpacity??0.3)},[project.activeFloor]);
+
+  // Migrate legacy rack devices → floor.racks[]
+  useEffect(()=>{
+    if(!floor) return;
+    if(floor.devices.some(d=>d.key==='rack')){
+      const result=migrateRackDevices(floor);
+      if(result){
+        updateFloor(f=>({...f,racks:result.racks,devices:result.devices}));
+      }
+    }
+  },[project.activeFloor]);
 
   // Update floor data helper
   const updateFloor=(updater)=>{
@@ -442,8 +455,46 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Add floor
   const addFloor=()=>{
     const num=project.floors.length;
-    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[]};
+    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[]};
     setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
+  };
+
+  // ── Rack CRUD ──────────────────────────────────────────────────────
+  const addRack=(overrides={})=>{
+    const rack=createRack({...overrides,_existingTags:racks.map(r=>r.tag)});
+    updateFloor(f=>({...f,racks:[...(f.racks||[]),rack]}));
+    setSelectedRackId(rack.id);
+    setRightTab('rack');
+  };
+  const updateRack=(rackId,updates)=>{
+    updateFloor(f=>({...f,racks:(f.racks||[]).map(r=>r.id===rackId?{...r,...updates}:r)}));
+  };
+  const deleteRack=(rackId)=>{
+    // Unassign all devices from this rack
+    updateFloor(f=>({
+      ...f,
+      racks:(f.racks||[]).filter(r=>r.id!==rackId),
+      devices:f.devices.map(d=>d.parentRack===rackId?{...d,parentRack:null,rackSlot:null}:d)
+    }));
+    if(selectedRackId===rackId) setSelectedRackId(null);
+  };
+  const assignDeviceToRackAction=(deviceId,rackId)=>{
+    const rack=racks.find(r=>r.id===rackId);
+    const device=devices.find(d=>d.id===deviceId);
+    if(!rack||!device) return;
+    const slot=calcSlot(rack,device,devices);
+    if(slot>=0){
+      updateDevice(deviceId,{parentRack:rackId,rackSlot:slot});
+      showConnToast(`${device.name} montado em ${rack.name} (U${slot+1})`,'success');
+    }else{
+      showConnToast(`Sem espaço em ${rack.name} para ${device.name}`,'warn');
+    }
+  };
+  const unassignDeviceFromRack=(deviceId)=>{
+    const device=devices.find(d=>d.id===deviceId);
+    if(!device) return;
+    updateDevice(deviceId,{parentRack:null,rackSlot:null});
+    showConnToast(`${device.name} removido do rack`,'info');
   };
 
   // Smart Auto Cable — uses CONNECTION_RULES engine + device classification helpers
@@ -597,10 +648,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Validation (now passes connections too for power/cable checks)
   const validations=useMemo(()=>{
     return REGRAS.map(r=>{
-      const msg=r.check(devices,connections);
+      const msg=r.check(devices,connections,racks);
       return msg?{...r,msg}:null;
     }).filter(Boolean);
-  },[devices,connections]);
+  },[devices,connections,racks]);
 
   // BOM / Equipment list
   const bom=useMemo(()=>{
@@ -626,13 +677,18 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       counts['bateria_ext'].qty++;
     });
 
-    // Add rack accessories to BOM
+    // Add rack entities + accessories to BOM (from floor.racks[])
     const accCounts={};
-    allDevices.filter(d=>d.key==='rack'&&d.config?.acessorios?.length).forEach(rack=>{
-      rack.config.acessorios.forEach(acc=>{
-        const accKey='acc_'+acc.id;
-        if(!accCounts[accKey]) accCounts[accKey]={key:accKey,name:acc.name||acc.id,qty:0,unit:'pç',rack:rack.name};
-        accCounts[accKey].qty++;
+    project.floors.forEach(f=>{
+      (f.racks||[]).forEach(rack=>{
+        const rackKey='rack_'+rack.tag;
+        if(!counts[rackKey]) counts[rackKey]={key:rackKey,name:`Rack ${rack.tag} (${rack.alturaU}U / ${rack.profundidade})`,qty:0,unit:'pç'};
+        counts[rackKey].qty++;
+        (rack.acessorios||[]).forEach(acc=>{
+          const accKey='acc_'+acc.id;
+          if(!accCounts[accKey]) accCounts[accKey]={key:accKey,name:acc.name||acc.id,qty:0,unit:'pç',rack:rack.name};
+          accCounts[accKey].qty++;
+        });
       });
     });
 
@@ -828,13 +884,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       moveDevice(dragging.id,dragging.origX+dx,dragging.origY+dy);
     };
     const onUp=(e)=>{
-      // Check if device was dropped inside a rack
+      // Check if device was dropped inside a quadro container (rack is now data-only)
       if(dragging){
         const draggedDev=devices.find(d=>d.id===dragging.id);
-        if(draggedDev && draggedDev.key!=='rack' && draggedDev.key!=='quadro' && draggedDev.key!=='quadro_eletrico'){
+        if(draggedDev && draggedDev.key!=='quadro' && draggedDev.key!=='quadro_eletrico'){
           const getContainerBounds=(r)=>{
-            const w=r.key==='rack'?160:180;
-            const h=r.key==='rack'?(r.config?.alturaU||12)*22+40:200;
+            const w=180;
+            const h=200;
             return {x1:r.x-30,y1:r.y-20,x2:r.x-30+w,y2:r.y-20+h};
           };
           const isInsideContainer=(dev,container)=>{
@@ -842,20 +898,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             return dev.x>=b.x1&&dev.x<=b.x2&&dev.y>=b.y1&&dev.y<=b.y2;
           };
           if(draggedDev.parentRack){
-            // Check if dragged OUT of current container
+            // Check if dragged OUT of current quadro container
             const parentContainer=devices.find(r=>r.id===draggedDev.parentRack);
             if(parentContainer && !isInsideContainer(draggedDev,parentContainer)){
               updateDevice(dragging.id,{parentRack:null,rackSlot:null});
               showConnToast(`${draggedDev.name} removido de ${parentContainer.name}`,'info');
             }
           }else{
-            // Check if dropped INTO a container
-            const rackDev=devices.find(r=>(r.key==='rack'||r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
+            // Check if dropped INTO a quadro container
+            const quadroDev=devices.find(r=>(r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
               isInsideContainer(draggedDev,r));
-            if(rackDev){
-              const canMount=rackDev.key==='rack'?canMountInRack(draggedDev.key):rackDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
-              if(canMount){updateDevice(dragging.id,{parentRack:rackDev.id});showConnToast(`${draggedDev.name} montado em ${rackDev.name}`,'success')}
-              else{showConnToast(`${draggedDev.name} não é montável em ${rackDev.name||rackDev.key}`,'warn')}
+            if(quadroDev){
+              const canMount=quadroDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
+              if(canMount){updateDevice(dragging.id,{parentRack:quadroDev.id});showConnToast(`${draggedDev.name} montado em ${quadroDev.name}`,'success')}
+              else{showConnToast(`${draggedDev.name} não é montável em ${quadroDev.name||quadroDev.key}`,'warn')}
             }
           }
         }
@@ -1452,68 +1508,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 })()}
               </svg>
 
-              {/* Rack containers - clean U-slot layout */}
-              {layers.devices&&devices.filter(d=>d.key==='rack').map(rack=>{
-                const rackU=rack.config?.alturaU||12;
-                const uH=18;const rackW=180;const headerH=22;
-                const rackH=headerH+rackU*uH+4;
-                const children=devices.filter(d=>d.parentRack===rack.id);
-                const slots=new Array(rackU).fill(null);const childSlots=[];
-                children.forEach(child=>{
-                  const uSize=getDeviceUSize(child.key);
-                  let startU=child.rackSlot>=0&&child.rackSlot+uSize<=rackU?child.rackSlot:-1;
-                  if(startU<0){for(let u=0;u<=rackU-uSize;u++){let free=true;for(let s=0;s<uSize;s++)if(slots[u+s]!=null){free=false;break}if(free){startU=u;break}}}
-                  if(startU>=0){for(let s=0;s<uSize;s++)slots[startU+s]=child.id;
-                    childSlots.push({child,startU,uSize});
-                    if(child.rackSlot!==startU)updateDevice(child.id,{rackSlot:startU});}
-                });
-                const usedU=slots.filter(s=>s!=null).length;const isSel=selectedDevice===rack.id;
-                return (
-                  <div key={'rack-bg-'+rack.id} style={{position:'absolute',left:rack.x-30,top:rack.y-20,
-                    width:rackW,height:rackH,background:'#1a1f2e',
-                    border:`2px solid ${isSel?'var(--azul2)':'#3b4252'}`,
-                    borderRadius:4,zIndex:2,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
-                    <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
-                      padding:'0 6px',borderBottom:'1px solid #2e3440',pointerEvents:'auto',cursor:'pointer'}}
-                      onClick={()=>{setSelectedDevice(rack.id);setRightTab('props')}}>
-                      <span style={{fontSize:9,fontWeight:700,color:'#d8dee9'}}>{rack.name}</span>
-                      <span style={{fontSize:8,color:usedU>=rackU?'#bf616a':usedU>rackU*.7?'#ebcb8b':'#a3be8c',fontWeight:700}}>
-                        {usedU}/{rackU}U</span>
-                    </div>
-                    {Array.from({length:rackU}).map((_,u)=>{
-                      const occ=childSlots.find(cs=>cs.startU===u);
-                      if(slots[u]!=null&&!occ) return null;
-                      const dev=occ?.child;const uSz=occ?.uSize||1;
-                      const catColor=dev?(DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key))?.color||'#6b7280'):'transparent';
-                      return (
-                        <div key={'u'+u} style={{position:'absolute',left:2,right:2,
-                          top:headerH+u*uH,height:uSz*uH-1,
-                          display:'flex',alignItems:'center',gap:4,padding:'0 4px',
-                          background:dev?'#2e3440':'transparent',
-                          borderRadius:dev?2:0,
-                          borderLeft:dev?`3px solid ${catColor}`:'none',
-                          borderBottom:dev?'none':'1px dotted #2e3440'}}>
-                          <span style={{fontSize:7,color:'#4c566a',width:14,textAlign:'right',flexShrink:0,fontWeight:600}}>{u+1}</span>
-                          {dev?(
-                            <div style={{display:'flex',alignItems:'center',flex:1,minWidth:0,gap:4,pointerEvents:'auto'}}>
-                              <div style={{flex:1,minWidth:0,cursor:'pointer'}}
-                                onClick={()=>{setSelectedDevice(dev.id);setRightTab('props')}}>
-                                <div style={{fontSize:8,fontWeight:700,color:'#eceff4',overflow:'hidden',
-                                  textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dev.name}</div>
-                                {uSz>1&&<div style={{fontSize:7,color:'#4c566a'}}>{uSz}U</div>}
-                              </div>
-                              <span style={{fontSize:9,color:'#bf616a',cursor:'pointer',padding:'0 2px',
-                                pointerEvents:'auto',opacity:.6,fontWeight:700}} title="Remover do rack"
-                                onClick={(e)=>{e.stopPropagation();updateDevice(dev.id,{parentRack:null,rackSlot:null})}}>✕</span>
-                            </div>
-                          ):null}
-                        </div>);
-                    })}
-                    {children.length===0&&<div style={{position:'absolute',top:headerH+4,left:0,right:0,
-                      fontSize:8,color:'#4c566a',textAlign:'center',lineHeight:1.5,pointerEvents:'none'}}>
-                      Arraste equipamentos<br/>para o rack</div>}
-                  </div>);
-              })}
+              {/* Rack containers removed — rack is now a data entity in floor.racks[] */}
 
               {/* Quadro containers (Conectividade + Elétrico) */}
               {layers.devices&&devices.filter(d=>d.key==='quadro'||d.key==='quadro_eletrico').map(qd=>{
@@ -1573,7 +1568,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   <div key={dev.id}
                     className={`device-on-canvas ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
                     style={{left:dev.x,top:dev.y,
-                      ...(dev.key==='rack'?{zIndex:1}:{}),
                       ...(inRack?{zIndex:2}:{}),
                       ...(multiSelect.has(dev.id)?{outline:'2px solid #3498db',outlineOffset:2,borderRadius:10,boxShadow:'0 0 8px rgba(52,152,219,.4)'}:{}),
                       ...(isSource?{outline:'2px solid #f59e0b',outlineOffset:2,borderRadius:10}:{}),
@@ -1585,7 +1579,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     onClick={(e)=>handleDeviceClick(e,dev.id)}
                     onMouseDown={(e)=>handleDeviceMouseDown(e,dev.id)}
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
-                      if(dev.key==='rack'){setRackElevationId(dev.id);return;}
                       setCableMode({from:dev.id});setTool('cable')}}>
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
                       ...(DEVICE_THUMBNAILS[dev.key]?{padding:2,overflow:'hidden'}:{})}}>
@@ -2079,6 +2072,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}>
               {selectedDev?'Propriedades':'Info'}
             </div>
+            <div className={`rp-tab ${rightTab==='rack'?'active':''}`} onClick={()=>setRightTab('rack')}>
+              Rack {racks.length>0&&<span style={{background:'var(--azul2)',color:'#fff',
+                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{racks.length}</span>}
+            </div>
             <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}>
               Topologia
             </div>
@@ -2094,6 +2091,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             </div>
           </div>
           <div className="rp-content">
+            {/* RACK PANEL */}
+            {rightTab==='rack'&&(
+              <RackPanel racks={racks} devices={devices} selectedRackId={selectedRackId}
+                onSelectRack={setSelectedRackId} onCreateRack={()=>addRack()}
+                onUpdateRack={updateRack} onDeleteRack={deleteRack}
+                onAssignDevice={assignDeviceToRackAction} onUnassignDevice={unassignDeviceFromRack}
+                onSelectDevice={(id)=>{setSelectedDevice(id);setRightTab('props')}}/>
+            )}
             {/* PROPERTIES */}
             {rightTab==='props'&&selectedDev&&(()=>{
               const def=findDevDef(selectedDev.key);
@@ -2473,99 +2478,24 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       </>
                     );
                   })()}
-                  {/* Configuration fields for rack */}
-                  {selectedDev.key==='rack'&&(
-                    <>
-                      <div style={{fontSize:12,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
-                        letterSpacing:.5,marginBottom:6,marginTop:12}}>Configuração Rack</div>
-
-                      <div className="prop-row">
-                        <span className="pr-label">Altura (U):</span>
-                        <span className="pr-value">
-                          <select value={selectedDev.config?.alturaU||12}
-                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,alturaU:parseInt(e.target.value)||12}})}>
-                            {[5,7,9,12,16,20,24,28,32,36,42,44].map(u=><option key={u} value={u}>{u}U</option>)}
-                          </select>
-                        </span>
-                      </div>
-
-                      <div className="prop-row">
-                        <span className="pr-label">Profundidade:</span>
-                        <span className="pr-value">
-                          <select value={selectedDev.config?.profundidade||450}
-                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,profundidade:parseInt(e.target.value)||450}})}>
-                            <option value="300">300mm (mini)</option>
-                            <option value="450">450mm (padrão)</option>
-                            <option value="570">570mm</option>
-                            <option value="600">600mm (servidor)</option>
-                            <option value="800">800mm (data center)</option>
-                          </select>
-                        </span>
-                      </div>
-
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
-                        letterSpacing:.5,marginBottom:6,marginTop:10}}>
-                        Equipamentos no Rack ({devices.filter(d=>d.parentRack===selectedDev.id).length})
-                      </div>
-                      {devices.filter(d=>d.parentRack===selectedDev.id).length>0?(
-                        devices.filter(d=>d.parentRack===selectedDev.id).map(child=>{
-                          const childCat=DEVICE_LIB.find(c=>c.items.some(i=>i.key===child.key));
-                          return (
-                            <div key={child.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',
-                              fontSize:10,borderBottom:'1px solid #f0f0f0',cursor:'pointer'}}
-                              onClick={()=>{setSelectedDevice(child.id)}}>
-                              <span style={{width:8,height:8,borderRadius:'50%',background:childCat?.color||'#999',flexShrink:0}}/>
-                              <span style={{flex:1}}>{child.name}</span>
-                              <span style={{fontSize:8,color:'var(--cinza)'}}>2U</span>
-                              <span style={{cursor:'pointer',color:'#ef4444',fontSize:9,fontWeight:600,padding:'1px 4px',
-                                borderRadius:3,background:'#fef2f2',border:'1px solid #fecaca'}} title="Remover do container"
-                                onClick={e=>{e.stopPropagation();updateDevice(child.id,{parentRack:null,rackSlot:null});
-                                  showConnToast(`${child.name} removido do container`,'info')}}>✕ Remover</span>
-                            </div>
-                          );
-                        })
-                      ):(
-                        <div style={{fontSize:10,color:'#9ca3af',padding:'6px 0'}}>
-                          Arraste dispositivos para dentro do rack no canvas
-                        </div>
-                      )}
-
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
-                        letterSpacing:.5,marginBottom:6,marginTop:10}}>
-                        Acessórios ({(selectedDev.config?.acessorios||[]).length})
-                      </div>
-                      {(selectedDev.config?.acessorios||[]).map((acc,i)=>(
-                        <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
-                          fontSize:10,borderBottom:'1px solid #f0f0f0'}}>
-                          <span style={{flex:1}}>{acc.name}</span>
-                          <span style={{fontSize:8,color:'var(--cinza)'}}>{acc.unidades||1}U</span>
-                          <span style={{cursor:'pointer',color:'var(--vermelho)',fontSize:10}}
-                            onClick={()=>{
-                              const accs=[...(selectedDev.config?.acessorios||[])];
-                              accs.splice(i,1);
-                              updateDevice(selectedDev.id,{config:{...selectedDev.config,acessorios:accs}});
-                            }}>✕</span>
-                        </div>
-                      ))}
-                      <select style={{width:'100%',marginTop:6,fontSize:10,padding:4,border:'1px solid var(--cinzaM)',borderRadius:4}}
-                        value="" onChange={e=>{
-                          if(!e.target.value) return;
-                          const acc=MODEL_CATALOG.rack_acessorio.find(a=>a.id===e.target.value);
-                          if(acc){
-                            const accs=[...(selectedDev.config?.acessorios||[]),{...acc}];
-                            updateDevice(selectedDev.id,{config:{...selectedDev.config,acessorios:accs}});
-                          }
-                          e.target.value='';
+                  {/* Rack assignment dropdown for mountable devices */}
+                  {canMountInRack(selectedDev.key)&&racks.length>0&&(
+                    <div className="prop-row">
+                      <span className="pr-label">Rack:</span>
+                      <span className="pr-value">
+                        <select value={selectedDev.parentRack||''} onChange={e=>{
+                          const rackId=e.target.value;
+                          if(rackId){assignDeviceToRackAction(selectedDev.id,rackId)}
+                          else if(selectedDev.parentRack){unassignDeviceFromRack(selectedDev.id)}
                         }}>
-                        <option value="">+ Adicionar acessório...</option>
-                        {MODEL_CATALOG.rack_acessorio.map(a=><option key={a.id} value={a.id}>{a.name} ({a.unidades||1}U)</option>)}
-                      </select>
-
-                      <div style={{marginTop:8,padding:'6px 8px',background:'#f0f2f5',borderRadius:4,fontSize:9,color:'var(--cinza)'}}>
-                        Uso: {devices.filter(d=>d.parentRack===selectedDev.id).length*2 + (selectedDev.config?.acessorios||[]).reduce((a,c)=>a+(c.unidades||1),0)}U
-                        / {selectedDev.config?.alturaU||12}U
-                      </div>
-                    </>
+                          <option value="">Não montado</option>
+                          {racks.map(r=>{
+                            const occ=getRackOccupancy(r,devices);
+                            return <option key={r.id} value={r.id}>{r.name} ({r.tag}) — {occ.freeU}U livres</option>;
+                          })}
+                        </select>
+                      </span>
+                    </div>
                   )}
 
                   <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
@@ -2782,11 +2712,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           setProject(importedProject);
         }}/>}
 
-      {/* RACK ELEVATION MODAL */}
-      {rackElevationId&&<RackElevationModal
-        rack={devices.find(d=>d.id===rackElevationId)}
-        devices={devices}
-        onClose={()=>setRackElevationId(null)}/>}
+      {/* RackElevationModal removed — rack is now managed via RackPanel tab */}
     </div>
   );
 }

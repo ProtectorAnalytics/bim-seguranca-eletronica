@@ -263,7 +263,7 @@ export const DEVICE_LIB = [
   // ================================================================
   {cat:'Infraestrutura',color:'#6b7280',items:[
     {key:'quadro',name:'Quadro Conectividade',icon:'quadro',poe:false,ports:1,isContainer:true,configurable:true,configFields:['vagas'],props:{material:'PVC IP65',trilho:'DIN',vagas:'12-36 módulos'}},
-    {key:'rack',name:'Rack',icon:'rack',poe:false,ports:1,isContainer:true,configurable:true,configFields:['alturaU','profundidade','acessorios'],props:{altura:'5U-42U',profundidade:'450-600mm'}},
+    {key:'rack',name:'Rack',icon:'rack',poe:false,ports:1,isContainer:true,configurable:true,configFields:['alturaU','profundidade','acessorios'],props:{altura:'5U-42U',profundidade:'450-600mm'},deprecated:true},
     {key:'nobreak_ac',name:'Nobreak AC',icon:'nobreak_ac',poe:false,ports:1,configurable:true,configFields:['snmp','tomadas_10a','tomadas_20a','potenciaVA','batExterna'],props:{potencia:'600-3000VA',tipo:'AC Interativo/Senoidal'},ref:'SNB 3000 VA BI, ATTIV SEG BI+'},
     {key:'nobreak_dc',name:'Nobreak DC',icon:'nobreak_dc',poe:false,ports:1,configurable:true,configFields:['correnteSaida','batInterna','batExterna'],props:{potencia:'60-120W',tipo:'DC 12V',saida:'12.8Vcc'},ref:'FON1407, FON1388, FON1358'},
     {key:'bateria_ext',name:'Bateria Externa',icon:'bateria_ext',poe:false,ports:1,configurable:true,configFields:['tensao','capacidade','modelo'],props:{tensao:'12V',tipo:'Estacionária VRLA'},ref:'EB 1245, EB 1236'},

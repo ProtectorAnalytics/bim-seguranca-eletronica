@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 17, build: 4,
+  major: 3, minor: 18, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.18.0',date:'2026-03-09',changes:['Rack como entidade de dados: removido do canvas visual, agora é cadastrado na aba dedicada','Aba Rack no sidebar: Plano de Faces profissional (POS. RACK | DESCRIÇÃO | IDENTIFICAÇÃO)','CRUD completo: criar, editar, deletar racks com altura U, profundidade e localização','Barra de ocupação: indicador visual de uso do rack com cores (verde/amarelo/vermelho)','Dispositivos montáveis: dropdown no painel de propriedades para atribuir ao rack','Tags automáticas: R01-SW01, R01-NVR01 para identificação no plano de faces','Acessórios de rack: bandeja, régua, organizador — gerenciados na aba Rack','Migração automática: projetos legados com rack no canvas são convertidos automaticamente','BOM atualizado: racks e acessórios agora são computados a partir de floor.racks[]','Validação: regra de rack só alerta se nenhum rack foi cadastrado no piso']},
     {ver:'3.17.4',date:'2026-03-09',changes:['Fix: cabos (linhas de conexão) agora sempre renderizam acima dos containers Rack e Quadro de Comando','Fix: z-index explícito no SVG de conexões (z:4) e containers (z:2) para stacking correto']},
     {ver:'3.17.3',date:'2026-03-09',changes:['Ferramenta Mão (✋): arraste o canvas com botão esquerdo no modo Mão','Middle-click: scroll do mouse arrasta o canvas em qualquer ferramenta','Space+drag: segure Espaço para arrastar temporariamente','Atalhos: H=Mão, V=Selecionar, Space=Pan temporário','Cursor grab/grabbing durante arraste']},
     {ver:'3.17.2',date:'2026-03-09',changes:['Fix: seleção por laço (lasso) — SVG de conexões bloqueava mousedown no canvas (pointer-events corrigido)','Fix: click após lasso não limpa mais a seleção dos dispositivos (ref guard no handleCanvasClick)']},

@@ -184,9 +184,10 @@ export const REGRAS=[
       return null;
     }},
   {cat:'Arquitetura',regra:'> 2 switches: avaliar rack',sev:'ALTA',
-    check:(devices)=>{
+    check:(devices,connections,racks)=>{
       const sw=devices.filter(d=>isSwitch(d.key)).length;
-      if(sw>2) return `${sw} switches. Considerar rack 5U+ em vez de quadro`;
+      const rackCount=(racks||[]).length;
+      if(sw>2&&rackCount===0) return `${sw} switches. Considerar rack 5U+ em vez de quadro`;
       return null;
     }},
   {cat:'Energia',regra:'Dispositivos sem alimentação elétrica',sev:'CRÍTICA',
