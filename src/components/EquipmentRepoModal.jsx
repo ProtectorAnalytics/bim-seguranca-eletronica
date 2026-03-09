@@ -3,7 +3,7 @@ import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { EQUIPMENT_SCHEMAS } from '@/data/equipment-schemas';
 import { ICONS } from '@/icons';
-import { getDeviceInterfaces, getDeviceOverrides, saveDeviceOverrides, getHiddenDevices, saveHiddenDevices } from '@/lib/helpers';
+import { getDeviceInterfaces, getDeviceOverrides, saveDeviceOverrides, getHiddenDevices, saveHiddenDevices, getHiddenFamilies, saveHiddenFamilies } from '@/lib/helpers';
 
 export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep,onRefreshDefaults}){
   // Wizard steps: 1=category, 2=base device, 3=dados gerais, 4=interfaces, 5=specs, 6=revisão
@@ -22,6 +22,8 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   const [defCatFilter,setDefCatFilter]=useState('all');
   const [hiddenDevices,setHiddenDevices]=useState(()=>getHiddenDevices());
   const [deviceOverrides,setDeviceOverrides]=useState(()=>getDeviceOverrides());
+  const [hiddenFamilies,setHiddenFamilies]=useState(()=>getHiddenFamilies());
+  const [showFamilyManager,setShowFamilyManager]=useState(false);
   const [formState,setFormState]=useState({
     category:'camera',baseDeviceType:'cam_dome',brand:'',model:'',descricao:'',
     referencia:'',preco:'',specs:{},datasheetText:'',
@@ -187,6 +189,15 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
     onRefreshDefaults?.();
   };
 
+  const hiddenFamSet=new Set(hiddenFamilies);
+  const toggleFamily=(catName)=>{
+    const updated=hiddenFamSet.has(catName)?hiddenFamilies.filter(c=>c!==catName):[...hiddenFamilies,catName];
+    setHiddenFamilies(updated);
+    saveHiddenFamilies(updated);
+    onRefreshDefaults?.();
+  };
+  const showAllFamilies=()=>{setHiddenFamilies([]);saveHiddenFamilies([]);onRefreshDefaults?.();};
+
   const startEdit=(dev)=>{
     setEditingDevice(dev);
     setFormState({category:dev.category,baseDeviceType:dev.deviceType,brand:dev.brand,model:dev.model,
@@ -292,6 +303,49 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         {/* DEFAULT TAB */}
         {repoTab==='default'&&<>
           <p style={{fontSize:11,color:'var(--cinza)',margin:'0 0 8px'}}>Dispositivos da biblioteca padrão. Edite para personalizar specs ou oculte os que não utiliza.</p>
+          {/* Family manager toggle */}
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+            <button onClick={()=>setShowFamilyManager(!showFamilyManager)}
+              style={{padding:'5px 10px',fontSize:10,fontWeight:600,border:'1px solid #94a3b8',borderRadius:5,cursor:'pointer',
+                background:showFamilyManager?'var(--azul2)':'#f8fafc',color:showFamilyManager?'#fff':'#475569',transition:'.15s'}}>
+              👁️ Famílias ({DEVICE_LIB.length-hiddenFamilies.length}/{DEVICE_LIB.length})
+            </button>
+            {hiddenFamilies.length>0&&(
+              <button onClick={showAllFamilies}
+                style={{padding:'5px 10px',fontSize:10,fontWeight:600,border:'none',borderRadius:5,cursor:'pointer',
+                  background:'#dbeafe',color:'#2563eb'}}>
+                Exibir todas
+              </button>
+            )}
+          </div>
+          {showFamilyManager&&(
+            <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,padding:10,marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--azul)',marginBottom:6}}>Visibilidade de famílias na paleta</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                {DEVICE_LIB.map(cat=>{
+                  const isHidden=hiddenFamSet.has(cat.cat);
+                  return (
+                    <div key={cat.cat} onClick={()=>toggleFamily(cat.cat)}
+                      style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderRadius:6,cursor:'pointer',
+                        background:isHidden?'#fef2f2':'#f0fdf4',border:`1px solid ${isHidden?'#fca5a5':'#bbf7d0'}`,transition:'.12s',opacity:isHidden?.6:1}}>
+                      <div style={{width:22,height:14,borderRadius:7,background:isHidden?'#e5e7eb':'#22c55e',
+                        position:'relative',transition:'.15s',flexShrink:0}}>
+                        <div style={{width:10,height:10,borderRadius:5,background:'#fff',position:'absolute',top:2,
+                          left:isHidden?2:10,transition:'.15s',boxShadow:'0 1px 2px rgba(0,0,0,.2)'}}/>
+                      </div>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:cat.color,flexShrink:0}}/>
+                      <span style={{fontSize:9,fontWeight:600,color:isHidden?'#9ca3af':'#374151',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.cat}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {hiddenFamilies.length>0&&(
+                <div style={{marginTop:6,fontSize:9,color:'#dc2626',textAlign:'center'}}>
+                  {hiddenFamilies.length} família{hiddenFamilies.length!==1?'s':''} oculta{hiddenFamilies.length!==1?'s':''}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
             <input value={defSearch} onChange={e=>setDefSearch(e.target.value)} placeholder="Buscar..."
               style={{flex:1,minWidth:120,fontSize:11,padding:'5px 8px',border:'1px solid #d1d5db',borderRadius:5}}/>

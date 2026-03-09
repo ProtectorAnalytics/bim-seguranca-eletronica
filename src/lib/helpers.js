@@ -51,6 +51,16 @@ export function saveHiddenDevices(hidden){
   localStorage.setItem('bim_device_hidden',JSON.stringify(hidden));
 }
 
+// ====================================================================
+// HIDDEN FAMILIES (categories) — toggle entire device families
+// ====================================================================
+export function getHiddenFamilies(){
+  try{ return JSON.parse(localStorage.getItem('bim_hidden_families')||'[]'); }catch{ return []; }
+}
+export function saveHiddenFamilies(hidden){
+  localStorage.setItem('bim_hidden_families',JSON.stringify(hidden));
+}
+
 export function getDeviceIconKey(deviceKey){
   if(deviceKey.startsWith('custom_')){
     const custom=getCustomDevices().find(c=>c.key===deviceKey);
