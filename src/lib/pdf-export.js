@@ -54,12 +54,14 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   } = options;
 
   // Lazy load heavy libraries (code-splitting)
-  const [{ default: jsPDF }, html2canvasModule] = await Promise.all([
+  const [jspdfModule, html2canvasModule] = await Promise.all([
     import('jspdf'),
     import('html2canvas'),
   ]);
   await import('jspdf-autotable');
-  const html2canvas = html2canvasModule.default;
+  // jsPDF 2.x uses named export, fallback to default for compatibility
+  const jsPDF = jspdfModule.jsPDF || jspdfModule.default;
+  const html2canvas = html2canvasModule.default || html2canvasModule;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const w = doc.internal.pageSize.getWidth(); // 210
