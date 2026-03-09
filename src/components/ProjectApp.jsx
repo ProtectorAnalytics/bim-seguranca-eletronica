@@ -770,9 +770,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   };
 
   const handleDeviceMouseDown=(e,devId)=>{
-    if(tool!=='select'&&tool!=='device') return;
+    if(cableMode) return; // Don't drag while connecting cables
     e.stopPropagation();
     e.preventDefault();
+
+    // Auto-switch to select mode when dragging from any tool
+    if(tool!=='select'&&tool!=='device'){
+      setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null);
+    }
 
     // Shift+click toggles multi-select
     if(e.shiftKey){
@@ -869,9 +874,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Keyboard shortcuts
   useEffect(()=>{
     const handler=(e)=>{
-      // Ignore if user is typing in an input/textarea/select/button
+      // Ignore if user is typing in an input/textarea/select/button or modal is open
       const tag=e.target.tagName;
       if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='BUTTON'||e.target.isContentEditable) return;
+      if(showExport||showEquipmentRepo||modelSelectorModal||rackElevationId||cablePicker||portPopup) return;
 
       if(e.key==='Delete'){
         // Delete selected devices (multi or single) or connection
@@ -913,7 +919,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     };
     window.addEventListener('keydown',handler);
     return ()=>window.removeEventListener('keydown',handler);
-  },[selectedDevice,selectedConn,connections,devices,multiSelect]);
+  },[selectedDevice,selectedConn,connections,devices,multiSelect,showExport,showEquipmentRepo,modelSelectorModal,rackElevationId,cablePicker,portPopup]);
 
   // Wheel zoom
   const handleWheel=(e)=>{
