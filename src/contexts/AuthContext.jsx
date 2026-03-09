@@ -15,11 +15,13 @@ export function AuthProvider({ children }) {
   const [subscription, setSubscription] = useState(null)
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [configError, setConfigError] = useState(!supabase)
 
   const isAdmin = profile?.role === 'admin'
 
   // Fetch profile + subscription + plan for a given user
   async function fetchUserData(userId) {
+    if (!supabase) return
     try {
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -62,6 +64,11 @@ export function AuthProvider({ children }) {
 
   // Auth state listener
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null
@@ -134,6 +141,7 @@ export function AuthProvider({ children }) {
     plan,
     loading,
     isAdmin,
+    configError,
     signIn,
     signUp,
     signOut,

@@ -17,7 +17,7 @@ import ProjectApp from './ProjectApp';
 import { useSubscription } from '../hooks/useSubscription';
 
 export default function App(){
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin, configError } = useAuth();
   const limits = useSubscription();
   const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | admin
   const [project,_setProject]=useState(null);
@@ -106,6 +106,22 @@ export default function App(){
     setScreen('client');
   };
   const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+
+  // Config error guard
+  if(configError) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0f172a',color:'#e2e8f0',fontFamily:'system-ui,sans-serif'}}>
+      <div style={{textAlign:'center',maxWidth:500,padding:40}}>
+        <div style={{fontSize:48,marginBottom:16}}>⚙️</div>
+        <h2 style={{marginBottom:8}}>Configuração Pendente</h2>
+        <p style={{color:'#94a3b8',fontSize:14,lineHeight:1.6}}>
+          As variáveis de ambiente do Supabase não foram configuradas.<br/>
+          Configure <code style={{background:'#1e293b',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_URL</code> e{' '}
+          <code style={{background:'#1e293b',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_ANON_KEY</code> no
+          painel do Vercel (Settings → Environment Variables) e faça um novo deploy.
+        </p>
+      </div>
+    </div>
+  );
 
   // Auth guard
   if(authLoading) return <LoadingScreen/>;
