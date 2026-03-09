@@ -87,7 +87,7 @@ export default function App(){
   },[project,editingProjectId]);
 
   const onStartNewProject=()=>{ setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''}); setScreen('client'); };
-  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
 
   if(screen==='dashboard') return <Dashboard
     onNewProject={onStartNewProject}
@@ -108,7 +108,7 @@ export default function App(){
       name:clientData.projetoNome||'Novo Projeto',
       scenario,
       client:{...clientData},
-      floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[],racks:[],bgScale:1.0}],
+      floors:[{id:'f1',name:'Térreo',number:0,devices:[],connections:[],environments:[],racks:[],quadros:[],bgScale:1.0}],
       activeFloor:'f1',
       settings:{taxRate:0,additionalFees:[]},
     };

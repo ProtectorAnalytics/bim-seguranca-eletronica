@@ -121,6 +121,8 @@ export const KEY_MIGRATION_MAP = {
   'morley_central':null,'morley_detector':null,
   // Iluminação Emergência (deleted)
   'emerg_bloco':null,'emerg_luminaria':null,'emerg_lum_potencia':null,'emerg_central_psa':null,
+  // Quadro Conectividade (removed in v3.20.0 — replaced by QC entity)
+  'quadro':null,
 };
 
 /**

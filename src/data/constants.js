@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 19, build: 3,
+  major: 3, minor: 20, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.20.0',date:'2026-03-09',changes:['Quadro de Conectividade (QC): entidade de primeira classe no canvas com CRUD completo','Aba Quadro no sidebar: propriedades (caixa, aterramento, disjuntor, prensa-cabo), lista de dispositivos, BOM automático','Canvas: quadros renderizados como containers verdes arrastáveis com tag QC-01, QC-02, etc.','Dispositivos montáveis: dropdown de atribuição ao quadro no painel de propriedades','BOM automático por quadro: caixa hermética, canaleta, disjuntor, conversor DC/DC, fibra óptica, aterramento','9 novos dispositivos: ONT GPON, 3 Fontes Nobreak (12V/24V/48V), 5 Baterias (7Ah a 40Ah)','7 regras de validação específicas para quadro (DPS, fonte, bateria, tomada, consumo DC, portas, aterramento)','Compatibilidade: projetos existentes sem quadros funcionam normalmente (floor.quadros||[])']},
     {ver:'3.19.3',date:'2026-03-09',changes:['Calibrar escala da planta de fundo: clique em 2 pontos de referência e informe a distância real','Imagem redimensiona automaticamente para alinhar com a grade 40px=1m','Input manual de escala (0.1x a 20x) e botão de reset','Preview visual: pontos roxos pulsantes e linha tracejada durante calibração','Modal de distância com Enter para confirmar e Escape para cancelar','Compatibilidade: projetos existentes sem bgScale renderizam normalmente']},
     {ver:'3.19.2',date:'2026-03-09',changes:['Ocultar/exibir famílias: botão 👁️ na paleta com popover de toggles para cada família de dispositivos','Gerenciador de famílias no Repositório: aba Padrão com grid de switches para visibilidade','Famílias ocultas não aparecem na paleta lateral nem no filtro de categorias','Persistência em localStorage (bim_hidden_families): configuração mantida entre sessões','Indicador visual: badge de famílias ocultas na paleta com botão "Gerenciar"']},
     {ver:'3.19.1',date:'2026-03-09',changes:['Correção: variantes de resolução restauradas como dispositivos separados (cam_ip_bullet_2mp, _3mp, _4mp são dispositivos distintos)','Catálogo: 74 dispositivos genéricos em 9 famílias com keys originais por resolução/spec','KEY_MIGRATION_MAP simplificado: apenas famílias deletadas → legacy (sem unificações)','Thumbnails restaurados para todos os keys originais das famílias mantidas']},

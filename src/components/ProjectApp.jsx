@@ -10,6 +10,7 @@ import {
   isCamera, isSwitch, isSwitchPoE, isGravador, isDVR,
   isCentralAlarme, isCentralIncendio, isDetectorIncendio, isSirene,
   isPerifericoAlarme, isAutomatizador, isCameraMHD, isNobreak, isFonte,
+  isFonteNobreak, isONT, isBateria,
   isSensorZona, needsPoE, needsACPower, needsDCPower,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
@@ -57,6 +58,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
   const [selectedRackId,setSelectedRackId]=useState(null);
+  const [selectedQuadroId,setSelectedQuadroId]=useState(null);
   const [envFilterTag,setEnvFilterTag]=useState(null);
   const [snapToGrid,setSnapToGrid]=useState(true);
   const [gridSize]=useState(20); // snap to half-grid (visual grid is 40px)
@@ -92,6 +94,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const environments=floor?.environments||[];
   const dimensions=floor?.dimensions||[];
   const racks=floor?.racks||[];
+  const quadros=floor?.quadros||[];
 
   // Sync bgOpacity when floor changes
   useEffect(()=>{setBgOpacity(floor?.bgOpacity??0.3)},[project.activeFloor]);
@@ -473,7 +476,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Add floor
   const addFloor=()=>{
     const num=project.floors.length;
-    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[],bgScale:1.0};
+    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[],quadros:[],bgScale:1.0};
     setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
   };
 
@@ -513,6 +516,77 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     if(!device) return;
     updateDevice(deviceId,{parentRack:null,rackSlot:null});
     showConnToast(`${device.name} removido do rack`,'info');
+  };
+
+  // ── Quadro de Conectividade CRUD ──────────────────────────────────
+  const createQuadro=(overrides={})=>{
+    const existingTags=(floor?.quadros||[]).map(q=>q.tag);
+    let num=1;
+    while(existingTags.includes(`QC-${String(num).padStart(2,'0')}`))num++;
+    const tag=`QC-${String(num).padStart(2,'0')}`;
+    return {
+      id:uid(),name:overrides.name||`Quadro ${tag}`,
+      x:overrides.x||200+Math.random()*400,y:overrides.y||200+Math.random()*300,
+      caixa:'50x40x20',aterramento:'individual',
+      disjuntor:{tipo:'bipolar',amperagem:16},prensaCabo:0,...overrides,tag/*always auto*/
+    };
+  };
+  const addQuadro=(overrides={})=>{
+    const qc=createQuadro(overrides);
+    updateFloor(f=>({...f,quadros:[...(f.quadros||[]),qc]}));
+    setSelectedQuadroId(qc.id);setRightTab('quadro');
+    return qc;
+  };
+  const updateQuadro=(qcId,updates)=>{
+    updateFloor(f=>({...f,quadros:(f.quadros||[]).map(q=>q.id===qcId?{...q,...updates}:q)}));
+  };
+  const deleteQuadro=(qcId)=>{
+    updateFloor(f=>({
+      ...f,
+      quadros:(f.quadros||[]).filter(q=>q.id!==qcId),
+      devices:f.devices.map(d=>d.quadroId===qcId?{...d,quadroId:null}:d)
+    }));
+    if(selectedQuadroId===qcId) setSelectedQuadroId(null);
+  };
+  const assignDeviceToQuadro=(deviceId,qcId)=>{
+    updateDevice(deviceId,{quadroId:qcId});
+    const dev=devices.find(d=>d.id===deviceId);
+    const qc=quadros.find(q=>q.id===qcId);
+    if(dev&&qc) showConnToast(`${dev.name} adicionado a ${qc.tag}`,'success');
+  };
+  const unassignDeviceFromQuadro=(deviceId)=>{
+    updateDevice(deviceId,{quadroId:null});
+    showConnToast('Dispositivo removido do quadro','info');
+  };
+  // Quadro BOM auto-generation
+  const getQuadroBom=(qc)=>{
+    const qcDevices=devices.filter(d=>d.quadroId===qc.id);
+    const bom=[];
+    // Always
+    bom.push({name:`Caixa hermética ${qc.caixa||'50x40x20'}cm`,qty:1});
+    bom.push({name:'Canaleta vazada 30×50mm',qty:2});
+    bom.push({name:`Disjuntor ${qc.disjuntor?.tipo||'bipolar'} ${qc.disjuntor?.amperagem||16}A`,qty:1});
+    // Conversor DC/DC if has SwitchPoE + FonteNobreak
+    const hasSwitchPoE=qcDevices.some(d=>isSwitchPoE(d.key));
+    const hasFonteNB=qcDevices.some(d=>isFonteNobreak(d.key));
+    if(hasSwitchPoE&&hasFonteNB) bom.push({name:'Conversor DC/DC 12V 3A',qty:1});
+    // Fibra optica if has ONT
+    const hasONT=qcDevices.some(d=>isONT(d.key));
+    if(hasONT){
+      bom.push({name:'Roseta óptica',qty:1});
+      bom.push({name:'Acoplador (emenda óptica)',qty:1});
+      bom.push({name:'Cordão óptico SC/APC',qty:1});
+    }
+    // Aterramento
+    if(qc.aterramento==='individual'){
+      bom.push({name:'Haste de aterramento',qty:1});
+      bom.push({name:'Barramento de terra',qty:1});
+      bom.push({name:'Caixa de aterramento',qty:1});
+      bom.push({name:'Conector GTDU',qty:1});
+    }
+    // Prensa-cabo
+    if((qc.prensaCabo||0)>0) bom.push({name:'Prensa-cabo',qty:qc.prensaCabo});
+    return bom;
   };
 
   // Smart Auto Cable — uses CONNECTION_RULES engine + device classification helpers
@@ -665,11 +739,52 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // Validation (now passes connections too for power/cable checks)
   const validations=useMemo(()=>{
-    return REGRAS.map(r=>{
+    const base=REGRAS.map(r=>{
       const msg=r.check(devices,connections,racks);
       return msg?{...r,msg}:null;
     }).filter(Boolean);
-  },[devices,connections,racks]);
+    // Quadro validations
+    quadros.forEach(qc=>{
+      const qcDevs=devices.filter(d=>d.quadroId===qc.id);
+      if(!qcDevs.some(d=>d.key==='dps_rede'))
+        base.push({cat:'Quadro',regra:`${qc.tag}: sem DPS`,sev:'ALTA',msg:`${qc.tag} sem DPS de rede — proteção contra surtos ausente`});
+      if(!qcDevs.some(d=>isFonteNobreak(d.key)))
+        base.push({cat:'Quadro',regra:`${qc.tag}: sem Fonte Nobreak`,sev:'ALTA',msg:`${qc.tag} sem Fonte Nobreak 12V — equipamentos sem alimentação DC`});
+      if(!qcDevs.some(d=>isBateria(d.key)))
+        base.push({cat:'Quadro',regra:`${qc.tag}: sem Bateria`,sev:'ALTA',msg:`${qc.tag} sem Bateria 12V — sem autonomia em falta de energia`});
+      if(!qcDevs.some(d=>d.key==='tomada_dupla'))
+        base.push({cat:'Quadro',regra:`${qc.tag}: sem Tomada`,sev:'ALTA',msg:`${qc.tag} sem tomada dupla — sem ponto de energia AC`});
+      // Consumo DC vs capacidade fonte
+      const fonteNBs=qcDevs.filter(d=>isFonteNobreak(d.key));
+      if(fonteNBs.length){
+        const capA=fonteNBs.reduce((s,d)=>{
+          const def=findDevDef(d.key);
+          const m=def?.props?.saida?.match(/(\d+)A/);
+          return s+(m?parseInt(m[1]):5);
+        },0);
+        const consumoA=qcDevs.reduce((s,d)=>{
+          const def=findDevDef(d.key);
+          return s+(def?.ampDC||0);
+        },0);
+        if(consumoA>capA)
+          base.push({cat:'Quadro',regra:`${qc.tag}: consumo DC excede fonte`,sev:'CRÍTICA',msg:`${qc.tag}: consumo ${consumoA}A > capacidade fonte ${capA}A`});
+      }
+      // Portas switch esgotadas
+      const switches=qcDevs.filter(d=>isSwitch(d.key));
+      switches.forEach(sw=>{
+        const totalP=getSwitchPorts(sw);
+        const usedP=connections.filter(c=>c.from===sw.id||c.to===sw.id)
+          .map(c=>{const oid=c.from===sw.id?c.to:c.from;return devices.find(d=>d.id===oid)}).filter(Boolean)
+          .reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
+        if(usedP>totalP)
+          base.push({cat:'Quadro',regra:`${qc.tag}: portas switch esgotadas`,sev:'CRÍTICA',msg:`${qc.tag} — ${sw.name}: ${usedP}/${totalP} portas`});
+      });
+      // Aterramento
+      if(qc.aterramento==='nenhum')
+        base.push({cat:'Quadro',regra:`${qc.tag}: sem aterramento`,sev:'ALTA',msg:`${qc.tag} sem aterramento configurado`});
+    });
+    return base;
+  },[devices,connections,racks,quadros]);
 
   // BOM / Equipment list
   const bom=useMemo(()=>{
@@ -710,8 +825,43 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       });
     });
 
-    return [...Object.values(counts),...Object.values(cableCounts),...Object.values(accCounts)];
-  },[allDevices,connections]);
+    // Add quadro entities + BOM accessories
+    const qcCounts={};
+    project.floors.forEach(f=>{
+      (f.quadros||[]).forEach(qc=>{
+        const qcKey='qc_'+qc.tag;
+        if(!qcCounts[qcKey]) qcCounts[qcKey]={key:qcKey,name:`Quadro ${qc.tag}`,qty:0,unit:'pç'};
+        qcCounts[qcKey].qty++;
+        const qcDevs=(f.devices||[]).filter(d=>d.quadroId===qc.id);
+        // BOM auto accessories
+        const bomItems=[];
+        bomItems.push({name:`Caixa hermética ${qc.caixa||'50x40x20'}cm`,qty:1});
+        bomItems.push({name:'Canaleta vazada 30×50mm',qty:2});
+        bomItems.push({name:`Disjuntor ${qc.disjuntor?.tipo||'bipolar'} ${qc.disjuntor?.amperagem||16}A`,qty:1});
+        if(qcDevs.some(d=>isSwitchPoE(d.key))&&qcDevs.some(d=>isFonteNobreak(d.key)))
+          bomItems.push({name:'Conversor DC/DC 12V 3A',qty:1});
+        if(qcDevs.some(d=>isONT(d.key))){
+          bomItems.push({name:'Roseta óptica',qty:1});
+          bomItems.push({name:'Acoplador (emenda óptica)',qty:1});
+          bomItems.push({name:'Cordão óptico SC/APC',qty:1});
+        }
+        if(qc.aterramento==='individual'){
+          bomItems.push({name:'Haste de aterramento',qty:1});
+          bomItems.push({name:'Barramento de terra',qty:1});
+          bomItems.push({name:'Caixa de aterramento',qty:1});
+          bomItems.push({name:'Conector GTDU',qty:1});
+        }
+        if((qc.prensaCabo||0)>0) bomItems.push({name:'Prensa-cabo',qty:qc.prensaCabo});
+        bomItems.forEach(item=>{
+          const bk='qcbom_'+item.name;
+          if(!qcCounts[bk]) qcCounts[bk]={key:bk,name:item.name,qty:0,unit:'pç'};
+          qcCounts[bk].qty+=item.qty;
+        });
+      });
+    });
+
+    return [...Object.values(counts),...Object.values(cableCounts),...Object.values(accCounts),...Object.values(qcCounts)];
+  },[allDevices,connections,project.floors]);
 
   // Topology tree
   const topology=useMemo(()=>{
@@ -905,40 +1055,29 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   useEffect(()=>{
     if(!dragging) return;
     const onMove=(e)=>{
-      const dx=(e.clientX-dragging.startX)/zoom;
-      const dy=(e.clientY-dragging.startY)/zoom;
-      moveDevice(dragging.id,dragging.origX+dx,dragging.origY+dy);
+      if(dragging.isQuadro){
+        // Quadro entity dragging
+        const nx=snap(e.clientX/zoom-dragging.offsetX);
+        const ny=snap(e.clientY/zoom-dragging.offsetY);
+        const qcId=dragging.id.replace('qc_','');
+        updateQuadro(qcId,{x:nx,y:ny});
+      } else {
+        const dx=(e.clientX-dragging.startX)/zoom;
+        const dy=(e.clientY-dragging.startY)/zoom;
+        moveDevice(dragging.id,dragging.origX+dx,dragging.origY+dy);
+      }
     };
     const onUp=(e)=>{
-      // Check if device was dropped inside a quadro container (rack is now data-only)
-      if(dragging){
+      // Check if device was dropped onto a QC entity on canvas
+      if(dragging&&!dragging.isQuadro){
         const draggedDev=devices.find(d=>d.id===dragging.id);
-        if(draggedDev && draggedDev.key!=='quadro' && draggedDev.key!=='quadro_eletrico'){
-          const getContainerBounds=(r)=>{
-            const w=180;
-            const h=200;
-            return {x1:r.x-30,y1:r.y-20,x2:r.x-30+w,y2:r.y-20+h};
-          };
-          const isInsideContainer=(dev,container)=>{
-            const b=getContainerBounds(container);
-            return dev.x>=b.x1&&dev.x<=b.x2&&dev.y>=b.y1&&dev.y<=b.y2;
-          };
-          if(draggedDev.parentRack){
-            // Check if dragged OUT of current quadro container
-            const parentContainer=devices.find(r=>r.id===draggedDev.parentRack);
-            if(parentContainer && !isInsideContainer(draggedDev,parentContainer)){
-              updateDevice(dragging.id,{parentRack:null,rackSlot:null});
-              showConnToast(`${draggedDev.name} removido de ${parentContainer.name}`,'info');
-            }
-          }else{
-            // Check if dropped INTO a quadro container
-            const quadroDev=devices.find(r=>(r.key==='quadro'||r.key==='quadro_eletrico')&&r.id!==dragging.id&&
-              isInsideContainer(draggedDev,r));
-            if(quadroDev){
-              const canMount=quadroDev.key==='quadro_eletrico'?canMountInQuadroEletrico(draggedDev.key):canMountInQuadro(draggedDev.key);
-              if(canMount){updateDevice(dragging.id,{parentRack:quadroDev.id});showConnToast(`${draggedDev.name} montado em ${quadroDev.name}`,'success')}
-              else{showConnToast(`${draggedDev.name} não é montável em ${quadroDev.name||quadroDev.key}`,'warn')}
-            }
+        if(draggedDev && canMountInQuadro(draggedDev.key)){
+          const qcHit=quadros.find(qc=>{
+            const qW=160,qH=120;
+            return draggedDev.x>=qc.x && draggedDev.x<=qc.x+qW && draggedDev.y>=qc.y && draggedDev.y<=qc.y+qH;
+          });
+          if(qcHit && !draggedDev.quadroId){
+            assignDeviceToQuadro(dragging.id,qcHit.id);
           }
         }
       }
@@ -947,7 +1086,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     window.addEventListener('mousemove',onMove);
     window.addEventListener('mouseup',onUp);
     return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
-  },[dragging,zoom]);
+  },[dragging,zoom,quadros,snapToGrid]);
 
   // Group dragging (multi-select)
   useEffect(()=>{
@@ -989,7 +1128,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         }
       }
       // Escape: cancel current action
-      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set());setCalibStart(null);setCalibEnd(null);setShowCalibModal(false)}
+      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set());setCalibStart(null);setCalibEnd(null);setShowCalibModal(false);setSelectedQuadroId(null)}
 
       // Tool shortcuts
       if(!e.ctrlKey&&!e.metaKey){
@@ -1579,54 +1718,84 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
               {/* Rack containers removed — rack is now a data entity in floor.racks[] */}
 
-              {/* Quadro containers (Conectividade + Elétrico) */}
-              {layers.devices&&devices.filter(d=>d.key==='quadro'||d.key==='quadro_eletrico').map(qd=>{
-                const children=devices.filter(d=>d.parentRack===qd.id);
-                const qW=180;const slotH=28;const headerH=24;
-                const qH=headerH+Math.max(3,children.length)*slotH+16;
-                const isSel=selectedDevice===qd.id;
+              {/* Quadro de Conectividade (QC) entities on canvas */}
+              {layers.devices&&quadros.map(qc=>{
+                const qcDevices=devices.filter(d=>d.quadroId===qc.id);
+                const isSel=selectedQuadroId===qc.id;
+                const qW=160;const headerH=28;const slotH=22;
+                const qH=headerH+Math.max(2,qcDevices.length)*slotH+12;
                 return (
-                  <div key={'qd-bg-'+qd.id}
-                    style={{position:'absolute',left:qd.x-30,top:qd.y-20,width:qW,height:qH,
-                      background:'linear-gradient(180deg,#f8fafc,#e2e8f0)',
-                      border:`2px solid ${isSel?'var(--azul2)':'#94a3b8'}`,
-                      borderRadius:6,zIndex:2,pointerEvents:'none',boxShadow:'0 2px 12px rgba(0,0,0,.12)'}}>
-                    <div style={{height:headerH,display:'flex',alignItems:'center',justifyContent:'space-between',
-                      padding:'0 8px',borderBottom:'1px solid #cbd5e1'}}>
-                      <span style={{fontSize:10,fontWeight:700,color:'#334155'}}>{qd.name}</span>
-                      <span style={{fontSize:9,color:'#64748b',fontWeight:600}}>{children.length} itens</span>
+                  <div key={'qc-'+qc.id}
+                    style={{position:'absolute',left:qc.x,top:qc.y,width:qW,minHeight:qH,
+                      background:'linear-gradient(180deg,#f0fdf4,#dcfce7)',
+                      border:`2px solid ${isSel?'#16a34a':'#86efac'}`,
+                      borderRadius:8,zIndex:5,boxShadow:isSel?'0 0 16px rgba(22,163,74,.4)':'0 2px 10px rgba(0,0,0,.1)',
+                      cursor:'move',userSelect:'none'}}
+                    onClick={(e)=>{
+                      e.stopPropagation();
+                      setSelectedQuadroId(qc.id);setSelectedDevice(null);setSelectedConn(null);
+                      setRightTab('quadro');
+                    }}
+                    onMouseDown={(e)=>{
+                      if(tool!=='select') return;
+                      e.stopPropagation();e.preventDefault();
+                      const rect=canvasRef.current?.getBoundingClientRect();
+                      if(!rect) return;
+                      setDragging({id:'qc_'+qc.id,isQuadro:true,offsetX:e.clientX/zoom-qc.x,offsetY:e.clientY/zoom-qc.y});
+                    }}>
+                    {/* Header */}
+                    <div style={{height:headerH,display:'flex',alignItems:'center',gap:6,
+                      padding:'0 8px',borderBottom:'1.5px solid #bbf7d0',background:'rgba(22,163,74,.08)',
+                      borderRadius:'6px 6px 0 0'}}>
+                      <span style={{fontSize:14}}>📦</span>
+                      <span style={{fontSize:10,fontWeight:800,color:'#166534',flex:1,overflow:'hidden',
+                        textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{qc.tag}</span>
+                      <span style={{fontSize:8,fontWeight:600,color:'#4ade80',background:'#166534',
+                        padding:'1px 5px',borderRadius:4}}>{qcDevices.length}</span>
                     </div>
-                    {children.length>0?children.map((child,i)=>{
-                      const thumb=DEVICE_THUMBNAILS[child.key];
+                    {/* Device list */}
+                    {qcDevices.length>0?qcDevices.slice(0,6).map(child=>{
                       const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===child.key))?.color||'#6b7280';
                       return (
-                        <div key={child.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 8px',
-                          borderBottom:'1px solid #e2e8f0',height:slotH}}>
-                          <div style={{width:20,height:20,flexShrink:0,borderRadius:3,overflow:'hidden',background:'#fff',
-                            display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid #e2e8f0'}}>
-                            {thumb?<img src={thumb} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:
-                              <span style={{fontSize:10}}>{ICONS[getDeviceIconKey(child.key)]?.(catColor)}</span>}
-                          </div>
-                          <div style={{flex:1,minWidth:0,cursor:'pointer'}} onClick={()=>{setSelectedDevice(child.id);setRightTab('props')}}>
-                            <div style={{fontSize:9,fontWeight:600,color:'#334155',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{child.name}</div>
-                          </div>
-                          <span style={{fontSize:10,color:'#ef4444',cursor:'pointer',padding:'0 3px',
-                            pointerEvents:'auto',fontWeight:700,lineHeight:1}} title="Remover do quadro"
-                            onClick={(e)=>{e.stopPropagation();updateDevice(child.id,{parentRack:null})}}>✕</span>
-                          <div style={{width:4,height:18,borderRadius:2,background:catColor,opacity:.5,flexShrink:0}}/>
+                        <div key={child.id} style={{display:'flex',alignItems:'center',gap:4,padding:'2px 8px',
+                          borderBottom:'1px solid #dcfce7',height:slotH,fontSize:9}}>
+                          <span style={{width:6,height:6,borderRadius:'50%',background:catColor,flexShrink:0}}/>
+                          <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                            color:'#334155',fontWeight:500,cursor:'pointer'}}
+                            onClick={(e)=>{e.stopPropagation();setSelectedDevice(child.id);setRightTab('props')}}>
+                            {child.name}
+                          </span>
                         </div>
                       );
                     }):(
-                      <div style={{padding:12,fontSize:9,color:'#94a3b8',textAlign:'center',lineHeight:1.5}}>
-                        Arraste itens<br/>para dentro do quadro
+                      <div style={{padding:8,fontSize:8,color:'#86efac',textAlign:'center'}}>
+                        Vazio — atribua dispositivos
                       </div>
+                    )}
+                    {qcDevices.length>6&&(
+                      <div style={{fontSize:8,color:'#4ade80',textAlign:'center',padding:'2px 0',fontWeight:600}}>
+                        +{qcDevices.length-6} mais...
+                      </div>
+                    )}
+                    {/* Name label */}
+                    <div style={{fontSize:8,color:'#166534',textAlign:'center',padding:'3px 4px',
+                      fontWeight:600,borderTop:'1px solid #dcfce7',overflow:'hidden',textOverflow:'ellipsis',
+                      whiteSpace:'nowrap'}}>{qc.name}</div>
+                    {/* Delete button when selected */}
+                    {isSel&&(
+                      <div style={{position:'absolute',top:-6,right:-6,width:18,height:18,borderRadius:'50%',
+                        background:'#ef4444',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',
+                        cursor:'pointer',boxShadow:'0 1px 4px rgba(0,0,0,.3)',fontSize:10,color:'#fff',fontWeight:900,zIndex:15}}
+                        title="Excluir quadro"
+                        onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
+                        onClick={e=>{e.stopPropagation();deleteQuadro(qc.id)}}>✕</div>
                     )}
                   </div>
                 );
               })}
 
               {/* Device nodes — hide devices that are mounted inside a rack or quadro */}
-              {layers.devices&&devices.filter(d=>!d.parentRack).map(dev=>{
+              {layers.devices&&devices.filter(d=>!d.parentRack&&!d.quadroId).map(dev=>{
                 const def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
                 const color=catInfo?.color||'#6b7280';
@@ -2162,6 +2331,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               Rack {racks.length>0&&<span style={{background:'var(--azul2)',color:'#fff',
                 borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{racks.length}</span>}
             </div>
+            <div className={`rp-tab ${rightTab==='quadro'?'active':''}`} onClick={()=>setRightTab('quadro')}>
+              Quadro {quadros.length>0&&<span style={{background:'#16a34a',color:'#fff',
+                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{quadros.length}</span>}
+            </div>
             <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}>
               Topologia
             </div>
@@ -2184,6 +2357,170 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 onUpdateRack={updateRack} onDeleteRack={deleteRack}
                 onAssignDevice={assignDeviceToRackAction} onUnassignDevice={unassignDeviceFromRack}
                 onSelectDevice={(id)=>{setSelectedDevice(id);setRightTab('props')}}/>
+            )}
+            {/* QUADRO DE CONECTIVIDADE PANEL */}
+            {rightTab==='quadro'&&(
+              <div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'#166534'}}>📦 Quadros de Conectividade</div>
+                  <button onClick={()=>addQuadro()} style={{padding:'4px 10px',border:'1px solid #16a34a',
+                    background:'#f0fdf4',color:'#166534',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:700}}>
+                    + Novo QC
+                  </button>
+                </div>
+                {quadros.length===0&&(
+                  <div style={{textAlign:'center',padding:'30px 16px',color:'#86efac'}}>
+                    <div style={{fontSize:28,opacity:.4,marginBottom:8}}>📦</div>
+                    <p style={{fontSize:11,color:'#64748b'}}>Nenhum quadro criado</p>
+                    <p style={{fontSize:9,color:'#94a3b8',marginTop:4}}>Clique "+ Novo QC" para adicionar</p>
+                  </div>
+                )}
+                {/* Quadro list */}
+                {quadros.map(qc=>{
+                  const qcDevices=devices.filter(d=>d.quadroId===qc.id);
+                  const isSel=selectedQuadroId===qc.id;
+                  return (
+                    <div key={qc.id} style={{border:`1.5px solid ${isSel?'#16a34a':'#e5e7eb'}`,borderRadius:8,
+                      marginBottom:8,background:isSel?'#f0fdf4':'#fff',cursor:'pointer',overflow:'hidden'}}
+                      onClick={()=>setSelectedQuadroId(isSel?null:qc.id)}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',
+                        borderBottom:isSel?'1px solid #dcfce7':'none'}}>
+                        <span style={{fontSize:14}}>📦</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:11,fontWeight:700,color:'#166534'}}>{qc.tag}</div>
+                          <div style={{fontSize:9,color:'#64748b'}}>{qc.name} · {qcDevices.length} dispositivos</div>
+                        </div>
+                        <span style={{fontSize:8,fontWeight:600,color:'#fff',background:'#16a34a',
+                          padding:'2px 6px',borderRadius:4}}>{qc.caixa}</span>
+                      </div>
+                      {/* Expanded details when selected */}
+                      {isSel&&(
+                        <div style={{padding:'8px 10px'}}>
+                          {/* Name */}
+                          <div className="prop-row">
+                            <span className="pr-label" style={{fontSize:9}}>Nome:</span>
+                            <span className="pr-value">
+                              <input value={qc.name} style={{fontSize:10}} onChange={e=>updateQuadro(qc.id,{name:e.target.value})}/>
+                            </span>
+                          </div>
+                          {/* Caixa */}
+                          <div className="prop-row">
+                            <span className="pr-label" style={{fontSize:9}}>Caixa (cm):</span>
+                            <span className="pr-value">
+                              <select value={qc.caixa||'50x40x20'} style={{fontSize:10}}
+                                onChange={e=>updateQuadro(qc.id,{caixa:e.target.value})}>
+                                <option value="30x30x15">30×30×15</option>
+                                <option value="40x30x20">40×30×20</option>
+                                <option value="50x40x20">50×40×20</option>
+                                <option value="60x50x25">60×50×25</option>
+                                <option value="80x60x25">80×60×25</option>
+                              </select>
+                            </span>
+                          </div>
+                          {/* Aterramento */}
+                          <div className="prop-row">
+                            <span className="pr-label" style={{fontSize:9}}>Aterramento:</span>
+                            <span className="pr-value">
+                              <select value={qc.aterramento||'individual'} style={{fontSize:10}}
+                                onChange={e=>updateQuadro(qc.id,{aterramento:e.target.value})}>
+                                <option value="individual">Individual (haste própria)</option>
+                                <option value="edificacao">Edificação (barramento geral)</option>
+                                <option value="nenhum">Nenhum</option>
+                              </select>
+                            </span>
+                          </div>
+                          {/* Disjuntor */}
+                          <div className="prop-row">
+                            <span className="pr-label" style={{fontSize:9}}>Disjuntor:</span>
+                            <span className="pr-value" style={{display:'flex',gap:4}}>
+                              <select value={qc.disjuntor?.tipo||'bipolar'} style={{fontSize:10,flex:1}}
+                                onChange={e=>updateQuadro(qc.id,{disjuntor:{...qc.disjuntor,tipo:e.target.value}})}>
+                                <option value="unipolar">Unipolar</option>
+                                <option value="bipolar">Bipolar</option>
+                                <option value="tripolar">Tripolar</option>
+                              </select>
+                              <select value={qc.disjuntor?.amperagem||16} style={{fontSize:10,width:60}}
+                                onChange={e=>updateQuadro(qc.id,{disjuntor:{...qc.disjuntor,amperagem:parseInt(e.target.value)}})}>
+                                {[6,10,16,20,25,32,40].map(a=><option key={a} value={a}>{a}A</option>)}
+                              </select>
+                            </span>
+                          </div>
+                          {/* Prensa-cabo */}
+                          <div className="prop-row">
+                            <span className="pr-label" style={{fontSize:9}}>Prensa-cabo:</span>
+                            <span className="pr-value">
+                              <input type="number" min="0" max="30" value={qc.prensaCabo||0} style={{width:50,fontSize:10}}
+                                onChange={e=>updateQuadro(qc.id,{prensaCabo:parseInt(e.target.value)||0})}/>
+                            </span>
+                          </div>
+
+                          {/* Assigned devices */}
+                          <div style={{fontSize:9,fontWeight:700,color:'#64748b',textTransform:'uppercase',
+                            letterSpacing:.5,marginTop:10,marginBottom:4}}>
+                            Dispositivos ({qcDevices.length})
+                          </div>
+                          {qcDevices.length>0?qcDevices.map(d=>{
+                            const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===d.key))?.color||'#6b7280';
+                            return (
+                              <div key={d.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
+                                fontSize:9,borderBottom:'1px solid #f0f0f0'}}>
+                                <span style={{width:6,height:6,borderRadius:'50%',background:catColor,flexShrink:0}}/>
+                                <span style={{flex:1,cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}
+                                  onClick={(e)=>{e.stopPropagation();setSelectedDevice(d.id);setRightTab('props')}}>
+                                  {d.name}
+                                </span>
+                                <span style={{fontSize:8,color:'#ef4444',cursor:'pointer',fontWeight:700}}
+                                  onClick={(e)=>{e.stopPropagation();unassignDeviceFromQuadro(d.id)}}>✕</span>
+                              </div>
+                            );
+                          }):(
+                            <div style={{fontSize:9,color:'#94a3b8',padding:'6px 0',textAlign:'center'}}>
+                              Nenhum dispositivo atribuído
+                            </div>
+                          )}
+
+                          {/* Quick-assign: show mountable unassigned devices */}
+                          {(()=>{
+                            const unassigned=devices.filter(d=>!d.quadroId&&!d.parentRack&&canMountInQuadro(d.key));
+                            if(!unassigned.length) return null;
+                            return (
+                              <div style={{marginTop:6}}>
+                                <select style={{width:'100%',fontSize:9,padding:'3px 4px',borderRadius:4,border:'1px solid #d1d5db'}}
+                                  value="" onChange={e=>{if(e.target.value) assignDeviceToQuadro(e.target.value,qc.id)}}>
+                                  <option value="">+ Atribuir dispositivo...</option>
+                                  {unassigned.map(d=><option key={d.id} value={d.id}>{d.name} ({d.key})</option>)}
+                                </select>
+                              </div>
+                            );
+                          })()}
+
+                          {/* BOM Preview */}
+                          <div style={{fontSize:9,fontWeight:700,color:'#64748b',textTransform:'uppercase',
+                            letterSpacing:.5,marginTop:10,marginBottom:4}}>
+                            BOM Automático
+                          </div>
+                          {getQuadroBom(qc).map((item,i)=>(
+                            <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:9,
+                              padding:'2px 0',borderBottom:'1px solid #f8fafc',color:'#334155'}}>
+                              <span>{item.name}</span>
+                              <span style={{fontWeight:700,color:'#16a34a'}}>{item.qty}×</span>
+                            </div>
+                          ))}
+
+                          {/* Actions */}
+                          <div style={{display:'flex',gap:6,marginTop:10}}>
+                            <button onClick={(e)=>{e.stopPropagation();deleteQuadro(qc.id)}}
+                              style={{flex:1,padding:'5px 8px',fontSize:9,fontWeight:600,background:'#fef2f2',
+                                color:'#ef4444',border:'1px solid #fecaca',borderRadius:4,cursor:'pointer'}}>
+                              🗑️ Excluir
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
             {/* PROPERTIES */}
             {rightTab==='props'&&selectedDev&&(()=>{
@@ -2583,6 +2920,25 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       </span>
                     </div>
                   )}
+                  {/* Quadro de Conectividade assignment */}
+                  {canMountInQuadro(selectedDev.key)&&quadros.length>0&&(
+                    <div className="prop-row">
+                      <span className="pr-label">Quadro:</span>
+                      <span className="pr-value">
+                        <select value={selectedDev.quadroId||''} onChange={e=>{
+                          const qcId=e.target.value;
+                          if(qcId) assignDeviceToQuadro(selectedDev.id,qcId);
+                          else if(selectedDev.quadroId) unassignDeviceFromQuadro(selectedDev.id);
+                        }}>
+                          <option value="">Não atribuído</option>
+                          {quadros.map(qc=>{
+                            const cnt=devices.filter(d=>d.quadroId===qc.id).length;
+                            return <option key={qc.id} value={qc.id}>{qc.tag} — {qc.name} ({cnt} itens)</option>;
+                          })}
+                        </select>
+                      </span>
+                    </div>
+                  )}
 
                   <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
                     letterSpacing:.5,marginBottom:6,marginTop:12}}>Conexões</div>
@@ -2767,6 +3123,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <div className="sb-item">📐 Zoom: {Math.round(zoom*100)}%</div>
         <div className="sb-item">🏗️ {floor?.name} — {devices.length} dispositivos</div>
         <div className="sb-item">🔗 {connections.length} conexões</div>
+        {quadros.length>0&&<div className="sb-item">📦 {quadros.length} quadro{quadros.length>1?'s':''}</div>}
         <span style={{flex:1}}/>
         <div className="sb-item">
           <span className="shortcut">Delete</span> Excluir
