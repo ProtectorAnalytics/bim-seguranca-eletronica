@@ -62,6 +62,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [multiSelect,setMultiSelect]=useState(new Set()); // multi-selected device IDs
   const [selectionRect,setSelectionRect]=useState(null); // {startX,startY,x,y} canvas coords for lasso
   const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
+  const [bgOpacity,setBgOpacity]=useState(floor?.bgOpacity??0.3);
+  const bgFileRef=useRef(null);
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -72,6 +74,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const devices=floor?.devices||[];
   const connections=floor?.connections||[];
   const environments=floor?.environments||[];
+
+  // Sync bgOpacity when floor changes
+  useEffect(()=>{setBgOpacity(floor?.bgOpacity??0.3)},[project.activeFloor]);
 
   // Update floor data helper
   const updateFloor=(updater)=>{
@@ -1003,6 +1008,56 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             </>}
             {leftTab==='floors'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Pavimentos do projeto:</div>
+
+              {/* Floor plan background upload */}
+              <div style={{background:'rgba(52,152,219,.08)',border:'1px solid rgba(52,152,219,.25)',borderRadius:6,padding:10,marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#3498db',marginBottom:6}}>🗺️ Planta de Fundo</div>
+                {floor?.bgImage?(
+                  <>
+                    <div style={{fontSize:10,color:'#27ae60',marginBottom:4}}>✅ Imagem carregada</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                      <span style={{fontSize:9,color:'var(--cinza)',minWidth:55}}>Opacidade:</span>
+                      <input type="range" min="0.05" max="0.8" step="0.05" value={bgOpacity}
+                        style={{flex:1,height:4}}
+                        onChange={e=>{
+                          const v=parseFloat(e.target.value);
+                          setBgOpacity(v);
+                          updateFloor(f=>({...f,bgOpacity:v}));
+                        }}/>
+                      <span style={{fontSize:9,color:'var(--cinza)',minWidth:25}}>{Math.round(bgOpacity*100)}%</span>
+                    </div>
+                    <button onClick={()=>{updateFloor(f=>({...f,bgImage:null,bgOpacity:0.3}));setBgOpacity(0.3)}}
+                      style={{width:'100%',padding:'4px 8px',fontSize:10,background:'#fdecea',color:'#e74c3c',
+                        border:'1px solid #e74c3c',borderRadius:4,cursor:'pointer'}}>
+                      🗑️ Remover planta
+                    </button>
+                  </>
+                ):(
+                  <>
+                    <div style={{fontSize:10,color:'var(--cinza)',marginBottom:6}}>
+                      Carregue uma imagem de planta arquitetônica como fundo do canvas.
+                    </div>
+                    <button onClick={()=>bgFileRef.current?.click()}
+                      style={{width:'100%',padding:'6px 8px',fontSize:10,background:'#3498db',color:'#fff',
+                        border:'none',borderRadius:4,cursor:'pointer',fontWeight:600}}>
+                      📂 Carregar imagem (JPG/PNG)
+                    </button>
+                    <input ref={bgFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+                      style={{display:'none'}}
+                      onChange={e=>{
+                        const file=e.target.files?.[0];
+                        if(!file) return;
+                        if(file.size>10*1024*1024){alert('Imagem muito grande (máx 10MB)');return}
+                        const reader=new FileReader();
+                        reader.onload=ev=>{
+                          updateFloor(f=>({...f,bgImage:ev.target.result,bgOpacity:bgOpacity}));
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value='';
+                      }}/>
+                  </>
+                )}
+              </div>
               {project.floors.map(f=>{
                 const isActive=f.id===project.activeFloor;
                 const isEditing=editingFloorId===f.id;
@@ -1061,6 +1116,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 </pattern></defs>
                 <rect width="2000" height="2000" fill="url(#grid)"/>
               </svg>
+
+              {/* Background floor plan image */}
+              {floor?.bgImage&&(
+                <img src={floor.bgImage} alt="Planta de fundo"
+                  style={{position:'absolute',top:0,left:0,width:2000,height:2000,
+                    objectFit:'contain',objectPosition:'top left',
+                    opacity:bgOpacity,pointerEvents:'none',userSelect:'none',zIndex:0}}
+                  draggable={false}/>
+              )}
 
               {/* Environments */}
               {environments.map(env=>(
