@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 17, build: 0,
-  date: '2026-03-08',
+  major: 3, minor: 17, build: 1,
+  date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.17.1',date:'2026-03-09',changes:['Fix: todos os 160 dispositivos agora possuem porta de conexão (⚡ visível para todos)','Fix: interfaces de conexão para todos os tipos — WiFi, MHD, incêndio, S8000, automatizadores, infra','Fix: classificadores de dispositivo corrigidos (isEletrificador, isAutomatizador, isCentralIncendio, isAP, isLuminaria, etc.)','Fix: câmeras WiFi não recebem mais interface PoE incorreta','Fix: seleção por laço (lasso) mais robusta — apenas botão esquerdo, limpa seleção anterior']},
     {ver:'3.17.0',date:'2026-03-08',changes:['Export PNG: captura da planta como imagem com opção de fundo branco ou dark','Export CSV: lista de materiais (BOM) compatível com Excel, com separador ponto-e-vírgula e UTF-8 BOM','PDF melhorado: Resumo Executivo com contagem por categoria, cabeamento e status de validação','PDF melhorado: Seção de Alertas de Validação com severidade e badges coloridos','ExportModal redesenhado: botões PNG e CSV lado a lado, checkboxes para seções do PDF']},
     {ver:'3.16.0',date:'2026-03-08',changes:['Auto-dimensionamento de cabos: distância calculada em metros (40px=1m) ao conectar e recalculada ao mover dispositivos','Minimap: visão em miniatura do canvas com dispositivos, cabos e ambientes — clique para navegar','Atalhos: Delete, Escape, Ctrl+Z/Y, Ctrl+A, Ctrl+P (imprimir)','Fix: SVG de cotas bloqueava cliques nos dispositivos (pointerEvents)']},
     {ver:'3.15.0',date:'2026-03-08',changes:['Layers: sistema de camadas com toggle para dispositivos, cabos, ambientes, grade, planta e cotas','Carimbo profissional: bloco técnico no canvas com dados do projeto, cliente, pavimento, data e escala','Cotas/Dimensões: ferramenta 📏 para medir distâncias no canvas (40px=1m), salvas no projeto','@media print: impressão otimizada A3 landscape com planta limpa','Toolbar reorganizada: Aa, ⊞, ◧ e 🖨️ sempre visíveis com seções claras']},

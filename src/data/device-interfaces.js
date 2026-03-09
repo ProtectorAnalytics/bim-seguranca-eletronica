@@ -102,9 +102,9 @@ export const DEVICE_INTERFACES = {
 // DEVICE KEY CLASSIFICATION HELPERS
 // ====================================================================
 export const isCamera = k => k.startsWith('cam_');
-export const isCameraIP = k => k.startsWith('cam_ip_') || k === 'cam_lpr';
+export const isCameraIP = k => (k.startsWith('cam_ip_') && !k.startsWith('cam_ip_wifi_')) || k === 'cam_lpr';
 export const isCameraMHD = k => k.startsWith('cam_mhd_') || k.startsWith('cam_hdcvi_');
-export const isCameraWiFi = k => k.startsWith('cam_wifi_');
+export const isCameraWiFi = k => k.startsWith('cam_wifi_') || k.startsWith('cam_ip_wifi_');
 export const isCameraVeicular = k => k.startsWith('cam_veicular_');
 export const isNVR = k => k.startsWith('nvr_') || k === 'nvr';
 export const isDVR = k => k.startsWith('dvr_');
@@ -114,17 +114,17 @@ export const isSensorPIR = k => k.startsWith('pir_');
 export const isBarreira = k => k.startsWith('barreira_');
 export const isSensorZona = k => isSensorPIR(k) || isBarreira(k) || k === 'sensor_abertura';
 export const isSirene = k => k.startsWith('sirene_') && !k.startsWith('sirene_inc_');
-export const isEletrificador = k => k.startsWith('eletrif_');
+export const isEletrificador = k => k.startsWith('eletrif_') || k.startsWith('eletri_');
 export const isTeclado = k => k.startsWith('teclado_');
 export const isSwitch = k => k.startsWith('sw_');
 export const isSwitchPoE = k => k === 'sw_poe' || k.startsWith('sw_poe_');
 export const isControleAcesso = k => ['leitor_facial','controladora','fechadura','leitor_tag'].includes(k) || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_');
-export const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_');
-export const isCentralIncendio = k => k.startsWith('central_inc_');
-export const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_');
-export const isAutomatizador = k => k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor';
-export const isAP = k => k.startsWith('ap_');
-export const isLuminaria = k => k.startsWith('lumin_');
+export const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_') || k.startsWith('fogo_') || k.startsWith('morley_');
+export const isCentralIncendio = k => k.startsWith('central_inc_') || k.startsWith('fogo_central_') || k === 'morley_central';
+export const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('fogo_det_') || k.startsWith('fogo_acionador_') || k === 'morley_detector';
+export const isAutomatizador = k => k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor' || k.startsWith('auto_');
+export const isAP = k => k.startsWith('ap_') || k.startsWith('wifi_ap_');
+export const isLuminaria = k => k.startsWith('lumin_') || k.startsWith('emerg_');
 export const isComunicador = k => k.startsWith('comunicador_');
 export const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
 export const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
@@ -302,48 +302,46 @@ export function getDeviceUSize(key){
 // Pattern-based interface resolution for expanded device library
 export function resolveInterfacesByKey(key) {
   if (DEVICE_INTERFACES[key]) return DEVICE_INTERFACES[key];
-  // Camera IP → PoE + 12V alt + sensor
+
+  // ── WiFi cameras (check BEFORE isCameraIP to avoid false PoE match) ──
+  if (isCameraWiFi(key)) return [
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC/5VDC',required:true}];
+
+  // ── Camera IP → PoE + 12V alt + sensor ──
   if (isCameraIP(key)) return DEVICE_INTERFACES.cam_dome;
-  // Camera Multi HD / HDCVI → Coaxial + 12VDC
+
+  // ── Camera Multi HD / HDCVI → Coaxial + 12VDC ──
   if (isCameraMHD(key)) return [
     {type:'data_in',cables:['coaxial'],label:'Vídeo HD (BNC/Coaxial)',required:true},
     {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true},
     {type:'signal_in',cables:['pp2v_05'],label:'Entrada sensor alarme (NA/NF)',required:false},
     {type:'signal_out',cables:['pp2v_05'],label:'Saída contato seco (relay)',required:false}];
-  // Camera WiFi → WiFi + power
-  if (isCameraWiFi(key)) return [
-    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC/5VDC',required:true}];
-  // Camera veicular → Network + 12V
+
+  // ── Camera veicular → Network + 12V ──
   if (isCameraVeicular(key)) return [
     {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
     {type:'power_in',cables:['pp2v_10'],label:'Alimentação 12VDC',required:true}];
-  // NVR → same as nvr
+
+  // ── Gravador veicular ──
+  if (key === 'gravador_veicular') return [
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
+    {type:'power_in',cables:['pp2v_10'],label:'Alimentação 12VDC',required:true}];
+
+  // ── NVR ──
   if (isNVR(key)) return DEVICE_INTERFACES.nvr;
-  // DVR → Coaxial + AC + Network
+
+  // ── DVR → Coaxial + AC + Network ──
   if (isDVR(key)) return [
     {type:'data_in',cables:['coaxial'],label:'Entradas vídeo (BNC)',required:true},
     {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
     {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true}];
-  // Centrais alarme
-  if (isCentralAlarme(key)) return DEVICE_INTERFACES.alarme_central;
-  // Sensores PIR
-  if (isSensorPIR(key)) return DEVICE_INTERFACES.sensor_presenca;
-  // Barreiras IR
-  if (isBarreira(key)) return [
-    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
-    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
-  // Eletrificadores
-  if (isEletrificador(key)) return [
-    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
-    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (tamper/disparo)',required:false},
-    {type:'signal_in',cables:['pp2v_05'],label:'Entrada zona (sensor setor)',required:false}];
-  // Teclados
-  if (isTeclado(key)) return [
-    {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central (4 fios)',required:true},
-    {type:'power_in',cables:['pp2v_05'],label:'Alimentação via barramento',required:false}];
-  // Sirenes
-  if (isSirene(key)) return DEVICE_INTERFACES.sirene;
-  // Controle acesso expandido
+
+  // ── Controle de acesso — leitores/periféricos ──
+  if (key === 'leitor_biometrico') return DEVICE_INTERFACES.leitor_tag;
+  if (key === 'leitor_rfid') return [
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC',required:true},
+    {type:'data_in',cables:['pp2v_05'],label:'Wiegand/RS485',required:true}];
+  if (key === 'eletroima') return DEVICE_INTERFACES.fechadura;
   if (key.startsWith('biometrico_') || key.startsWith('tag_uhf_')) return DEVICE_INTERFACES.leitor_tag;
   if (key.startsWith('catraca_') || key.startsWith('torniquete_')) return [
     {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
@@ -353,43 +351,133 @@ export function resolveInterfacesByKey(key) {
     {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true},
     {type:'signal_in',cables:['pp2v_05'],label:'Sinal abertura (botoeira/controle)',required:false},
     {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (se IP)',required:false}];
-  // Automatizadores
-  if (isAutomatizador(key)) return DEVICE_INTERFACES.motor;
-  // Incêndio - centrais
-  if (isCentralIncendio(key)) return [
-    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 220V',required:true},
-    {type:'signal_in',cables:['pp2v_05','pp4v_10'],label:'Laço de detecção (zonas)',required:true},
-    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (monitoramento)',required:false}];
-  // Incêndio - detectores/acionadores
-  if (isDetectorIncendio(key)) return [
-    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
-  // Incêndio - módulos
-  if (key.startsWith('modulo_inc_')) return [
-    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (endereçável)',required:true},
-    {type:'automation_out',cables:['pp2v_10','pp2v_05'],label:'Saída acionamento',required:false}];
-  // Incêndio - sirenes
-  if (key.startsWith('sirene_inc_')) return [
-    {type:'signal_in',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
-  // AP WiFi
-  if (isAP(key)) return [
-    {type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power (RJ45)',required:true},
-    {type:'power_in',cables:['pp2v_10','pp2v_15'],label:'Alimentação 12VDC (alternativa ao PoE)',required:false}];
-  // Switch PoE expandidos
-  if (isSwitchPoE(key)) return DEVICE_INTERFACES.sw_poe;
-  // Iluminação emergência
-  if (isLuminaria(key)) return [
-    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC (rede elétrica)',required:true}];
-  // Comunicadores
+
+  // ── Centrais alarme ──
+  if (isCentralAlarme(key)) return DEVICE_INTERFACES.alarme_central;
+
+  // ── Sensores PIR ──
+  if (isSensorPIR(key)) return DEVICE_INTERFACES.sensor_presenca;
+
+  // ── Barreiras IR ──
+  if (isBarreira(key)) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
+
+  // ── Eletrificadores ──
+  if (isEletrificador(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (tamper/disparo)',required:false},
+    {type:'signal_in',cables:['pp2v_05'],label:'Entrada zona (sensor setor)',required:false}];
+
+  // ── Teclados ──
+  if (isTeclado(key)) return [
+    {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central (4 fios)',required:true},
+    {type:'power_in',cables:['pp2v_05'],label:'Alimentação via barramento',required:false}];
+
+  // ── Sirenes alarme ──
+  if (isSirene(key)) return DEVICE_INTERFACES.sirene;
+
+  // ── Periféricos alarme ──
   if (isComunicador(key)) return [
     {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false},
     {type:'signal_in',cables:['pp2v_05'],label:'Entrada da central',required:true},
     {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
-  // Periféricos alarme (controle remoto, receptor, expansor)
   if (isExpansor(key)) return [
     {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central',required:true},
     {type:'signal_in',cables:['pp2v_05'],label:'Entrada zonas',required:false},
     {type:'power_in',cables:['pp2v_05'],label:'Alimentação via barramento',required:false}];
+  if (key === 'modulo_pgm') return [
+    {type:'data_in',cables:['pp4v_10','pp2v_05'],label:'Barramento central',required:true},
+    {type:'automation_out',cables:['pp2v_10','pp2v_05'],label:'Saída PGM (relay)',required:true}];
   if (key.startsWith('controle_')) return [
     {type:'signal_out',cables:['pp2v_05'],label:'Saída zona/acionamento',required:true}];
-  return [];
+
+  // ── Sistema 8000 Sem Fio ──
+  if (key === 's8k_central') return DEVICE_INTERFACES.alarme_central;
+  if (key === 's8k_barreira') return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
+  if (key === 's8k_sirene') return DEVICE_INTERFACES.sirene;
+  if (key.startsWith('s8k_')) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (sem fio→central)',required:true}];
+
+  // ── Automatizadores ──
+  if (isAutomatizador(key)) return DEVICE_INTERFACES.motor;
+
+  // ── Incêndio — centrais ──
+  if (isCentralIncendio(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 220V',required:true},
+    {type:'signal_in',cables:['pp2v_05','pp4v_10'],label:'Laço de detecção (zonas)',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (monitoramento)',required:false}];
+
+  // ── Incêndio — detectores autônomos (sem laço, bateria/AC) ──
+  if (key === 'fogo_det_autonomo') return [
+    {type:'power_in',cables:['pp2v_05'],label:'Bateria interna (autônomo)',required:false}];
+  if (key === 'fogo_det_gas') return [
+    {type:'power_in',cables:['ac_power'],label:'Alimentação AC 220V',required:true}];
+
+  // ── Incêndio — detectores de chama ──
+  if (key.startsWith('fogo_det_chama_')) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12-24VDC',required:true}];
+
+  // ── Incêndio — detector linear ──
+  if (key === 'fogo_det_linear') return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Saída zona (NA/NF)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12-24VDC',required:true}];
+
+  // ── Incêndio — sistema aspiração ──
+  if (key === 'fogo_aspiracao') return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC',required:true},
+    {type:'signal_out',cables:['pp2v_05','pp4v_10'],label:'Saída laço (zona central)',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:false}];
+
+  // ── Incêndio — gateway ──
+  if (key === 'fogo_gateway') return [
+    {type:'data_in',cables:['pp2v_05'],label:'RS-485 (entrada central)',required:true},
+    {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}];
+
+  // ── Incêndio — detectores/acionadores (conv + endereçável) ──
+  if (isDetectorIncendio(key)) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
+
+  // ── Incêndio — módulos (endereçáveis) ──
+  if (key.startsWith('modulo_inc_') || key.startsWith('fogo_mod_')) return [
+    {type:'signal_out',cables:['pp2v_05'],label:'Laço 2 fios (endereçável)',required:true},
+    {type:'automation_out',cables:['pp2v_10','pp2v_05'],label:'Saída acionamento',required:false}];
+
+  // ── Incêndio — sinalizadores ──
+  if (key.startsWith('sirene_inc_') || key.startsWith('fogo_sinalizador_')) return [
+    {type:'signal_in',cables:['pp2v_05'],label:'Laço 2 fios (zona central)',required:true}];
+
+  // ── AP WiFi ──
+  if (isAP(key)) return [
+    {type:'data_in',cables:['cat5e','cat6','cat6a'],label:'PoE Data+Power (RJ45)',required:true},
+    {type:'power_in',cables:['pp2v_10','pp2v_15'],label:'Alimentação 12VDC (alternativa ao PoE)',required:false}];
+
+  // ── WiFi routers/mesh ──
+  if (key.startsWith('wifi_router_') || key === 'wifi_mesh') return [
+    {type:'data_io',cables:['cat5e','cat6'],label:'WAN/LAN (RJ45)',required:true},
+    {type:'power_in',cables:['ac_power'],label:'Alimentação AC',required:true}];
+
+  // ── Switch PoE expandidos ──
+  if (isSwitchPoE(key)) return DEVICE_INTERFACES.sw_poe;
+
+  // ── Iluminação emergência ──
+  if (isLuminaria(key)) return [
+    {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC (rede elétrica)',required:true}];
+
+  // ── Infraestrutura extras ──
+  if (key === 'patch_panel') return [
+    {type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Terminação cabos rede',required:true}];
+  if (key === 'conversor_midia') return [
+    {type:'data_io',cables:['cat5e','cat6'],label:'RJ45 Ethernet',required:true},
+    {type:'data_io',cables:['smf','mmf'],label:'SFP/SC Fibra',required:true},
+    {type:'power_in',cables:['ac_power','pp2v_10'],label:'Alimentação',required:true}];
+  if (key === 'dps_rede') return [
+    {type:'passthrough',cables:['cat5e','cat6','cat6a','ac_power','pp_flex'],label:'Proteção surto (passagem)'}];
+
+  // ── Fallback: power interface genérica para qualquer dispositivo ──
+  return [{type:'power_in',cables:['pp2v_10','pp2v_05','ac_power'],label:'Alimentação',required:false}];
 }

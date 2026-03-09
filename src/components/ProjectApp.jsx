@@ -683,13 +683,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Lasso selection (mousedown on canvas background)
   const handleCanvasMouseDown=(e)=>{
     if(tool!=='select') return;
+    if(e.button!==0) return; // only left click
     // Only start lasso on direct canvas click (not on devices)
-    if(e.target!==e.currentTarget&&!e.target.closest('.canvas-transform')) return;
-    if(e.target.closest('.device-on-canvas')||e.target.closest('.env-rect')) return;
+    if(e.target.closest('.device-on-canvas')||e.target.closest('.env-rect')||e.target.closest('.port-popup')) return;
+    // Must be inside canvas-area or canvas-transform
+    if(e.target!==e.currentTarget&&!e.target.closest('.canvas-transform')&&!e.target.closest('.canvas-area')) return;
     const rect=canvasRef.current?.getBoundingClientRect();
     if(!rect) return;
     const cx=(e.clientX-rect.left-pan.x)/zoom;
     const cy=(e.clientY-rect.top-pan.y)/zoom;
+    // Clear single selection when starting lasso
+    setSelectedDevice(null);setSelectedConn(null);
     setSelectionRect({startX:cx,startY:cy,x:cx,y:cy});
   };
 
