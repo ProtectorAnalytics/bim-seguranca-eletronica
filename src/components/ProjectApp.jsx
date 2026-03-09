@@ -62,14 +62,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [multiSelect,setMultiSelect]=useState(new Set()); // multi-selected device IDs
   const [selectionRect,setSelectionRect]=useState(null); // {startX,startY,x,y} canvas coords for lasso
   const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
-  const [bgOpacity,setBgOpacity]=useState(floor?.bgOpacity??0.3);
+  const [bgOpacity,setBgOpacity]=useState(0.3);
   const bgFileRef=useRef(null);
   // Layers: toggle visibility of canvas elements
   const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
-  const dimensions=floor?.dimensions||[];
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -80,6 +79,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const devices=floor?.devices||[];
   const connections=floor?.connections||[];
   const environments=floor?.environments||[];
+  const dimensions=floor?.dimensions||[];
 
   // Sync bgOpacity when floor changes
   useEffect(()=>{setBgOpacity(floor?.bgOpacity??0.3)},[project.activeFloor]);
