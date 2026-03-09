@@ -770,14 +770,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   };
 
   const handleDeviceMouseDown=(e,devId)=>{
-    if(cableMode) return; // Don't drag while connecting cables
+    if(tool!=='select'&&tool!=='device') return;
     e.stopPropagation();
     e.preventDefault();
-
-    // Auto-switch to select mode when dragging from any tool
-    if(tool!=='select'&&tool!=='device'){
-      setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null);
-    }
 
     // Shift+click toggles multi-select
     if(e.shiftKey){
@@ -874,13 +869,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Keyboard shortcuts
   useEffect(()=>{
     const handler=(e)=>{
-      // Ignore if user is typing in an input/textarea/select/button or modal is open
       const tag=e.target.tagName;
-      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='BUTTON'||e.target.isContentEditable) return;
-      if(showExport||showEquipmentRepo||modelSelectorModal||rackElevationId||cablePicker||portPopup) return;
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable) return;
 
+      // Delete: remove selected device(s) or connection
       if(e.key==='Delete'){
-        // Delete selected devices (multi or single) or connection
         if(multiSelect.size>0){
           multiSelect.forEach(id=>deleteDevice(id));
           setMultiSelect(new Set());
@@ -894,32 +887,18 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           }
         }
       }
+      // Escape: cancel current action
       if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set())}
 
-      // Tool shortcuts (single keys)
-      if(!e.ctrlKey&&!e.metaKey&&!e.altKey){
-        if(e.key==='v'||e.key==='V'){setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
-        if(e.key==='c'||e.key==='C'){setTool('cable');setPendingDevice(null);setMeasureStart(null)}
-        if(e.key==='e'||e.key==='E'){setTool('env');setPendingDevice(null);setMeasureStart(null)}
-        if(e.key==='m'||e.key==='M'){setTool('measure');setPendingDevice(null)}
-        if(e.key==='g'||e.key==='G'){setSnapToGrid(v=>!v)}
-        if(e.key==='l'||e.key==='L'){setShowCableLabels(v=>!v)}
-        if(e.key==='f'||e.key==='F'){setZoom(1);setPan({x:0,y:0})} // Fit / reset view
-      }
-
-      // Ctrl shortcuts
+      // Ctrl shortcuts only
       if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
       if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
-      if((e.ctrlKey||e.metaKey)&&e.key==='a'){
-        e.preventDefault();
-        // Select all devices
-        setMultiSelect(new Set(devices.map(d=>d.id)));
-        setTool('select');
-      }
+      if((e.ctrlKey||e.metaKey)&&e.key==='a'){e.preventDefault();setMultiSelect(new Set(devices.map(d=>d.id)));setTool('select')}
+      if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print()}
     };
     window.addEventListener('keydown',handler);
     return ()=>window.removeEventListener('keydown',handler);
-  },[selectedDevice,selectedConn,connections,devices,multiSelect,showExport,showEquipmentRepo,modelSelectorModal,rackElevationId,cablePicker,portPopup]);
+  },[selectedDevice,selectedConn,connections,devices,multiSelect]);
 
   // Wheel zoom
   const handleWheel=(e)=>{
@@ -965,11 +944,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <div className="tool-group">
           <button className={`tool-btn ${tool==='select'?'active':''}`} title="Selecionar (V)"
             onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}}>🖱️</button>
-          <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear (C)"
+          <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear"
             onClick={()=>{setTool('cable');setPendingDevice(null);setMeasureStart(null)}}>🔗</button>
-          <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente (E)"
+          <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente"
             onClick={()=>{setTool('env');setPendingDevice(null);setMeasureStart(null)}}>🏠</button>
-          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Cotas / Medir (M)"
+          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Cotas / Medir distância"
             onClick={()=>{setTool('measure');setPendingDevice(null)}}>📏</button>
         </div>
 
@@ -1008,9 +987,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
         {/* Toggles de visualização — SEMPRE visíveis */}
         <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
-          <button className={`tool-btn ${showCableLabels?'active':''}`} title={`${showCableLabels?'Ocultar':'Mostrar'} nomes dos cabos (L)`}
+          <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
             style={{width:30,height:30,fontSize:12}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
-          <button className={`tool-btn ${snapToGrid?'active':''}`} title={`${snapToGrid?'Desativar':'Ativar'} snap na grade (G)`}
+          <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Desativar snap na grade':'Ativar snap na grade'}
             style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
           {/* Layers dropdown */}
           <div style={{position:'relative',display:'inline-block'}}>
@@ -1734,7 +1713,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
               {/* Dimension annotations (cotas) */}
               {layers.dimensions&&(
-                <svg width="2000" height="2000" style={{position:'absolute',top:0,left:0,pointerEvents:tool==='select'?'auto':'none',zIndex:6}}>
+                <svg width="2000" height="2000" style={{position:'absolute',top:0,left:0,pointerEvents:'none',zIndex:6}}>
                   {dimensions.map(dim=>{
                     const dx=dim.x2-dim.x1,dy=dim.y2-dim.y1;
                     const dist=Math.sqrt(dx*dx+dy*dy);
@@ -1971,9 +1950,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
           {/* Zoom controls */}
           <div className="canvas-controls">
-            <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom + (+)">+</button>
-            <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom − (−)">−</button>
-            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar vista (F)">⟳</button>
+            <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom +">+</button>
+            <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom −">−</button>
+            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar vista">⟳</button>
           </div>
           <div className="scale-indicator">Zoom: {Math.round(zoom*100)}%</div>
 
