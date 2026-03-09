@@ -64,6 +64,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
   const [bgOpacity,setBgOpacity]=useState(0.3);
   const bgFileRef=useRef(null);
+  const lassoEndedRef=useRef(false); // prevents click from clearing lasso selection
   // Layers: toggle visibility of canvas elements
   const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
@@ -674,6 +675,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         setMeasureStart(null);
       }
     } else if(tool==='select'){
+      // Don't clear selection if a lasso drag just ended
+      if(lassoEndedRef.current){lassoEndedRef.current=false;return;}
       setSelectedDevice(null);
       setSelectedConn(null);
       if(!e.shiftKey) setMultiSelect(new Set());
@@ -715,6 +718,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         const y2=Math.max(selectionRect.startY,selectionRect.y);
         // Only select if rectangle has meaningful size
         if(Math.abs(x2-x1)>10&&Math.abs(y2-y1)>10){
+          lassoEndedRef.current=true; // prevent subsequent click from clearing selection
           const selected=new Set();
           devices.forEach(d=>{
             const dcx=d.x+29,dcy=d.y+29; // center of device (R=29)
@@ -1222,7 +1226,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               ))}
 
               {/* Connection lines */}
-              <svg className="conn-svg" width="2000" height="2000" style={{pointerEvents:tool==='select'?'auto':'none',display:layers.cables?'block':'none'}}>
+              <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none'}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
                   const R=29;
