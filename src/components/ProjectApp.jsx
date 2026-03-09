@@ -64,6 +64,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
   const [bgOpacity,setBgOpacity]=useState(floor?.bgOpacity??0.3);
   const bgFileRef=useRef(null);
+  // Layers: toggle visibility of canvas elements
+  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true});
+  const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
+  // Dimension annotations
+  const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
+  const dimensions=floor?.dimensions||[];
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -640,12 +646,22 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // Canvas mouse handlers
   const handleCanvasClick=(e)=>{
+    const rect=canvasRef.current?.getBoundingClientRect();
+    if(!rect) return;
+    const cx=(e.clientX-rect.left-pan.x)/zoom;
+    const cy=(e.clientY-rect.top-pan.y)/zoom;
     if(tool==='device'&&pendingDevice){
-      const rect=canvasRef.current?.getBoundingClientRect();
-      if(!rect) return;
-      const x=(e.clientX-rect.left-pan.x)/zoom;
-      const y=(e.clientY-rect.top-pan.y)/zoom;
-      addDevice(pendingDevice,x,y);
+      addDevice(pendingDevice,cx,cy);
+    } else if(tool==='measure'){
+      const sx=snap(cx),sy=snap(cy);
+      if(!measureStart){
+        setMeasureStart({x:sx,y:sy});
+      } else {
+        // Second click → save dimension
+        const dim={id:crypto.randomUUID(),x1:measureStart.x,y1:measureStart.y,x2:sx,y2:sy};
+        updateFloor(f=>({...f,dimensions:[...(f.dimensions||[]),dim]}));
+        setMeasureStart(null);
+      }
     } else if(tool==='select'){
       setSelectedDevice(null);
       setSelectedConn(null);
@@ -854,7 +870,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           }
         }
       }
-      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null)}
+      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null)}
       if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
       if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
     };
@@ -902,23 +918,26 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
       {/* ===== TOOLBAR ===== */}
       <div className="toolbar">
+        {/* Ferramentas de edição */}
         <div className="tool-group">
           <button className={`tool-btn ${tool==='select'?'active':''}`} title="Selecionar (V)"
-            onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null)}}>🖱️</button>
+            onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}}>🖱️</button>
           <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear"
-            onClick={()=>{setTool('cable');setPendingDevice(null)}}>🔗</button>
+            onClick={()=>{setTool('cable');setPendingDevice(null);setMeasureStart(null)}}>🔗</button>
           <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente"
-            onClick={()=>{setTool('env');setPendingDevice(null)}}>🏠</button>
-          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Medir"
+            onClick={()=>{setTool('env');setPendingDevice(null);setMeasureStart(null)}}>🏠</button>
+          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Cotas / Medir distância"
             onClick={()=>{setTool('measure');setPendingDevice(null)}}>📏</button>
         </div>
+
+        {/* Ações rápidas */}
         <div className="tool-group">
           <button className="tool-btn" title="Auto Cabear" onClick={autoCable}>⚡</button>
-          <span className="tool-label">Auto</span>
         </div>
-        <div className="tool-group">
-          {tool==='cable'&&(
-            <>
+
+        {/* Opções de cabo (aparece só no modo cabo) */}
+        {tool==='cable'&&(
+          <div className="tool-group">
             <select value={cableType} onChange={e=>setCableType(e.target.value)}
               style={{padding:'4px 8px',border:'1px solid var(--cinzaM)',borderRadius:4,fontSize:11}}>
               <optgroup label="🌐 Dados">
@@ -941,22 +960,64 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   onClick={()=>setRouteType(rt.id)}>{rt.icon}</button>
               ))}
             </div>
-            <button className={`tool-btn ${showCableLabels?'active':''}`} title="Mostrar/ocultar nomes dos cabos"
-              style={{width:30,height:30,fontSize:12,marginLeft:4}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
-            </>
-          )}
-          <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
-            <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
-              onClick={undo}>↩</button>
-            <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
-              onClick={redo}>↪</button>
           </div>
-          <div style={{display:'flex',gap:2,marginLeft:8,borderLeft:'1px solid #555',paddingLeft:8}}>
-            <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Snap ativo (clique para desativar)':'Snap desativado (clique para ativar)'}
-              style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
-            <span className="tool-label" style={{fontSize:9,opacity:.7}}>Snap</span>
+        )}
+
+        {/* Toggles de visualização — SEMPRE visíveis */}
+        <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
+          <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
+            style={{width:30,height:30,fontSize:12}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
+          <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Desativar snap na grade':'Ativar snap na grade'}
+            style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
+          {/* Layers dropdown */}
+          <div style={{position:'relative',display:'inline-block'}}>
+            <button className={`tool-btn ${Object.values(layers).some(v=>!v)?'active':''}`}
+              title="Camadas (Layers)" style={{width:30,height:30,fontSize:13}}
+              onClick={(e)=>{
+                const dd=e.currentTarget.nextElementSibling;
+                dd.style.display=dd.style.display==='block'?'none':'block';
+              }}>◧</button>
+            <div style={{display:'none',position:'absolute',top:'100%',left:0,zIndex:100,
+              background:'#1e293b',border:'1px solid #334155',borderRadius:6,padding:'6px 0',
+              minWidth:150,boxShadow:'0 8px 24px rgba(0,0,0,.4)'}}>
+              <div style={{fontSize:10,color:'#94a3b8',padding:'2px 10px 4px',fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Camadas</div>
+              {[
+                {key:'devices',label:'Dispositivos',icon:'📦'},
+                {key:'cables',label:'Cabos',icon:'🔗'},
+                {key:'environments',label:'Ambientes',icon:'🏠'},
+                {key:'grid',label:'Grade',icon:'⊞'},
+                {key:'bg',label:'Planta Fundo',icon:'🖼️'},
+                {key:'dimensions',label:'Cotas',icon:'📏'}
+              ].map(l=>(
+                <div key={l.key} onClick={()=>toggleLayer(l.key)}
+                  style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',cursor:'pointer',
+                    fontSize:11,color:layers[l.key]?'#e2e8f0':'#64748b',transition:'.15s',
+                    background:'transparent'}}
+                  onMouseOver={e=>e.currentTarget.style.background='#334155'}
+                  onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <span style={{width:14,height:14,borderRadius:3,border:'1.5px solid',
+                    borderColor:layers[l.key]?'#3b82f6':'#475569',background:layers[l.key]?'#3b82f6':'transparent',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',flexShrink:0}}>
+                    {layers[l.key]?'✓':''}
+                  </span>
+                  <span>{l.icon} {l.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Undo / Redo / Print */}
+        <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8}}>
+          <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
+            onClick={undo}>↩</button>
+          <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}
+            onClick={redo}>↪</button>
+          <button className="tool-btn" title="Imprimir planta (Ctrl+P)" style={{width:30,height:30,fontSize:14}}
+            onClick={()=>window.print()}>🖨️</button>
+        </div>
+
+        {/* Status */}
         <div className="sim-toggle">
           <span className="tool-label">Dispositivos: {devices.reduce((s,d)=>s+(d.qty||1),0)}</span>
           <span className="tool-label">|</span>
@@ -1110,7 +1171,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           <div className="canvas-viewport">
             <div className="canvas-transform" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`}}>
               {/* Grid */}
-              <svg className="canvas-grid" width="2000" height="2000" style={{opacity:.15}}>
+              <svg className="canvas-grid" width="2000" height="2000" style={{opacity:.15,display:layers.grid?'block':'none'}}>
                 <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                   <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" strokeWidth="0.5"/>
                 </pattern></defs>
@@ -1118,7 +1179,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               </svg>
 
               {/* Background floor plan image */}
-              {floor?.bgImage&&(
+              {layers.bg&&floor?.bgImage&&(
                 <img src={floor.bgImage} alt="Planta de fundo"
                   style={{position:'absolute',top:0,left:0,width:2000,height:2000,
                     objectFit:'contain',objectPosition:'top left',
@@ -1127,7 +1188,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               )}
 
               {/* Environments */}
-              {environments.map(env=>(
+              {layers.environments&&environments.map(env=>(
                 <div key={env.id} className="env-rect" style={{left:env.x,top:env.y,width:env.w,height:env.h,
                   borderColor:env.color,background:env.bg}}>
                   <span className="env-label" style={{background:env.color}}>{env.name}</span>
@@ -1135,7 +1196,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               ))}
 
               {/* Connection lines */}
-              <svg className="conn-svg" width="2000" height="2000" style={{pointerEvents:tool==='select'?'auto':'none'}}>
+              <svg className="conn-svg" width="2000" height="2000" style={{pointerEvents:tool==='select'?'auto':'none',display:layers.cables?'block':'none'}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
                   const R=29;
@@ -1303,7 +1364,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               </svg>
 
               {/* Rack containers - clean U-slot layout */}
-              {devices.filter(d=>d.key==='rack').map(rack=>{
+              {layers.devices&&devices.filter(d=>d.key==='rack').map(rack=>{
                 const rackU=rack.config?.alturaU||12;
                 const uH=18;const rackW=180;const headerH=22;
                 const rackH=headerH+rackU*uH+4;
@@ -1366,7 +1427,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               })}
 
               {/* Quadro containers (Conectividade + Elétrico) */}
-              {devices.filter(d=>d.key==='quadro'||d.key==='quadro_eletrico').map(qd=>{
+              {layers.devices&&devices.filter(d=>d.key==='quadro'||d.key==='quadro_eletrico').map(qd=>{
                 const children=devices.filter(d=>d.parentRack===qd.id);
                 const qW=180;const slotH=28;const headerH=24;
                 const qH=headerH+Math.max(3,children.length)*slotH+16;
@@ -1412,7 +1473,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               })}
 
               {/* Device nodes — hide devices that are mounted inside a rack or quadro */}
-              {devices.filter(d=>!d.parentRack).map(dev=>{
+              {layers.devices&&devices.filter(d=>!d.parentRack).map(dev=>{
                 const def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
                 const color=catInfo?.color||'#6b7280';
@@ -1581,6 +1642,108 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   </div>
                 );
               })}
+
+              {/* Carimbo / Legenda profissional */}
+              {layers.devices&&(()=>{
+                const cw=320,ch=140,cx=2000-cw-20,cy=2000-ch-20;
+                const clientName=project.client?.razaoSocial||project.client?.nome||'';
+                const floorName=floor?.name||'';
+                const dateStr=new Date().toLocaleDateString('pt-BR');
+                return <div className="carimbo-canvas" style={{position:'absolute',left:cx,top:cy,width:cw,height:ch,
+                  border:'2px solid #334155',background:'rgba(255,255,255,0.95)',
+                  fontFamily:'system-ui,sans-serif',fontSize:10,color:'#1e293b',zIndex:5,
+                  display:'flex',flexDirection:'column',pointerEvents:'none',userSelect:'none'}}>
+                  {/* Header */}
+                  <div style={{background:'#1e293b',color:'#fff',padding:'4px 8px',fontSize:11,fontWeight:700,
+                    display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span>PROTECTOR SISTEMAS</span>
+                    <span style={{fontSize:8,opacity:.7}}>BIM {APP_VERSION.full}</span>
+                  </div>
+                  {/* Body */}
+                  <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1',borderRight:'1px solid #cbd5e1'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Projeto</div>
+                      <div style={{fontWeight:700,fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{project.name||'—'}</div>
+                    </div>
+                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Cliente</div>
+                      <div style={{fontWeight:600,fontSize:9,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{clientName||'—'}</div>
+                    </div>
+                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1',borderRight:'1px solid #cbd5e1'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Pavimento</div>
+                      <div style={{fontWeight:600,fontSize:10}}>{floorName}</div>
+                    </div>
+                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Data</div>
+                      <div style={{fontWeight:600,fontSize:10}}>{dateStr}</div>
+                    </div>
+                    <div style={{padding:'3px 8px',borderRight:'1px solid #cbd5e1'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Escala</div>
+                      <div style={{fontWeight:600,fontSize:10}}>1:{Math.round(40/zoom)}</div>
+                    </div>
+                    <div style={{padding:'3px 8px'}}>
+                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Resumo</div>
+                      <div style={{fontWeight:600,fontSize:9}}>{devices.length} disp · {connections.length} cabos</div>
+                    </div>
+                  </div>
+                </div>;
+              })()}
+
+              {/* Dimension annotations (cotas) */}
+              {layers.dimensions&&(
+                <svg width="2000" height="2000" style={{position:'absolute',top:0,left:0,pointerEvents:tool==='select'?'auto':'none',zIndex:6}}>
+                  {dimensions.map(dim=>{
+                    const dx=dim.x2-dim.x1,dy=dim.y2-dim.y1;
+                    const dist=Math.sqrt(dx*dx+dy*dy);
+                    const meters=(dist/40).toFixed(2); // 40px = 1m
+                    const mx=(dim.x1+dim.x2)/2,my=(dim.y1+dim.y2)/2;
+                    const angle=Math.atan2(dy,dx)*180/Math.PI;
+                    // offset perpendicular for the text
+                    const perpX=-dy/dist*12,perpY=dx/dist*12;
+                    // extension lines (small lines at endpoints)
+                    const extLen=8;
+                    const px=-dy/dist,py=dx/dist;
+                    return <g key={dim.id}>
+                      {/* Main dimension line */}
+                      <line x1={dim.x1} y1={dim.y1} x2={dim.x2} y2={dim.y2}
+                        stroke="#e74c3c" strokeWidth={1.2} strokeDasharray="4 2"/>
+                      {/* Extension lines at endpoints */}
+                      <line x1={dim.x1+px*extLen} y1={dim.y1+py*extLen} x2={dim.x1-px*extLen} y2={dim.y1-py*extLen}
+                        stroke="#e74c3c" strokeWidth={1}/>
+                      <line x1={dim.x2+px*extLen} y1={dim.y2+py*extLen} x2={dim.x2-px*extLen} y2={dim.y2-py*extLen}
+                        stroke="#e74c3c" strokeWidth={1}/>
+                      {/* Arrow heads */}
+                      <circle cx={dim.x1} cy={dim.y1} r={3} fill="#e74c3c"/>
+                      <circle cx={dim.x2} cy={dim.y2} r={3} fill="#e74c3c"/>
+                      {/* Distance label */}
+                      <text x={mx+perpX} y={my+perpY} textAnchor="middle" dominantBaseline="middle"
+                        style={{fontSize:11,fontWeight:700,fill:'#e74c3c',fontFamily:'system-ui',
+                          paintOrder:'stroke',stroke:'#fff',strokeWidth:3,strokeLinejoin:'round'}}>
+                        {meters}m
+                      </text>
+                      {/* Delete button (visible in select mode) */}
+                      {tool==='select'&&(
+                        <circle cx={dim.x2+px*16} cy={dim.y2+py*16} r={7}
+                          fill="#ef4444" stroke="#fff" strokeWidth={1.5}
+                          style={{cursor:'pointer',pointerEvents:'auto'}}
+                          onClick={(e)=>{e.stopPropagation();
+                            updateFloor(f=>({...f,dimensions:(f.dimensions||[]).filter(d=>d.id!==dim.id)}));
+                          }}/>
+                      )}
+                      {tool==='select'&&(
+                        <text x={dim.x2+px*16} y={dim.y2+py*16} textAnchor="middle" dominantBaseline="central"
+                          style={{fontSize:8,fill:'#fff',fontWeight:900,pointerEvents:'none'}}>✕</text>
+                      )}
+                    </g>;
+                  })}
+                  {/* Preview line while measuring (first point placed) */}
+                  {measureStart&&(
+                    <circle cx={measureStart.x} cy={measureStart.y} r={5} fill="#e74c3c" opacity={0.7}>
+                      <animate attributeName="r" values="5;8;5" dur="1s" repeatCount="indefinite"/>
+                    </circle>
+                  )}
+                </svg>
+              )}
 
               {/* Lasso selection rectangle */}
               {selectionRect&&(()=>{

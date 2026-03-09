@@ -311,3 +311,49 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 .modal-back-btn{padding:11px 24px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);border-radius:8px;font-size:14px;cursor:pointer;transition:.2s;margin-bottom:20px;align-self:flex-start;font-weight:600}
 .modal-back-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
+
+/* ===== @media print — planta limpa para impressão ===== */
+@media print {
+  /* Ocultar tudo exceto o canvas */
+  .toolbar, .left-panel, .right-panel, .floor-tabs, .sim-toggle,
+  .modal-overlay, .sb-dot, .lp-tabs, .floor-add,
+  .env-filter-bar, button, select, input[type="range"],
+  .multi-select-badge { display: none !important; }
+
+  body { background: #fff !important; margin: 0; padding: 0; }
+  .app-shell, .main-area { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+
+  /* Canvas ocupa página inteira */
+  .canvas-area {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .canvas-viewport {
+    overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  .canvas-transform {
+    transform: none !important;
+    width: 2000px !important;
+    height: 2000px !important;
+  }
+  .canvas-grid { opacity: 0.08 !important; }
+  .carimbo-canvas { display: block !important; border-color: #000 !important; }
+
+  /* Device labels legíveis */
+  .doc-label { color: #000 !important; }
+  .doc-model { color: #555 !important; }
+  .cable-label { fill: #333 !important; }
+
+  /* Garantir que cores de cabos imprimam */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  @page {
+    size: A3 landscape;
+    margin: 10mm;
+  }
+}
