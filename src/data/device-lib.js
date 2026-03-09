@@ -2,35 +2,45 @@ import { ICONS } from '@/icons';
 import { DEVICE_THUMBNAILS } from './device-thumbnails';
 
 // ====================================================================
-// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (~60 dispositivos)
-// Fabricante: Genérico | v3.19.0
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (74 dispositivos)
+// Fabricante: Genérico | v3.19.1
 // ====================================================================
 export const DEVICE_LIB = [
   // ================================================================
-  // CFTV IP - CÂMERAS (12 tipos)
+  // CFTV IP - CÂMERAS (20 tipos)
   // ================================================================
   {cat:'CFTV IP',color:'#f59e0b',items:[
-    {key:'cam_ip_bullet',name:'Câmera IP Bullet',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m',lente:'2.8-3.6mm',ip:'IP67',compressao:'H.265+'},ref:''},
-    {key:'cam_ip_bullet_4k',name:'Câmera IP Bullet 4K',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'8MP (4K)',ir:'50m',lente:'2.8mm',ip:'IP67',ia:'Sim'},ref:''},
-    {key:'cam_ip_bullet_fc',name:'Câmera IP Bullet Full Color',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:''},
-    {key:'cam_ip_bullet_vf',name:'Câmera IP Bullet Varifocal',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'60m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
-    {key:'cam_ip_dome',name:'Câmera IP Dome',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m',lente:'2.8mm',ip:'IP67',compressao:'H.265+'},ref:''},
-    {key:'cam_ip_dome_fc',name:'Câmera IP Dome Full Color',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:''},
-    {key:'cam_ip_dome_vf',name:'Câmera IP Dome Varifocal',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'50m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
-    {key:'cam_ip_speed',name:'Câmera IP Speed Dome',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2-4MP',zoom:'16-25x',ir:'100-150m',ip:'IP66',ptz:'Pan 360°/Tilt 90°'},ref:''},
-    {key:'cam_ip_mini',name:'Câmera IP Mini',icon:'cam_dome',poe:true,poeW:6,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP',ir:'10m',lente:'2.8mm',ip:'IP67',compacta:'Sim'},ref:''},
-    {key:'cam_ip_fisheye',name:'Câmera IP Fisheye',icon:'cam_fisheye',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'5MP',fov:'360°',ir:'15m',ip:'IP67',ia:'Sim'},ref:''},
-    {key:'cam_ip_wifi_bullet',name:'Câmera IP Wi-Fi Bullet',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m',lente:'2.8-3.6mm',wifi:'2.4/5GHz',ip:'IP67'},ref:''},
-    {key:'cam_ip_wifi_dome',name:'Câmera IP Wi-Fi Dome',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'2-4MP',ir:'30m',lente:'2.8mm',wifi:'2.4/5GHz',ip:'IP67'},ref:''},
+    {key:'cam_ip_bullet_2mp',name:'Câmera IP Bullet 2MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m',lente:'3.6mm',ip:'IP67',compressao:'H.265+'},ref:''},
+    {key:'cam_ip_bullet_2mp_fc',name:'Câmera IP Bullet 2MP Full Color',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:''},
+    {key:'cam_ip_bullet_3mp',name:'Câmera IP Bullet 3MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'3MP (2304x1296)',ir:'30m',lente:'2.8mm',ip:'IP67',compressao:'H.265+'},ref:''},
+    {key:'cam_ip_bullet_4mp',name:'Câmera IP Bullet 4MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'4MP (2560x1440)',ir:'30m',lente:'2.8mm',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_bullet_8mp',name:'Câmera IP Bullet 8MP (4K)',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'8MP (3840x2160)',ir:'50m',lente:'2.8mm',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_dome_2mp',name:'Câmera IP Dome 2MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m',lente:'2.8mm',ip:'IP67',compressao:'H.265+'},ref:''},
+    {key:'cam_ip_dome_2mp_fc',name:'Câmera IP Dome 2MP Full Color',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m LED',lente:'2.8mm',ip:'IP67',visao:'Full Color'},ref:''},
+    {key:'cam_ip_dome_4mp',name:'Câmera IP Dome 4MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'4MP (2560x1440)',ir:'30m',lente:'2.8mm',ip:'IP67/IK10',ia:'Sim'},ref:''},
+    {key:'cam_ip_dome_vf_2mp',name:'Câmera IP Dome VF 2MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'40m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_dome_vf_4mp',name:'Câmera IP Dome VF 4MP',icon:'cam_dome',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'4MP',ir:'50m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_bullet_vf_2mp',name:'Câmera IP Bullet VF 2MP',icon:'cam_bullet',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'60m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_bullet_vf_4mp',name:'Câmera IP Bullet VF 4MP',icon:'cam_bullet',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'4MP',ir:'60m',lente:'2.7-13.5mm MFZ',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_speed_2mp',name:'Câmera IP Speed Dome 2MP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',zoom:'16x',ir:'100m',ip:'IP66',ptz:'Pan 360°/Tilt 90°'},ref:''},
+    {key:'cam_ip_speed_4mp',name:'Câmera IP Speed Dome 4MP',icon:'cam_ptz',poe:true,poeW:25,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'4MP',zoom:'25x',ir:'150m',ip:'IP66',ia:'Sim'},ref:''},
+    {key:'cam_ip_mini_2mp',name:'Câmera IP Mini 2MP',icon:'cam_dome',poe:true,poeW:6,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'10m',lente:'2.8mm',ip:'IP67',compacta:'Sim'},ref:''},
+    {key:'cam_ip_fisheye_5mp',name:'Câmera IP Fisheye 5MP',icon:'cam_fisheye',poe:true,poeW:12,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'5MP',fov:'360°',ir:'15m',ip:'IP67',ia:'Sim'},ref:''},
+    {key:'cam_ip_wifi_bullet_2mp',name:'Câmera IP Wi-Fi Bullet 2MP',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m',lente:'3.6mm',wifi:'2.4GHz',ip:'IP67'},ref:''},
+    {key:'cam_ip_wifi_bullet_4mp',name:'Câmera IP Wi-Fi Bullet 4MP',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'4MP',ir:'30m',lente:'2.8mm',wifi:'2.4/5GHz',ip:'IP67'},ref:''},
+    {key:'cam_ip_wifi_dome_2mp',name:'Câmera IP Wi-Fi Dome 2MP',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'2MP (1080p)',ir:'30m',lente:'2.8mm',wifi:'2.4GHz',ip:'IP67'},ref:''},
+    {key:'cam_ip_wifi_dome_4mp',name:'Câmera IP Wi-Fi Dome 4MP',icon:'cam_wifi',poe:false,ports:1,nvrCh:1,ampDC:0.5,manufacturer:'Genérico',props:{resolucao:'4MP',ir:'30m',lente:'2.8mm',wifi:'2.4/5GHz',ip:'IP67'},ref:''},
   ]},
   // ================================================================
-  // CFTV IP - GRAVADORES NVR (4 tipos)
+  // CFTV IP - GRAVADORES NVR (6 tipos)
   // ================================================================
   {cat:'CFTV IP - NVR',color:'#059669',items:[
-    {key:'nvr_4ch',name:'NVR 4 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'4 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_8ch',name:'NVR 8 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_16ch',name:'NVR 16 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA (até 20TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_32ch',name:'NVR 32 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'32 IP',resolMax:'4K',hd:'2 SATA',saida:'2 HDMI + 1 VGA',ia:'Sim'},ref:''},
+    {key:'nvr_4ch',name:'NVR IP 4 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'4 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_8ch',name:'NVR IP 8 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_8ch_poe',name:'NVR IP 8 Canais PoE',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K',hd:'1 SATA',poePorts:'8 PoE'},ref:''},
+    {key:'nvr_16ch',name:'NVR IP 16 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA (até 20TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_16ch_poe',name:'NVR IP 16 Canais PoE',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA',poePorts:'16 PoE'},ref:''},
+    {key:'nvr_32ch',name:'NVR IP 32 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'32 IP',resolMax:'4K',hd:'2 SATA',saida:'2 HDMI + 1 VGA',ia:'Sim'},ref:''},
   ]},
   // ================================================================
   // CONTROLE DE ACESSO (9 tipos)
@@ -57,30 +67,34 @@ export const DEVICE_LIB = [
     {key:'barreira_tripla',name:'Barreira IR Tripla Tecnologia',icon:'sensor_barreira',poe:false,ports:1,manufacturer:'Genérico',props:{alcance:'até 100m',tecnologia:'IR + MW + Lógica'},ref:''},
   ]},
   // ================================================================
-  // AUTOMATIZADORES (5 tipos)
+  // AUTOMATIZADORES (7 tipos)
   // ================================================================
   {cat:'Automatizadores',color:'#ea580c',items:[
-    {key:'auto_deslizante',name:'Automatizador Deslizante',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 800kg',motor:'DC',receptor:'433MHz'},ref:''},
-    {key:'auto_basculante',name:'Automatizador Basculante',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 500kg',tipo:'Basculante'},ref:''},
+    {key:'auto_desl_leve',name:'Automatizador Deslizante Leve',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 400kg',motor:'DC',receptor:'433MHz'},ref:''},
+    {key:'auto_desl_pesado',name:'Automatizador Deslizante Pesado',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 800kg',motor:'DC'},ref:''},
+    {key:'auto_basc_leve',name:'Automatizador Basculante Leve',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 300kg',tipo:'Basculante'},ref:''},
+    {key:'auto_basc_pesado',name:'Automatizador Basculante Pesado',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 500kg',tipo:'Basculante'},ref:''},
     {key:'cancela_veicular',name:'Cancela Veicular',icon:'cancela',poe:false,ports:1,manufacturer:'Genérico',props:{braco:'até 3m',velocidade:'1.5s'},ref:''},
     {key:'auto_pivotante',name:'Automatizador Pivotante',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 200kg/folha',tipo:'Pivotante'},ref:''},
     {key:'auto_porta_desl',name:'Automatizador Porta Deslizante',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{capacidade:'até 300kg',tipo:'Porta deslizante'},ref:''},
   ]},
   // ================================================================
-  // REDE / SWITCHES (5 tipos)
+  // REDE / SWITCHES (6 tipos)
   // ================================================================
   {cat:'Rede',color:'#2563eb',items:[
-    {key:'sw_poe',name:'Switch PoE 8 Portas',icon:'sw_poe',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'8+2 SFP',poeTotal:'120W',vlan:'Sim'},ref:''},
+    {key:'sw_poe',name:'Switch PoE Gerenciável',icon:'sw_poe',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'8+2 SFP',poeTotal:'120W',vlan:'Sim'},ref:''},
     {key:'sw_poe_16',name:'Switch PoE 16 Portas',icon:'sw_poe',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'16+2 SFP',poeTotal:'240W',vlan:'Sim'},ref:''},
     {key:'sw_poe_24',name:'Switch PoE 24 Portas',icon:'sw_poe',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'24+2 SFP',poeTotal:'370W',gerenciavel:'Sim'},ref:''},
-    {key:'sw_normal',name:'Switch Não-PoE',icon:'sw_normal',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'8-16',velocidade:'1Gbps'},ref:''},
+    {key:'sw_normal',name:'Switch Não-PoE',icon:'sw_normal',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'8',velocidade:'1Gbps'},ref:''},
+    {key:'sw_normal_16',name:'Switch Não-PoE 16 Portas',icon:'sw_normal',poe:false,ports:1,manufacturer:'Genérico',props:{portas:'16',velocidade:'1Gbps'},ref:''},
     {key:'router',name:'Gateway / Router',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{wan:'2',lan:'4',vpn:'Sim',firewall:'Sim'},ref:''},
   ]},
   // ================================================================
-  // WI-FI (5 tipos)
+  // WI-FI (6 tipos)
   // ================================================================
   {cat:'Wi-Fi',color:'#3b82f6',items:[
-    {key:'wifi_router',name:'Roteador Wi-Fi',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{padrao:'Wi-Fi 5/6',velocidade:'1200-1500Mbps'},ref:''},
+    {key:'wifi_router_5',name:'Roteador Wi-Fi 5 (AC)',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{padrao:'Wi-Fi 5 (802.11ac)',velocidade:'1200Mbps'},ref:''},
+    {key:'wifi_router_6',name:'Roteador Wi-Fi 6 (AX)',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{padrao:'Wi-Fi 6 (802.11ax)',velocidade:'1500Mbps'},ref:''},
     {key:'wifi_mesh',name:'Sistema Mesh Wi-Fi',icon:'ap_wifi',poe:false,ports:1,manufacturer:'Genérico',props:{cobertura:'até 300m²/un.',seamless:'Sim'},ref:''},
     {key:'wifi_router_5g',name:'Roteador 5G',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{padrao:'5G Sub-6GHz',wifi:'Wi-Fi 6'},ref:''},
     {key:'wifi_ap_interno',name:'Access Point Interno',icon:'ap_wifi',poe:true,poeW:15,ports:1,manufacturer:'Genérico',props:{velocidade:'1200-1800Mbps',gerenciavel:'Sim'},ref:''},
