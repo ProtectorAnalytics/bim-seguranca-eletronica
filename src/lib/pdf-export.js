@@ -213,17 +213,16 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       const k = d.key || '';
       let cat = 'Outros';
       if (k.startsWith('cam_')) cat = 'CFTV — Câmeras';
-      else if (k.startsWith('nvr_') || k.startsWith('dvr_') || k === 'nvr') cat = 'CFTV — Gravadores';
+      else if (k.startsWith('nvr_')) cat = 'CFTV — Gravadores';
       else if (k.startsWith('sw_') || k === 'router') cat = 'Rede';
-      else if (k.startsWith('ap_')) cat = 'WiFi';
-      else if (k.startsWith('alarme_') || k.startsWith('pir_') || k.startsWith('barreira_') || k === 'sensor_abertura' || k.startsWith('sirene_') || k.startsWith('teclado_') || k.startsWith('comunicador_') || k.startsWith('expansor_') || k.startsWith('receptor_') || k.startsWith('controle_')) cat = 'Intrusão / Alarme';
-      else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_')) cat = 'Controle de Acesso';
-      else if (k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_')) cat = 'Incêndio';
-      else if (k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor') cat = 'Automatização';
-      else if (k.startsWith('eletrif_')) cat = 'Cerca Elétrica';
+      else if (k.startsWith('wifi_') || k.startsWith('ap_')) cat = 'Wi-Fi';
+      else if (k.startsWith('barreira_')) cat = 'Intrusão — Barreiras';
+      else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'eletroima' || k === 'leitor_tag' || k === 'leitor_biometrico' || k === 'leitor_rfid' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_')) cat = 'Controle de Acesso';
+      else if (k.startsWith('auto_') || k.startsWith('cancela_') || k === 'motor') cat = 'Automatização';
       else if (k === 'nobreak_ac' || k === 'nobreak_dc' || k === 'fonte' || k === 'bateria_ext' || k === 'modulo_bat') cat = 'Energia';
-      else if (k === 'rack' || k === 'quadro' || k === 'quadro_eletrico' || k === 'dio' || k === 'borne_sak') cat = 'Infraestrutura';
-      else if (k.startsWith('lumin_')) cat = 'Iluminação';
+      else if (k === 'rack' || k === 'quadro' || k === 'quadro_eletrico' || k === 'dio' || k === 'borne_sak' || k === 'patch_panel' || k === 'conversor_midia' || k === 'dps_rede' || k === 'tomada_dupla' || k === 'cabo_engate') cat = 'Infraestrutura';
+      // Legacy devices from deleted families
+      else if (d._legacy) cat = 'Legado';
       if (!catCounts[cat]) catCounts[cat] = 0;
       catCounts[cat]++;
     });

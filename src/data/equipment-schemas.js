@@ -31,10 +31,10 @@ export const EQUIPMENT_SCHEMAS = {
     {key:'expansivel',label:'Expansível',type:'bool',required:false}
   ],
   sensor: [
-    {key:'tipo_sensor',label:'Tipo',type:'select',required:false,options:['IVP','Barreira','Magnético','Vibração']},
+    {key:'tipo_sensor',label:'Tipo',type:'select',required:false,options:['Barreira','Magnético','Vibração']},
     {key:'alcance',label:'Alcance',type:'text',required:false,unit:'m'},
     {key:'angulo',label:'Ângulo',type:'text',required:false,unit:'°'},
-    {key:'pet_friendly',label:'Pet-friendly',type:'bool',required:false}
+    {key:'feixes',label:'Feixes',type:'number',required:false}
   ],
   switch_rede: [
     {key:'portas',label:'Portas',type:'number',required:false},
@@ -61,6 +61,18 @@ export const EQUIPMENT_SCHEMAS = {
     {key:'potencia_w',label:'Potência W',type:'number',required:false,unit:'W'},
     {key:'tensao_saida',label:'Tensão saída',type:'text',required:false,unit:'V'},
     {key:'autonomia_base',label:'Autonomia base',type:'text',required:false}
+  ],
+  automatizador: [
+    {key:'tipo_motor',label:'Tipo',type:'select',required:false,options:['Deslizante','Basculante','Pivotante','Cancela','Porta']},
+    {key:'peso_max',label:'Peso máximo',type:'text',required:false,unit:'kg'},
+    {key:'velocidade',label:'Velocidade',type:'text',required:false,unit:'m/s'},
+    {key:'tensao',label:'Tensão',type:'text',required:false,unit:'V'}
+  ],
+  wifi: [
+    {key:'padrao',label:'Padrão',type:'select',required:false,options:['Wi-Fi 5','Wi-Fi 6','Wi-Fi 6E']},
+    {key:'banda',label:'Banda',type:'select',required:false,options:['2.4 GHz','5 GHz','Dual-band','Tri-band']},
+    {key:'velocidade',label:'Velocidade',type:'text',required:false,unit:'Mbps'},
+    {key:'cobertura',label:'Cobertura',type:'text',required:false,unit:'m²'}
   ],
   infra: [
     {key:'material',label:'Material',type:'text',required:false},

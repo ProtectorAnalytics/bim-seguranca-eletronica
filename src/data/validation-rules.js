@@ -2,12 +2,12 @@ import { DEVICE_LIB } from './device-lib';
 import { CABLE_TYPES } from './cable-types';
 
 // ====================================================================
-// DEVICE KEY CLASSIFICATION HELPERS
+// DEVICE KEY CLASSIFICATION HELPERS (imported from device-interfaces for validation)
 // ====================================================================
 export const isCamera = k => k.startsWith('cam_');
-export const isCameraIP = k => k.startsWith('cam_ip_') || k === 'cam_lpr';
+export const isCameraIP = k => (k.startsWith('cam_ip_') && !k.startsWith('cam_ip_wifi_')) || k === 'cam_lpr';
 export const isCameraMHD = k => k.startsWith('cam_mhd_') || k.startsWith('cam_hdcvi_');
-export const isCameraWiFi = k => k.startsWith('cam_wifi_');
+export const isCameraWiFi = k => k.startsWith('cam_wifi_') || k.startsWith('cam_ip_wifi_');
 export const isCameraVeicular = k => k.startsWith('cam_veicular_');
 export const isNVR = k => k.startsWith('nvr_') || k === 'nvr';
 export const isDVR = k => k.startsWith('dvr_');
@@ -17,17 +17,17 @@ export const isSensorPIR = k => k.startsWith('pir_');
 export const isBarreira = k => k.startsWith('barreira_');
 export const isSensorZona = k => isSensorPIR(k) || isBarreira(k) || k === 'sensor_abertura';
 export const isSirene = k => k.startsWith('sirene_') && !k.startsWith('sirene_inc_');
-export const isEletrificador = k => k.startsWith('eletrif_');
+export const isEletrificador = k => k.startsWith('eletrif_') || k.startsWith('eletri_');
 export const isTeclado = k => k.startsWith('teclado_');
 export const isSwitch = k => k.startsWith('sw_');
 export const isSwitchPoE = k => k === 'sw_poe' || k.startsWith('sw_poe_');
 export const isControleAcesso = k => ['leitor_facial','controladora','fechadura','leitor_tag'].includes(k) || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_');
-export const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_');
-export const isCentralIncendio = k => k.startsWith('central_inc_');
-export const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_');
-export const isAutomatizador = k => k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor';
-export const isAP = k => k.startsWith('ap_');
-export const isLuminaria = k => k.startsWith('lumin_');
+export const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_') || k.startsWith('fogo_') || k.startsWith('morley_');
+export const isCentralIncendio = k => k.startsWith('central_inc_') || k.startsWith('fogo_central_') || k === 'morley_central';
+export const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('fogo_det_') || k.startsWith('fogo_acionador_') || k === 'morley_detector';
+export const isAutomatizador = k => k.startsWith('motor_') || k.startsWith('cancela_') || k === 'motor' || k.startsWith('auto_');
+export const isAP = k => k.startsWith('ap_') || k.startsWith('wifi_ap_');
+export const isLuminaria = k => k.startsWith('lumin_') || k.startsWith('emerg_');
 export const isComunicador = k => k.startsWith('comunicador_');
 export const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
 export const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
@@ -137,7 +137,7 @@ export const REGRAS=[
       const sws=devices.filter(d=>isSwitchPoE(d.key));
       if(!sws.length) return null;
       const totalPoe=devices.filter(d=>{const def=findDevDef(d.key);return def?.poe}).reduce((a,d)=>{const def=findDevDef(d.key);return a+(def?.poeW||15)},0);
-      const swCap=sws.reduce((a,d)=>{const def=findDevDef(d.key);return a+parseInt(def?.props?.poe_budget||'120')},0);
+      const swCap=sws.reduce((a,d)=>{const def=findDevDef(d.key);return a+parseInt(def?.props?.poe_budget||def?.props?.poeTotal||'120')},0);
       if(totalPoe>swCap) return `Consumo PoE ${totalPoe}W > Capacidade ${swCap}W`;
       if(totalPoe>swCap*0.8) return `Consumo PoE ${totalPoe}W > 80% da capacidade (${swCap}W)`;
       return null;
@@ -211,20 +211,6 @@ export const REGRAS=[
         const dcDevs=devices.filter(d=>needsDCPower(d.key));
         if(dcDevs.length>0) return `${dcDevs.length} dispositivo(s) DC sem fonte 12V no projeto`;
       }
-      return null;
-    }},
-  {cat:'Incêndio',regra:'Detectores/acionadores sem central de incêndio',sev:'CRÍTICA',
-    check:(devices)=>{
-      const detectors=devices.filter(d=>isDetectorIncendio(d.key)||d.key.startsWith('sirene_inc_')||d.key.startsWith('modulo_inc_')).length;
-      const centrais=devices.filter(d=>isCentralIncendio(d.key)).length;
-      if(detectors>0&&centrais===0) return `${detectors} dispositivo(s) de incêndio sem central`;
-      return null;
-    }},
-  {cat:'Intrusão',regra:'Sensores/sirenes sem central de alarme',sev:'ALTA',
-    check:(devices)=>{
-      const sensores=devices.filter(d=>isSensorZona(d.key)||isSirene(d.key)).length;
-      const centrais=devices.filter(d=>isCentralAlarme(d.key)).length;
-      if(sensores>0&&centrais===0) return `${sensores} sensor(es)/sirene(s) sem central de alarme`;
       return null;
     }},
   {cat:'Rede',regra:'Portas RJ45 ocupadas em switch (por dispositivo)',sev:'CRÍTICA',

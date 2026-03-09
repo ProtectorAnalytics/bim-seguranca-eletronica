@@ -29,25 +29,39 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   });
 
   const categoryLabels={
-    camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores',
-    switch_rede:'Switches',gravador:'Gravador',fonte_energia:'Fonte',nobreak:'Nobreak',infra:'Infraestrutura'
+    camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores / Barreiras',
+    switch_rede:'Switches / Rede',gravador:'Gravador NVR',fonte_energia:'Fonte',nobreak:'Nobreak',
+    infra:'Infraestrutura',wifi:'Wi-Fi',automatizador:'Automatizadores'
   };
   const categoryIcons={
     camera:'📷',acesso:'🔐',fechadura:'🔒',alarme:'🚨',sensor:'📡',
-    switch_rede:'🌐',gravador:'💾',fonte_energia:'⚡',nobreak:'🔋',infra:'🏗️'
+    switch_rede:'🌐',gravador:'💾',fonte_energia:'⚡',nobreak:'🔋',infra:'🏗️',
+    wifi:'📶',automatizador:'🚪'
   };
   const categoryColors={
     camera:'#f59e0b',acesso:'#3b82f6',fechadura:'#8b5cf6',alarme:'#ef4444',sensor:'#84cc16',
-    switch_rede:'#06b6d4',gravador:'#059669',fonte_energia:'#eab308',nobreak:'#dc2626',infra:'#6b7280'
+    switch_rede:'#06b6d4',gravador:'#059669',fonte_energia:'#eab308',nobreak:'#dc2626',infra:'#6b7280',
+    wifi:'#0ea5e9',automatizador:'#a855f7'
   };
 
   const getCategoryDevices=(category)=>{
-    const map={camera:['cam_dome','cam_bullet','cam_ptz','cam_fisheye','cam_lpr'],
-      acesso:['leitor_facial','controladora','leitor_tag'],fechadura:['fechadura'],alarme:['alarme_central'],
-      sensor:['sensor_presenca','sensor_abertura','sirene'],switch_rede:['sw_poe','sw_normal'],gravador:['nvr'],
-      fonte_energia:['fonte'],nobreak:['nobreak_ac','nobreak_dc'],
-      infra:['quadro','rack','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate']};
-    return DEVICE_LIB.flatMap(c=>c.items).filter(i=>(map[category]||[]).includes(i.key));
+    const filterMap={
+      camera:i=>i.key.startsWith('cam_'),
+      acesso:i=>['leitor_facial','leitor_biometrico','leitor_rfid','controladora','leitor_tag'].includes(i.key),
+      fechadura:i=>['fechadura','eletroima'].includes(i.key),
+      alarme:i=>false, // kept for custom devices (no standard alarm devices in v3.19)
+      sensor:i=>i.key.startsWith('barreira_'),
+      switch_rede:i=>i.key.startsWith('sw_')||i.key==='router',
+      gravador:i=>i.key.startsWith('nvr_'),
+      fonte_energia:i=>i.key==='fonte',
+      nobreak:i=>i.key==='nobreak_ac'||i.key==='nobreak_dc',
+      infra:i=>['quadro','rack','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate',
+        'patch_panel','conversor_midia','dps_rede','tomada_dupla','quadro_eletrico'].includes(i.key),
+      wifi:i=>i.key.startsWith('wifi_'),
+      automatizador:i=>i.key.startsWith('auto_')||i.key.startsWith('cancela_')
+    };
+    const filter=filterMap[category]||(()=>false);
+    return DEVICE_LIB.flatMap(c=>c.items).filter(filter);
   };
 
   const handleSpecChange=(key,value)=>setFormState(f=>({...f,specs:{...f.specs,[key]:value}}));
@@ -142,9 +156,14 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   };
 
   const catKeyFromLabel=(label)=>{
-    const map={'CFTV IP':'camera','CFTV Analógico':'camera','Controle de Acesso':'acesso','Fechaduras':'fechadura',
-      'Alarme':'alarme','Sensores':'sensor','Switches e Rede':'switch_rede','Gravadores':'gravador',
-      'Fontes de Energia':'fonte_energia','Nobreaks':'nobreak','Infraestrutura':'infra'};
+    const map={'CFTV IP':'camera','CFTV IP — NVR':'gravador',
+      'Controle de Acesso':'acesso','Intrusão — Barreiras':'sensor',
+      'Automatizadores':'automatizador','Rede':'switch_rede','Wi-Fi':'wifi',
+      'Infraestrutura':'infra',
+      // Legacy category names (backward compat)
+      'CFTV Analógico':'camera','Fechaduras':'fechadura',
+      'Alarme':'alarme','Sensores':'sensor','Switches e Rede':'switch_rede',
+      'Gravadores':'gravador','Fontes de Energia':'fonte_energia','Nobreaks':'nobreak'};
     return map[label]||'camera';
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds } from '@/lib/helpers';
+import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys } from '@/lib/helpers';
 import Dashboard from './Dashboard';
 import ProjectListPage from './ProjectListPage';
 import ClientForm from './ClientForm';
@@ -87,7 +87,7 @@ export default function App(){
   },[project,editingProjectId]);
 
   const onStartNewProject=()=>{ setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''}); setScreen('client'); };
-  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
 
   if(screen==='dashboard') return <Dashboard
     onNewProject={onStartNewProject}

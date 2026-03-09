@@ -60,6 +60,97 @@ export function getDeviceIconKey(deviceKey){
 }
 
 // ====================================================================
+// KEY MIGRATION MAP — v3.19.0 catalog refactoring
+// Maps old device keys → new unified keys (or null for deleted families)
+// ====================================================================
+export const KEY_MIGRATION_MAP = {
+  // CFTV IP unifications (resolution variants → unified form-factor)
+  'cam_ip_bullet_2mp':'cam_ip_bullet','cam_ip_bullet_3mp':'cam_ip_bullet','cam_ip_bullet_4mp':'cam_ip_bullet',
+  'cam_ip_bullet_8mp':'cam_ip_bullet_4k','cam_ip_bullet_2mp_fc':'cam_ip_bullet_fc',
+  'cam_ip_dome_2mp':'cam_ip_dome','cam_ip_dome_4mp':'cam_ip_dome','cam_ip_dome_2mp_fc':'cam_ip_dome_fc',
+  'cam_ip_dome_vf_2mp':'cam_ip_dome_vf','cam_ip_dome_vf_4mp':'cam_ip_dome_vf',
+  'cam_ip_bullet_vf_2mp':'cam_ip_bullet_vf','cam_ip_bullet_vf_4mp':'cam_ip_bullet_vf',
+  'cam_ip_speed_2mp':'cam_ip_speed','cam_ip_speed_4mp':'cam_ip_speed',
+  'cam_ip_mini_2mp':'cam_ip_mini','cam_ip_fisheye_5mp':'cam_ip_fisheye',
+  'cam_ip_wifi_bullet_2mp':'cam_ip_wifi_bullet','cam_ip_wifi_bullet_4mp':'cam_ip_wifi_bullet',
+  'cam_ip_wifi_dome_2mp':'cam_ip_wifi_dome','cam_ip_wifi_dome_4mp':'cam_ip_wifi_dome',
+  // NVR unifications
+  'nvr_8ch_poe':'nvr_8ch','nvr_16ch_poe':'nvr_16ch',
+  // Automatizadores unifications
+  'auto_desl_leve':'auto_deslizante','auto_desl_pesado':'auto_deslizante',
+  'auto_basc_leve':'auto_basculante','auto_basc_pesado':'auto_basculante',
+  // Rede unifications
+  'sw_normal_16':'sw_normal',
+  // Wi-Fi unifications
+  'wifi_router_5':'wifi_router','wifi_router_6':'wifi_router',
+  // Deleted families → null (device removed, marked as legacy)
+  'cam_mhd_bullet_1mp':null,'cam_mhd_bullet_2mp':null,'cam_mhd_bullet_4mp':null,'cam_mhd_bullet_8mp':null,
+  'cam_mhd_dome_1mp':null,'cam_mhd_dome_2mp':null,'cam_mhd_dome_4mp':null,'cam_mhd_dome_8mp':null,
+  'cam_mhd_dome_vf_2mp':null,'cam_mhd_dome_vf_4mp':null,'cam_mhd_speed_2mp':null,'cam_mhd_speed_4mp':null,
+  'cam_hdcvi_bullet_2mp':null,'cam_hdcvi_bullet_4mp':null,'cam_hdcvi_dome_2mp':null,'cam_hdcvi_dome_4mp':null,
+  'cam_hdcvi_dome_vf_2mp':null,'cam_hdcvi_speed_4mp':null,
+  'dvr_4ch':null,'dvr_8ch':null,'dvr_16ch':null,'dvr_32ch':null,
+  'gravador_veicular':null,'cam_veicular_frontal':null,'cam_veicular_interna':null,
+  'alarme_4z':null,'alarme_8z':null,'alarme_18z':null,'alarme_64z':null,'alarme_128z':null,
+  'pir_passivo':null,'pir_pet':null,'pir_duplo':null,'pir_cortina':null,'pir_externo':null,
+  'pir_teto':null,'pir_passivo_bus':null,'pir_pet_bus':null,'pir_duplo_bus':null,'pir_cortina_bus':null,'pir_externo_bus':null,
+  'eletri_central':null,'eletri_compact':null,'eletri_industrial':null,'eletri_rural':null,
+  'teclado_led':null,'teclado_lcd':null,'teclado_touch':null,
+  'comunicador_eth':null,'comunicador_gprs':null,
+  'receptor_rf':null,'controle_remoto':null,
+  'sirene_int':null,'sirene_ext':null,
+  'sensor_abertura':null,'modulo_pgm':null,
+  's8k_central':null,'s8k_pir':null,'s8k_abertura':null,'s8k_controle':null,
+  's8k_sirene':null,'s8k_teclado':null,'s8k_repetidor':null,
+  'fogo_central_conv':null,'fogo_det_otico_conv':null,'fogo_det_termico_conv':null,
+  'fogo_acionador_conv':null,'fogo_sirene_conv':null,'fogo_sinalizador_conv':null,
+  'fogo_central_end':null,'fogo_det_otico_end':null,'fogo_det_termico_end':null,
+  'fogo_det_multi_end':null,'fogo_acionador_end':null,'fogo_sirene_end':null,
+  'fogo_sinalizador_end':null,'fogo_mod_monitor':null,'fogo_mod_relay':null,'fogo_gateway':null,
+  'fogo_det_autonomo':null,'fogo_det_gas':null,'fogo_det_chama_uv':null,
+  'fogo_det_chama_ir':null,'fogo_aspiracao':null,
+  'morley_central':null,'morley_detector':null,
+  'emerg_30led':null,'emerg_60led':null,'emerg_bloco':null,'emerg_balizamento':null,
+};
+
+/**
+ * Migrate project device keys from old catalog to v3.19.0 unified catalog.
+ * - Unified keys: replaces key + updates name from findDevDef
+ * - Deleted keys (→null): marks device._legacy = true, keeps in project with badge
+ * @param {Object} project - The project object with floors[].devices[]
+ * @returns {Object} The mutated project
+ */
+export function migrateProjectKeys(project){
+  if(!project?.floors) return project;
+  let migrated=0, legacied=0;
+  project.floors.forEach(f=>{
+    (f.devices||[]).forEach(d=>{
+      if(!d.key) return;
+      if(!(d.key in KEY_MIGRATION_MAP)) return;
+      const newKey=KEY_MIGRATION_MAP[d.key];
+      if(newKey===null){
+        // Deleted family → mark as legacy
+        d._legacy=true;
+        d._originalKey=d.key;
+        legacied++;
+      } else {
+        // Unified key → replace
+        d._originalKey=d.key;
+        d.key=newKey;
+        // Update name from new device definition
+        const def=findDevDef(newKey);
+        if(def) d.name=def.name;
+        migrated++;
+      }
+    });
+  });
+  if(migrated||legacied){
+    console.log(`[migrate] v3.19.0: ${migrated} device(s) unified, ${legacied} device(s) marked legacy`);
+  }
+  return project;
+}
+
+// ====================================================================
 // UNIQUE ID GENERATOR
 // ====================================================================
 let _uid=0;
