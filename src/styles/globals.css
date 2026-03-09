@@ -156,6 +156,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .canvas-controls button{width:42px;height:42px;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#475569;transition:.15s;box-shadow:0 2px 8px rgba(0,0,0,.08);backdrop-filter:blur(8px)}
 .canvas-controls button:hover{background:#fff;color:#2e86c1;box-shadow:0 3px 12px rgba(0,0,0,.12);border-color:#2e86c1}
 .scale-indicator{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.9);padding:6px 14px;border-radius:6px;font-size:12px;color:#64748b;border:1px solid #e2e8f0;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.06);backdrop-filter:blur(8px)}
+.minimap{position:absolute;right:12px;bottom:40px;z-index:20;border-radius:6px;overflow:hidden;border:1px solid #334155;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:crosshair;opacity:.85;transition:opacity .2s}
+.minimap:hover{opacity:1}
 
 /* Toast animation */
 @keyframes fadeIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -318,7 +320,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
   .toolbar, .left-panel, .right-panel, .floor-tabs, .sim-toggle,
   .modal-overlay, .sb-dot, .lp-tabs, .floor-add,
   .env-filter-bar, button, select, input[type="range"],
-  .multi-select-badge { display: none !important; }
+  .multi-select-badge, .canvas-controls, .scale-indicator, .minimap { display: none !important; }
 
   body { background: #fff !important; margin: 0; padding: 0; }
   .app-shell, .main-area { background: #fff !important; padding: 0 !important; margin: 0 !important; }

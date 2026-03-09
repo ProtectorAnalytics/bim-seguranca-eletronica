@@ -130,9 +130,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     setTool('select');
   };
 
-  // Move device (with snap-to-grid)
+  // Move device (with snap-to-grid + auto-recalc cable distances)
   const moveDevice=(devId,x,y)=>{
-    updateFloor(f=>({...f,devices:f.devices.map(d=>d.id===devId?{...d,x:snap(x),y:snap(y)}:d)}));
+    const sx=snap(x),sy=snap(y);
+    updateFloor(f=>{
+      const newDevs=f.devices.map(d=>d.id===devId?{...d,x:sx,y:sy}:d);
+      const newConns=f.connections.map(c=>{
+        if(c.from!==devId&&c.to!==devId) return c;
+        const fd=newDevs.find(d=>d.id===c.from),td=newDevs.find(d=>d.id===c.to);
+        if(!fd||!td) return c;
+        const dx=fd.x-td.x,dy=fd.y-td.y;
+        return {...c,distance:Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40))};
+      });
+      return {...f,devices:newDevs,connections:newConns};
+    });
   };
 
   // Delete device
@@ -230,7 +241,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     }
 
     const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
-    const dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
+    const dist=Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40)); // 40px = 1m
 
     // Validate connection (use base device keys for custom devices)
     const chosenCable=type||cableType;
@@ -453,7 +464,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         const dx=dev.x-t.x,dy=dev.y-t.y,d=Math.sqrt(dx*dx+dy*dy);
         if(d<bestDist){bestDist=d;best=t}
       });
-      return best?{device:best,dist:Math.round(bestDist/10)}:null;
+      return best?{device:best,dist:Math.max(1,Math.round(bestDist/40))}:null;
     };
 
     const tryAdd=(fromId,toId,fromKey,toKey)=>{
@@ -462,7 +473,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       const cable=getDefaultCable(fromKey,toKey);
       if(!cable) return false;
       const f=devices.find(d=>d.id===fromId),t=devices.find(d=>d.id===toId);
-      const dx=f.x-t.x,dy=f.y-t.y,dist=Math.round(Math.sqrt(dx*dx+dy*dy)/10);
+      const dx=f.x-t.x,dy=f.y-t.y,dist=Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40));
       const validation=validateConnection(fromKey,toKey,cable);
       newConns.push({id:uid(),from:fromId,to:toId,type:cable,distance:dist,purpose:validation.purpose||'dados'});
       return true;
@@ -858,10 +869,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Keyboard shortcuts
   useEffect(()=>{
     const handler=(e)=>{
+      // Ignore if user is typing in an input/textarea/select
+      const tag=e.target.tagName;
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable) return;
+
       if(e.key==='Delete'){
-        if(selectedDevice) deleteDevice(selectedDevice);
+        // Delete selected devices (multi or single) or connection
+        if(multiSelect.size>0){
+          multiSelect.forEach(id=>deleteDevice(id));
+          setMultiSelect(new Set());
+        } else if(selectedDevice) deleteDevice(selectedDevice);
         else if(selectedConn){
-          // Delete selected connection or clear its waypoints first
           const sc=connections.find(c=>c.id===selectedConn);
           if(sc?.waypoints?.length){
             updateConnWaypoints(selectedConn,undefined);
@@ -870,13 +888,32 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           }
         }
       }
-      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null)}
+      if(e.key==='Escape'){setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set())}
+
+      // Tool shortcuts (single keys)
+      if(!e.ctrlKey&&!e.metaKey&&!e.altKey){
+        if(e.key==='v'||e.key==='V'){setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
+        if(e.key==='c'||e.key==='C'){setTool('cable');setPendingDevice(null);setMeasureStart(null)}
+        if(e.key==='e'||e.key==='E'){setTool('env');setPendingDevice(null);setMeasureStart(null)}
+        if(e.key==='m'||e.key==='M'){setTool('measure');setPendingDevice(null)}
+        if(e.key==='g'||e.key==='G'){setSnapToGrid(v=>!v)}
+        if(e.key==='l'||e.key==='L'){setShowCableLabels(v=>!v)}
+        if(e.key==='f'||e.key==='F'){setZoom(1);setPan({x:0,y:0})} // Fit / reset view
+      }
+
+      // Ctrl shortcuts
       if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
       if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
+      if((e.ctrlKey||e.metaKey)&&e.key==='a'){
+        e.preventDefault();
+        // Select all devices
+        setMultiSelect(new Set(devices.map(d=>d.id)));
+        setTool('select');
+      }
     };
     window.addEventListener('keydown',handler);
     return ()=>window.removeEventListener('keydown',handler);
-  },[selectedDevice,selectedConn,connections]);
+  },[selectedDevice,selectedConn,connections,devices,multiSelect]);
 
   // Wheel zoom
   const handleWheel=(e)=>{
@@ -922,11 +959,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <div className="tool-group">
           <button className={`tool-btn ${tool==='select'?'active':''}`} title="Selecionar (V)"
             onClick={()=>{setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}}>🖱️</button>
-          <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear"
+          <button className={`tool-btn ${tool==='cable'?'active':''}`} title="Cabear (C)"
             onClick={()=>{setTool('cable');setPendingDevice(null);setMeasureStart(null)}}>🔗</button>
-          <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente"
+          <button className={`tool-btn ${tool==='env'?'active':''}`} title="Ambiente (E)"
             onClick={()=>{setTool('env');setPendingDevice(null);setMeasureStart(null)}}>🏠</button>
-          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Cotas / Medir distância"
+          <button className={`tool-btn ${tool==='measure'?'active':''}`} title="Cotas / Medir (M)"
             onClick={()=>{setTool('measure');setPendingDevice(null)}}>📏</button>
         </div>
 
@@ -965,9 +1002,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
         {/* Toggles de visualização — SEMPRE visíveis */}
         <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
-          <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
+          <button className={`tool-btn ${showCableLabels?'active':''}`} title={`${showCableLabels?'Ocultar':'Mostrar'} nomes dos cabos (L)`}
             style={{width:30,height:30,fontSize:12}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
-          <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Desativar snap na grade':'Ativar snap na grade'}
+          <button className={`tool-btn ${snapToGrid?'active':''}`} title={`${snapToGrid?'Desativar':'Ativar'} snap na grade (G)`}
             style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
           {/* Layers dropdown */}
           <div style={{position:'relative',display:'inline-block'}}>
@@ -1928,11 +1965,60 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
           {/* Zoom controls */}
           <div className="canvas-controls">
-            <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom +">+</button>
-            <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom -">−</button>
-            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar">⟳</button>
+            <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom + (+)">+</button>
+            <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom − (−)">−</button>
+            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar vista (F)">⟳</button>
           </div>
           <div className="scale-indicator">Zoom: {Math.round(zoom*100)}%</div>
+
+          {/* Minimap */}
+          {(()=>{
+            const mmW=160,mmH=160,canvasW=2000,canvasH=2000;
+            const sc=mmW/canvasW;
+            const rect=canvasRef.current?.getBoundingClientRect();
+            const vpW=rect?(rect.width/zoom)*sc:mmW;
+            const vpH=rect?(rect.height/zoom)*sc:mmH;
+            const vpX=(-pan.x/zoom)*sc;
+            const vpY=(-pan.y/zoom)*sc;
+            return (
+              <div className="minimap" onMouseDown={(e)=>{
+                e.stopPropagation();
+                const r=e.currentTarget.getBoundingClientRect();
+                const mx=(e.clientX-r.left)/sc, my=(e.clientY-r.top)/sc;
+                const vw=rect?rect.width/zoom:canvasW, vh=rect?rect.height/zoom:canvasH;
+                setPan({x:-(mx-vw/2)*zoom,y:-(my-vh/2)*zoom});
+              }}>
+                <svg width={mmW} height={mmH} style={{display:'block'}}>
+                  {/* Background */}
+                  <rect width={mmW} height={mmH} fill="#0f172a" rx="4"/>
+                  {/* Grid hint */}
+                  <rect width={mmW} height={mmH} fill="none" stroke="#1e293b" strokeWidth=".5"/>
+                  {/* Environments */}
+                  {environments.map(env=>(
+                    <rect key={'mm_e_'+env.id} x={env.x*sc} y={env.y*sc} width={env.w*sc} height={env.h*sc}
+                      fill={env.bg||'rgba(59,130,246,.15)'} stroke={env.color} strokeWidth=".5" rx="1"/>
+                  ))}
+                  {/* Connections */}
+                  {connections.map(conn=>{
+                    const fd=devices.find(d=>d.id===conn.from),td=devices.find(d=>d.id===conn.to);
+                    if(!fd||!td) return null;
+                    const ct=CABLE_TYPES.find(c=>c.id===conn.type);
+                    return <line key={'mm_c_'+conn.id} x1={(fd.x+29)*sc} y1={(fd.y+29)*sc}
+                      x2={(td.x+29)*sc} y2={(td.y+29)*sc} stroke={ct?.color||'#475569'} strokeWidth=".5" opacity=".6"/>;
+                  })}
+                  {/* Devices as dots */}
+                  {devices.map(d=>(
+                    <circle key={'mm_d_'+d.id} cx={(d.x+29)*sc} cy={(d.y+29)*sc} r={2.5}
+                      fill={d.id===selectedDevice?'#f59e0b':multiSelect.has(d.id)?'#8b5cf6':'#3b82f6'}/>
+                  ))}
+                  {/* Viewport rectangle */}
+                  <rect x={Math.max(0,vpX)} y={Math.max(0,vpY)}
+                    width={Math.min(vpW,mmW)} height={Math.min(vpH,mmH)}
+                    fill="none" stroke="#f59e0b" strokeWidth="1.5" rx="2" opacity=".8"/>
+                </svg>
+              </div>
+            );
+          })()}
         </div>
 
         {/* RIGHT PANEL */}
