@@ -17,7 +17,7 @@ import {
   getSwitchPorts
 } from '@/data/device-interfaces';
 import {
-  findDevDef, uid, getDeviceIconKey, getCustomDevices, saveCustomDevices,
+  findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getCustomDevices, saveCustomDevices,
   getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
   calcPPSection, getDefaultCable
 } from '@/lib/helpers';
@@ -2281,7 +2281,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
-        connections={project.floors.flatMap(f=>f.connections)} onClose={()=>setShowExport(false)}/>}
+        connections={project.floors.flatMap(f=>f.connections)} onClose={()=>setShowExport(false)}
+        onImport={(importedProject)=>{
+          syncUid(importedProject);
+          dedupDeviceIds(importedProject);
+          setProject(importedProject);
+        }}/>}
 
       {/* RACK ELEVATION MODAL */}
       {rackElevationId&&<RackElevationModal
