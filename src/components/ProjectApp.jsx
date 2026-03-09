@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSubscription } from '../hooks/useSubscription';
 import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES, ROUTE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
@@ -36,6 +37,7 @@ import EquipmentPanel from './EquipmentPanel';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
+  const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
   const [selectedDevice,setSelectedDevice]=useState(null);
@@ -122,6 +124,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const addDevice=(deviceKey,x,y,selectedModel=null)=>{
     const def=findDevDef(deviceKey);
     if(!def) return;
+
+    // Feature gate: device limit per floor
+    const currentDevices = floor?.devices?.length || 0;
+    if(currentDevices >= limits.maxDevicesPerFloor){
+      alert(`Limite de ${limits.maxDevicesPerFloor} dispositivos por andar no plano ${limits.planName}. Faça upgrade para adicionar mais.`);
+      return;
+    }
 
     // If configurable and has catalog models, show modal for model selection
     const catalogMap={nobreak_ac:'nobreak_ac',nobreak_dc:'nobreak_dc',bateria_ext:'bateria',modulo_bat:'modulo_bat'};

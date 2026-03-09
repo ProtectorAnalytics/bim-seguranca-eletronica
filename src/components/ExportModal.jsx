@@ -1,8 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { APP_VERSION } from '@/data/constants';
 import { exportBomCSV } from '@/lib/csv-export';
+import { useSubscription } from '../hooks/useSubscription';
+import UpgradeBanner from './UpgradeBanner';
 
 export default function ExportModal({project, bom, allDevices, connections, validationResults=[], onClose, onImport}){
+  const limits = useSubscription();
   const [tab, setTab] = useState('export'); // export | import
   const [checks, setChecks] = useState({equipment:true, topology:true, floorplan:true, summary:true, validation:true});
   const [author, setAuthor] = useState('Protector Sistemas');
@@ -234,7 +237,10 @@ export default function ExportModal({project, bom, allDevices, connections, vali
             </div>
 
             {/* PDF Export */}
-            <div style={{background:'#ebf5fb', border:'1px solid #3498db', borderRadius:6, padding:12, marginBottom:10}}>
+            {!limits.canExportPdf && (
+              <UpgradeBanner message="Exportação PDF disponível nos planos Básico e Pro." />
+            )}
+            <div style={{background:'#ebf5fb', border:'1px solid #3498db', borderRadius:6, padding:12, marginBottom:10, opacity: limits.canExportPdf ? 1 : 0.5, pointerEvents: limits.canExportPdf ? 'auto' : 'none'}}>
               <div style={{fontWeight:600, fontSize:13, color:'#3498db', marginBottom:6}}>📄 Relatório PDF</div>
               <div style={{fontSize:11, color:'#666', marginBottom:8}}>
                 Relatório profissional com capa, resumo executivo, BOM, topologia, planta e validações.

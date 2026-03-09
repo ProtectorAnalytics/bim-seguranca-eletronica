@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys } from '@/lib/helpers';
+import { useAuth } from '../contexts/AuthContext';
+import LoadingScreen from './LoadingScreen';
+import LoginPage from './LoginPage';
 import Dashboard from './Dashboard';
 import ProjectListPage from './ProjectListPage';
 import ClientForm from './ClientForm';
@@ -8,10 +11,15 @@ import ClientListPage from './ClientListPage';
 import EquipmentRepoPage from './EquipmentRepoPage';
 import SettingsPage from './SettingsPage';
 import SubscriptionPage from './SubscriptionPage';
+import AdminPage from './AdminPage';
+import UpgradeBanner from './UpgradeBanner';
 import ProjectApp from './ProjectApp';
+import { useSubscription } from '../hooks/useSubscription';
 
 export default function App(){
-  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const limits = useSubscription();
+  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | admin
   const [project,_setProject]=useState(null);
   const _historyStore=useRef({past:[],future:[]});
   const _skipHistory=useRef(false);
@@ -86,8 +94,24 @@ export default function App(){
     }
   },[project,editingProjectId]);
 
-  const onStartNewProject=()=>{ setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''}); setScreen('client'); };
+  const [limitMsg,setLimitMsg]=useState('');
+  const onStartNewProject=()=>{
+    const projects=getSavedProjects();
+    if(projects.length >= limits.maxProjects){
+      setLimitMsg(`Limite de ${limits.maxProjects} projeto(s) no plano ${limits.planName}. Faça upgrade para criar mais projetos.`);
+      return;
+    }
+    setLimitMsg('');
+    setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''});
+    setScreen('client');
+  };
   const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+
+  // Auth guard
+  if(authLoading) return <LoadingScreen/>;
+  if(!user) return <LoginPage/>;
+
+  if(screen==='admin' && isAdmin) return <AdminPage onBack={()=>setScreen('dashboard')}/>;
 
   if(screen==='dashboard') return <Dashboard
     onNewProject={onStartNewProject}
@@ -96,6 +120,9 @@ export default function App(){
     onRepo={()=>setScreen('repo')}
     onSettings={()=>setScreen('settings')}
     onSubscription={()=>setScreen('subscription')}
+    onAdmin={isAdmin?()=>setScreen('admin'):null}
+    limitMsg={limitMsg}
+    onDismissLimit={()=>setLimitMsg('')}
   />;
 
   if(screen==='projects') return <ProjectListPage onBack={()=>setScreen('dashboard')} onOpenProject={onOpenProject}/>;

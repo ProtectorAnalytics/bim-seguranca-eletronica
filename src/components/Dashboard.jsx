@@ -1,8 +1,11 @@
 import React from 'react';
 import { APP_VERSION } from '@/data/constants';
 import { getSavedProjects, getSavedClients, getSettings, getCustomDevices } from '@/lib/helpers';
+import { useAuth } from '../contexts/AuthContext';
+import UpgradeBanner from './UpgradeBanner';
 
-export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,onSettings,onSubscription}){
+export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,onSettings,onSubscription,onAdmin,limitMsg,onDismissLimit}){
+  const { profile, plan, isAdmin, signOut } = useAuth();
   const projects=getSavedProjects();
   const clients=getSavedClients();
   const settings=getSettings();
@@ -13,6 +16,13 @@ export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,o
 
   localStorage.setItem('bim_lastAccess',new Date().toLocaleDateString('pt-BR'));
 
+  const planName = isAdmin ? '⭐ Admin' : (plan?.name || 'Grátis');
+  const userName = profile?.full_name || profile?.email || 'Usuário';
+
+  const handleSignOut = async () => {
+    try { await signOut(); } catch(e) { console.error('Logout error:', e); }
+  };
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-content">
@@ -22,8 +32,16 @@ export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,o
             <p>BIM Segurança Eletrônica</p>
             <div className="dh-version">{APP_VERSION.label}</div>
           </div>
-          <div className="dh-user">
-            <div className="dh-avatar">👤</div>
+          <div className="dh-user" style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{userName}</div>
+              <div style={{fontSize:11,color:'#94a3b8'}}>Plano: {planName}</div>
+            </div>
+            <div className="dh-avatar" title={profile?.email}>👤</div>
+            <button onClick={handleSignOut} title="Sair" style={{
+              background:'#334155',border:'none',color:'#f87171',cursor:'pointer',
+              borderRadius:6,padding:'6px 10px',fontSize:12,fontWeight:600
+            }}>Sair</button>
           </div>
         </div>
 
@@ -45,6 +63,8 @@ export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,o
             <div className="stat-label">Último Acesso</div>
           </div>
         </div>
+
+        {limitMsg && <UpgradeBanner message={limitMsg} onUpgrade={()=>{onDismissLimit&&onDismissLimit();onSubscription();}} />}
 
         <div className="dashboard-modules">
           <div className="module-card primary" onClick={onNewProject}>
@@ -85,9 +105,18 @@ export default function Dashboard({onNewProject,onOpenProject,onClients,onRepo,o
           <div className="module-card" onClick={onSubscription}>
             <div className="mc-icon">💳</div>
             <div className="mc-title">Assinatura</div>
-            <div className="mc-desc">Plano: Trial</div>
+            <div className="mc-desc">Plano: {planName}</div>
             <div className="mc-badge">Informações</div>
           </div>
+
+          {onAdmin && (
+            <div className="module-card" onClick={onAdmin} style={{borderColor:'#f59e0b'}}>
+              <div className="mc-icon">🛡️</div>
+              <div className="mc-title">Admin</div>
+              <div className="mc-desc">Portal de administração</div>
+              <div className="mc-badge" style={{background:'#f59e0b',color:'#000'}}>Administrador</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
