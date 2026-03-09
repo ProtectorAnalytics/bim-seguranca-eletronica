@@ -4,6 +4,10 @@ import { APP_VERSION } from '@/data/constants';
 export default function ExportModal({project, bom, allDevices, connections, onClose, onImport}){
   const [tab, setTab] = useState('export'); // export | import
   const [checks, setChecks] = useState({equipment:true, topology:true, floorplan:true});
+  const [author, setAuthor] = useState('Protector Sistemas');
+  const [company, setCompany] = useState('Protector Sistemas');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfResult, setPdfResult] = useState(null);
   const [importError, setImportError] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -179,11 +183,11 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
               </button>
             </div>
 
-            {/* PDF Export (placeholder) */}
-            <div style={{background:'#fef9e7', border:'1px solid #f39c12', borderRadius:6, padding:12}}>
-              <div style={{fontWeight:600, fontSize:13, color:'#f39c12', marginBottom:6}}>📄 Relatório PDF</div>
+            {/* PDF Export */}
+            <div style={{background:'#ebf5fb', border:'1px solid #3498db', borderRadius:6, padding:12}}>
+              <div style={{fontWeight:600, fontSize:13, color:'#3498db', marginBottom:6}}>📄 Relatório PDF</div>
               <div style={{fontSize:11, color:'#666', marginBottom:8}}>
-                Gera relatório profissional com planta, topologia e lista de materiais. <em>(Em breve)</em>
+                Gera relatório profissional com capa, lista de materiais, topologia e captura da planta.
               </div>
               <div className="mc-row" style={{marginBottom:4}}>
                 <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
@@ -193,15 +197,52 @@ export default function ExportModal({project, bom, allDevices, connections, onCl
                 <input type="checkbox" checked={checks.topology} onChange={()=>toggle('topology')}/>
                 <label onClick={()=>toggle('topology')} style={{fontSize:11}}>Topologia de Rede</label>
               </div>
-              <div className="mc-row" style={{marginBottom:8}}>
+              <div className="mc-row" style={{marginBottom:4}}>
                 <input type="checkbox" checked={checks.floorplan} onChange={()=>toggle('floorplan')}/>
-                <label onClick={()=>toggle('floorplan')} style={{fontSize:11}}>Planta por Pavimento</label>
+                <label onClick={()=>toggle('floorplan')} style={{fontSize:11}}>Planta por Pavimento (captura do canvas)</label>
               </div>
-              <button disabled
-                style={{width:'100%',padding:'8px 12px',background:'#ccc',color:'#888',border:'none',
-                  borderRadius:5,cursor:'not-allowed',fontWeight:600,fontSize:12}}>
-                🔒 PDF — Em breve (P0-B)
+              <div style={{display:'flex',gap:8,marginTop:8,marginBottom:8}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:'#888',marginBottom:2}}>Autor</div>
+                  <input value={author} onChange={e=>setAuthor(e.target.value)}
+                    style={{width:'100%',padding:'4px 6px',fontSize:11,border:'1px solid #ddd',borderRadius:3,boxSizing:'border-box'}}/>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:'#888',marginBottom:2}}>Empresa</div>
+                  <input value={company} onChange={e=>setCompany(e.target.value)}
+                    style={{width:'100%',padding:'4px 6px',fontSize:11,border:'1px solid #ddd',borderRadius:3,boxSizing:'border-box'}}/>
+                </div>
+              </div>
+              <button onClick={async()=>{
+                  setPdfLoading(true);setPdfResult(null);
+                  try{
+                    const {exportProjectPDF}=await import('@/lib/pdf-export');
+                    const result=await exportProjectPDF({project,bom,allDevices,connections,options:{
+                      includeEquipment:checks.equipment,includeTopology:checks.topology,
+                      includeFloorplan:checks.floorplan,author,company}});
+                    setPdfResult({success:true,pages:result.pages,fileName:result.fileName});
+                  }catch(err){
+                    console.error('PDF export error:',err);
+                    setPdfResult({success:false,error:err.message});
+                  }finally{setPdfLoading(false)}
+                }}
+                disabled={pdfLoading}
+                style={{width:'100%',padding:'8px 12px',background:pdfLoading?'#95a5a6':'#3498db',color:'#fff',border:'none',
+                  borderRadius:5,cursor:pdfLoading?'wait':'pointer',fontWeight:600,fontSize:12,transition:'.15s'}}
+                onMouseOver={e=>{if(!pdfLoading)e.currentTarget.style.background='#2980b9'}}
+                onMouseOut={e=>{if(!pdfLoading)e.currentTarget.style.background='#3498db'}}>
+                {pdfLoading?'⏳ Gerando PDF...':'📄 Gerar e Baixar PDF'}
               </button>
+              {pdfResult&&pdfResult.success&&(
+                <div style={{marginTop:6,fontSize:10,color:'#27ae60',fontWeight:600}}>
+                  ✅ PDF gerado: {pdfResult.fileName} ({pdfResult.pages} páginas)
+                </div>
+              )}
+              {pdfResult&&!pdfResult.success&&(
+                <div style={{marginTop:6,fontSize:10,color:'#e74c3c'}}>
+                  ❌ Erro: {pdfResult.error}
+                </div>
+              )}
             </div>
           </>
         )}
