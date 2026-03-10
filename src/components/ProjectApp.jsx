@@ -21,7 +21,7 @@ import {
 import {
   findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getCustomDevices, saveCustomDevices,
   getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
-  calcPPSection, getDefaultCable
+  calcPPSection, getDefaultCable, getSettings, saveSettings
 } from '@/lib/helpers';
 import TopoNode from './TopoNode';
 import ModelSelectorModal from './ModelSelectorModal';
@@ -68,6 +68,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [selectionRect,setSelectionRect]=useState(null); // {startX,startY,x,y} canvas coords for lasso
   const [groupDragging,setGroupDragging]=useState(null); // {startX,startY,origPositions:[{id,x,y},...]}
   const [bgOpacity,setBgOpacity]=useState(0.3);
+  // Icon size: 'sm' | 'md' | 'normal'
+  const [iconSize,setIconSize]=useState(()=>getSettings().iconSize||'normal');
+  // Sidebar visibility (floating panels)
+  const [leftPanelOpen,setLeftPanelOpen]=useState(()=>getSettings().leftPanelOpen!==false);
+  const [rightPanelOpen,setRightPanelOpen]=useState(()=>getSettings().rightPanelOpen!==false);
   const bgFileRef=useRef(null);
   const lassoEndedRef=useRef(false); // prevents click from clearing lasso selection
   const [isPanning,setIsPanning]=useState(false); // for cursor styling
@@ -100,6 +105,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // Sync bgOpacity when floor changes
   useEffect(()=>{setBgOpacity(floor?.bgOpacity??0.3)},[project.activeFloor]);
+
+  // Icon size helpers
+  const changeIconSize=(size)=>{setIconSize(size);const s=getSettings();saveSettings({...s,iconSize:size})};
+  const getDevR=(dev)=>{const s=dev.iconSize||iconSize;return s==='sm'?18:s==='md'?23:29};
+  // Panel toggle helpers
+  const toggleLeftPanel=()=>{const next=!leftPanelOpen;setLeftPanelOpen(next);saveSettings({...getSettings(),leftPanelOpen:next})};
+  const toggleRightPanel=()=>{const next=!rightPanelOpen;setRightPanelOpen(next);saveSettings({...getSettings(),rightPanelOpen:next})};
 
   // Migrate legacy rack devices → floor.racks[]
   useEffect(()=>{
@@ -1275,6 +1287,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           </div>
         )}
 
+        {/* Icon size P/M/G */}
+        <div className="tool-group">
+          <span style={{fontSize:10,color:'var(--cinza)',fontWeight:600,marginRight:2}}>Ícone:</span>
+          {[{id:'sm',label:'P',title:'Pequeno (36px)'},{id:'md',label:'M',title:'Médio (46px)'},{id:'normal',label:'G',title:'Normal (58px)'}].map(s=>(
+            <button key={s.id} className={`tool-btn ${iconSize===s.id?'active':''}`}
+              style={{width:26,height:26,fontSize:11,fontWeight:700}} title={s.title}
+              onClick={()=>changeIconSize(s.id)}>{s.label}</button>
+          ))}
+        </div>
+
         {/* Toggles de visualização — SEMPRE visíveis */}
         <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
           <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
@@ -1346,8 +1368,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       {/* ===== MAIN CONTENT ===== */}
       <div className="main-area">
         {/* LEFT PANEL */}
-        <div className="left-panel">
+        <div className={`left-panel ${!leftPanelOpen?'collapsed':''}`}>
           <div className="lp-tabs">
+            <button onClick={toggleLeftPanel} title="Esconder painel"
+              style={{width:28,padding:0,background:'transparent',border:'none',cursor:'pointer',
+                fontSize:14,color:'var(--cinza)',flexShrink:0}}>«</button>
             <div className={`lp-tab ${leftTab==='devices'?'active':''}`} onClick={()=>setLeftTab('devices')}>Dispositivos</div>
             <div className={`lp-tab ${leftTab==='environments'?'active':''}`} onClick={()=>setLeftTab('environments')}>Ambientes</div>
             <div className={`lp-tab ${leftTab==='floors'?'active':''}`} onClick={()=>setLeftTab('floors')}>Piso</div>
@@ -1561,7 +1586,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none',zIndex:4}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
                 {cableMode&&devices.map(dev=>{
-                  const R=29;
+                  const R=getDevR(dev);
                   const cx=dev.x+R,cy=dev.y+R;
                   const anchors=[[0,-1],[1,0],[0,1],[-1,0]];
                   const ts=validTargets[dev.id];
@@ -1582,14 +1607,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
                   const isSel=selectedConn===conn.id;
 
-                  const R=29;
                   // Se device está em Quadro, usar posição do Quadro como referência visual
                   const resolvePos=(dev)=>{
+                    const R=getDevR(dev);
                     if(dev.quadroId){
                       const qc=quadros.find(q=>q.id===dev.quadroId);
-                      if(qc) return {x:qc.x+80,y:qc.y+14};
+                      if(qc) return {x:qc.x+80,y:qc.y+14,R};
                     }
-                    return {x:dev.x+R,y:dev.y+R};
+                    return {x:dev.x+R,y:dev.y+R,R};
                   };
                   const fromPos=resolvePos(from);
                   const toPos=resolvePos(to);
@@ -1608,17 +1633,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const ux=dx/len,uy=dy/len;
                   const ppx=-uy,ppy=ux;
 
-                  const x1=fcx+ux*R+ppx*offsetAmt;
-                  const y1=fcy+uy*R+ppy*offsetAmt;
-                  const x2=tcx-ux*R+ppx*offsetAmt;
-                  const y2=tcy-uy*R+ppy*offsetAmt;
+                  const x1=fcx+ux*fromPos.R+ppx*offsetAmt;
+                  const y1=fcy+uy*fromPos.R+ppy*offsetAmt;
+                  const x2=tcx-ux*toPos.R+ppx*offsetAmt;
+                  const y2=tcy-uy*toPos.R+ppy*offsetAmt;
 
                   const isPower=ct.group==='power';
                   const isSignal=ct.group==='signal';
                   const isAuto=ct.group==='automation';
                   const isWireless=conn.type==='wireless';
-                  const dashArr=isWireless?'4 4':isPower?'8 3':isSignal?'2 2':isAuto?'6 2 2 2':'none';
-                  const sw=isPower?2.5:isAuto?2:1.5;
+                  // Enhanced visual distinction per cable type
+                  const dashArr=isWireless?'4 4':isPower?'8 4':isSignal?'3 3':isAuto?'8 3 2 3':'none';
+                  const sw=isPower?2.8:isAuto?2.2:isSignal?1.8:isWireless?1.2:2;
+                  const cableColor=isPower?'#dc2626':isSignal?'#16a34a':isAuto?'#7c3aed':isWireless?'#94a3b8':ct.color;
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
                   const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
 
@@ -1657,12 +1684,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     <path d={pathD} className="conn-hit-area" onClick={onConnClick}/>
                     {/* Visible cable path */}
                     <path d={pathD} fill="none" className="conn-line-path"
-                      stroke={isSel?'#3b82f6':ct.color} strokeWidth={isSel?sw+1:sw}
+                      stroke={isSel?'#3b82f6':cableColor} strokeWidth={isSel?sw+1:sw}
                       strokeDasharray={dashArr} strokeLinejoin="round" strokeLinecap="round"
                       style={{pointerEvents:'none'}}/>
                     {/* Endpoint anchor dots */}
-                    <circle cx={x1} cy={y1} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
-                    <circle cx={x2} cy={y2} r={3} fill={isSel?'#3b82f6':ct.color} opacity={0.7} style={{pointerEvents:'none'}}/>
+                    <circle cx={x1} cy={y1} r={3} fill={isSel?'#3b82f6':cableColor} opacity={0.7} style={{pointerEvents:'none'}}/>
+                    <circle cx={x2} cy={y2} r={3} fill={isSel?'#3b82f6':cableColor} opacity={0.7} style={{pointerEvents:'none'}}/>
                     {/* Cable label */}
                     {showCableLabels&&<text x={labelX} y={labelY} className="cable-label" style={{pointerEvents:'none'}}>
                       {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
@@ -1728,7 +1755,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 {cableMode&&(()=>{
                   const from=devices.find(d=>d.id===cableMode.from);
                   if(!from) return null;
-                  const R=29;
+                  const R=getDevR(from);
                   const cx=from.x+R,cy=from.y+R;
                   return <circle cx={cx} cy={cy} r={R+3} fill="none"
                     stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" opacity=".6"/>;
@@ -1764,21 +1791,22 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     }}>
                     {/* Header */}
                     <div style={{height:headerH,display:'flex',alignItems:'center',gap:6,
-                      padding:'0 8px',borderBottom:'1.5px solid #bbf7d0',background:'rgba(22,163,74,.08)',
+                      padding:'0 8px',borderBottom:'1.5px solid #bbf7d0',background:'rgba(22,163,74,.12)',
                       borderRadius:'6px 6px 0 0'}}>
-                      <span style={{fontSize:14}}>📦</span>
-                      <span style={{fontSize:10,fontWeight:800,color:'#166534',flex:1,overflow:'hidden',
-                        textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{qc.tag}</span>
-                      <span style={{fontSize:8,fontWeight:600,color:'#4ade80',background:'#166534',
-                        padding:'1px 5px',borderRadius:4}}>{qcDevices.length}</span>
+                      <span style={{fontSize:12}}>📦</span>
+                      <span style={{fontSize:11,fontWeight:800,color:'#166534',flex:1,overflow:'hidden',
+                        textOverflow:'ellipsis',whiteSpace:'nowrap',letterSpacing:.3}}>{qc.tag}</span>
+                      <span style={{fontSize:9,fontWeight:700,color:'#dcfce7',background:'#166534',
+                        padding:'1px 6px',borderRadius:6,minWidth:18,textAlign:'center'}}>{qcDevices.length}</span>
                     </div>
                     {/* Device list */}
                     {qcDevices.length>0?qcDevices.slice(0,6).map(child=>{
                       const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===child.key))?.color||'#6b7280';
                       return (
-                        <div key={child.id} style={{display:'flex',alignItems:'center',gap:4,padding:'2px 8px',
+                        <div key={child.id} style={{display:'flex',alignItems:'center',gap:5,padding:'2px 8px',
                           borderBottom:'1px solid #dcfce7',height:slotH,fontSize:9}}>
-                          <span style={{width:6,height:6,borderRadius:'50%',background:catColor,flexShrink:0}}/>
+                          <span style={{width:8,height:8,borderRadius:'50%',background:catColor,flexShrink:0,
+                            border:'1.5px solid #fff',boxShadow:'0 1px 2px rgba(0,0,0,.15)'}}/>
                           <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
                             color:'#334155',fontWeight:500,cursor:'pointer'}}
                             onClick={(e)=>{e.stopPropagation();setSelectedDevice(child.id);setRightTab('props')}}>
@@ -1796,10 +1824,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         +{qcDevices.length-6} mais...
                       </div>
                     )}
-                    {/* Name label */}
-                    <div style={{fontSize:8,color:'#166534',textAlign:'center',padding:'3px 4px',
-                      fontWeight:600,borderTop:'1px solid #dcfce7',overflow:'hidden',textOverflow:'ellipsis',
-                      whiteSpace:'nowrap'}}>{qc.name}</div>
+                    {/* Footer with summary + name */}
+                    <div style={{fontSize:8,color:'#166534',textAlign:'center',padding:'3px 6px',
+                      fontWeight:700,borderTop:'1.5px solid #bbf7d0',overflow:'hidden',textOverflow:'ellipsis',
+                      whiteSpace:'nowrap',background:'rgba(22,163,74,.05)',borderRadius:'0 0 6px 6px',
+                      display:'flex',justifyContent:'space-between',gap:4}}>
+                      <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{qc.name}</span>
+                      {qcDevices.length>0&&<span style={{color:'#4ade80',fontWeight:600,flexShrink:0}}>
+                        {qcDevices.reduce((s,d)=>{const i=getDeviceInterfaces(d);const pConns=connections.filter(c=>c.from===d.id||c.to===d.id);return s+pConns.length},0)}cx
+                      </span>}
+                    </div>
                     {/* Delete button when selected */}
                     {isSel&&(
                       <div style={{position:'absolute',top:-6,right:-6,width:18,height:18,borderRadius:'50%',
@@ -1821,9 +1855,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 const targetStatus=cableMode?validTargets[dev.id]:null;
                 const isSource=cableMode?.from===dev.id;
                 const inRack=dev.parentRack?racks.find(r=>r.id===dev.parentRack):null;
+                const devSize=dev.iconSize||iconSize;
+                const sizeClass=devSize==='sm'?'device-sm':devSize==='md'?'device-md':'';
                 return (
                   <div key={dev.id}
-                    className={`device-on-canvas ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
+                    className={`device-on-canvas ${sizeClass} ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
                     style={{left:dev.x,top:dev.y,
                       ...(inRack?{zIndex:2}:{}),
                       ...(multiSelect.has(dev.id)?{outline:'2px solid #3498db',outlineOffset:2,borderRadius:10,boxShadow:'0 0 8px rgba(52,152,219,.4)'}:{}),
@@ -1840,7 +1876,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
                       ...(DEVICE_THUMBNAILS[dev.key]?{padding:2,overflow:'hidden'}:{})}}>
                       {DEVICE_THUMBNAILS[dev.key]?(
-                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:40,height:40,objectFit:'contain'}}/>
+                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:devSize==='sm'?24:devSize==='md'?32:40,height:devSize==='sm'?24:devSize==='md'?32:40,objectFit:'contain'}}/>
                       ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
                     {/* Connection button - opens port popup */}
@@ -2282,6 +2318,26 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             </div>
           )}
 
+          {/* Panel toggle buttons on canvas edges */}
+          {!leftPanelOpen&&(
+            <button onClick={toggleLeftPanel}
+              style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',zIndex:25,
+                width:24,height:48,background:'var(--branco)',border:'1px solid var(--cinzaM)',
+                borderRadius:'0 8px 8px 0',cursor:'pointer',display:'flex',alignItems:'center',
+                justifyContent:'center',boxShadow:'2px 0 8px rgba(0,0,0,.1)',fontSize:12,color:'var(--cinza)'}}>
+              »
+            </button>
+          )}
+          {!rightPanelOpen&&(
+            <button onClick={toggleRightPanel}
+              style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',zIndex:25,
+                width:24,height:48,background:'var(--branco)',border:'1px solid var(--cinzaM)',
+                borderRadius:'8px 0 0 8px',cursor:'pointer',display:'flex',alignItems:'center',
+                justifyContent:'center',boxShadow:'-2px 0 8px rgba(0,0,0,.1)',fontSize:12,color:'var(--cinza)'}}>
+              «
+            </button>
+          )}
+
           {/* Zoom controls */}
           <div className="canvas-controls">
             <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom +">+</button>
@@ -2322,14 +2378,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     const fd=devices.find(d=>d.id===conn.from),td=devices.find(d=>d.id===conn.to);
                     if(!fd||!td) return null;
                     const ct=CABLE_TYPES.find(c=>c.id===conn.type);
-                    return <line key={'mm_c_'+conn.id} x1={(fd.x+29)*sc} y1={(fd.y+29)*sc}
-                      x2={(td.x+29)*sc} y2={(td.y+29)*sc} stroke={ct?.color||'#475569'} strokeWidth=".5" opacity=".6"/>;
+                    const fr=getDevR(fd),tr=getDevR(td);
+                    return <line key={'mm_c_'+conn.id} x1={(fd.x+fr)*sc} y1={(fd.y+fr)*sc}
+                      x2={(td.x+tr)*sc} y2={(td.y+tr)*sc} stroke={ct?.color||'#475569'} strokeWidth=".5" opacity=".6"/>;
                   })}
                   {/* Devices as dots */}
-                  {devices.map(d=>(
-                    <circle key={'mm_d_'+d.id} cx={(d.x+29)*sc} cy={(d.y+29)*sc} r={2.5}
-                      fill={d.id===selectedDevice?'#f59e0b':multiSelect.has(d.id)?'#8b5cf6':'#3b82f6'}/>
-                  ))}
+                  {devices.map(d=>{
+                    const dr=getDevR(d);
+                    return <circle key={'mm_d_'+d.id} cx={(d.x+dr)*sc} cy={(d.y+dr)*sc}
+                      r={dr<20?1.5:dr<25?2:2.5}
+                      fill={d.id===selectedDevice?'#f59e0b':multiSelect.has(d.id)?'#8b5cf6':'#3b82f6'}/>;
+                  })}
                   {/* Viewport rectangle */}
                   <rect x={Math.max(0,vpX)} y={Math.max(0,vpY)}
                     width={Math.min(vpW,mmW)} height={Math.min(vpH,mmH)}
@@ -2341,10 +2400,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="right-panel">
+        <div className={`right-panel ${!rightPanelOpen?'collapsed':''}`}>
           <div className="rp-tabs">
             <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}>
-              {selectedDev?'Propriedades':'Info'}
+              {selectedDev?'Props':'Info'}
             </div>
             <div className={`rp-tab ${rightTab==='rack'?'active':''}`} onClick={()=>setRightTab('rack')}>
               Rack {racks.length>0&&<span style={{background:'var(--azul2)',color:'#fff',
@@ -2355,7 +2414,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{quadros.length}</span>}
             </div>
             <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}>
-              Topologia
+              Topo
             </div>
             <div className={`rp-tab ${rightTab==='equipment'?'active':''}`} onClick={()=>setRightTab('equipment')}>
               Materiais
@@ -2367,6 +2426,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <div className={`rp-tab ${rightTab==='unifilar'?'active':''}`} onClick={()=>setRightTab('unifilar')}>
               Unifilar
             </div>
+            <button onClick={toggleRightPanel} title="Esconder painel"
+              style={{width:28,padding:0,background:'transparent',border:'none',cursor:'pointer',
+                fontSize:14,color:'var(--cinza)',flexShrink:0}}>»</button>
           </div>
           <div className="rp-content">
             {/* RACK PANEL */}
@@ -2581,6 +2643,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                           {Array.from(new Set(devices.map(d=>d.ambiente).filter(a=>a&&!ENV_COLORS.find(e=>e.name===a)))).map(amb=>(
                             <option key={amb} value={amb}>{amb}</option>
                           ))}
+                        </select>
+                      </span>
+                    </div>
+                    <div className="prop-row">
+                      <span className="pr-label">Tamanho:</span>
+                      <span className="pr-value">
+                        <select value={selectedDev.iconSize||''} onChange={e=>updateDevice(selectedDev.id,{iconSize:e.target.value||null})}>
+                          <option value="">Padrão ({iconSize==='sm'?'Pequeno':iconSize==='md'?'Médio':'Normal'})</option>
+                          <option value="sm">Pequeno</option>
+                          <option value="md">Médio</option>
+                          <option value="normal">Normal</option>
                         </select>
                       </span>
                     </div>
