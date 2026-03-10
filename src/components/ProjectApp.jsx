@@ -57,6 +57,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [collapsedCats,setCollapsedCats]=useState({});
   const [editingFloorId,setEditingFloorId]=useState(null);
   const [showCableLabels,setShowCableLabels]=useState(true);
+  const [showDeviceInfo,setShowDeviceInfo]=useState(true);
   const toggleCat=(catName)=>setCollapsedCats(prev=>({...prev,[catName]:!prev[catName]}));
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
   const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
@@ -1240,6 +1241,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         setShowMigrationWizard={setShowMigrationWizard} legacyCount={legacyCount}
         iconSize={iconSize} changeIconSize={changeIconSize}
         showCableLabels={showCableLabels} setShowCableLabels={setShowCableLabels}
+        showDeviceInfo={showDeviceInfo} setShowDeviceInfo={setShowDeviceInfo}
         snapToGrid={snapToGrid} setSnapToGrid={setSnapToGrid}
         layers={layers} toggleLayer={toggleLayer}
         undo={undo} redo={redo}
@@ -1855,13 +1857,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         background:ec?.color||'#6b7280',color:'#fff',border:'1.5px solid #fff',
                         boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}>{dev.ambiente}</div>;
                     })()}
-                    <div className="doc-card" style={{borderLeftColor:color}}>
-                      <div className="doc-card-name">{dev.name}</div>
-                      {dev.model&&<div className="doc-card-model">{dev.model}</div>}
-                      {devTags.length>0&&<div className="doc-card-sub">
-                        {devTags.map((s,i)=><span key={i} className="doc-card-tag" style={{background:s.c}}>{s.t}</span>)}
-                      </div>}
-                    </div>
+                    {showDeviceInfo?(
+                      <div className="doc-card" style={{borderLeftColor:color}}>
+                        <div className="doc-card-name">{dev.name}</div>
+                        {dev.model&&<div className="doc-card-model">{dev.model}</div>}
+                        {devTags.length>0&&<div className="doc-card-sub">
+                          {devTags.map((s,i)=><span key={i} className="doc-card-tag" style={{background:s.c}}>{s.t}</span>)}
+                        </div>}
+                      </div>
+                    ):(
+                      <div className="doc-label">{dev.name}</div>
+                    )}
                     {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
                       fontSize:7,background:'var(--azul)',color:'#fff',padding:'0 4px',borderRadius:3,
                       whiteSpace:'nowrap'}}>📦 {inRack.name}</div>}

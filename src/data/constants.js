@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 35, build: 0,
+  major: 3, minor: 35, build: 1,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.35.1',date:'2026-03-10',changes:['Toggle exibir/ocultar info dos dispositivos (📋) na toolbar ao lado do toggle de cabos','Com info ligada: doc-card completo com nome, modelo e tags de ocupação','Com info desligada: apenas nome simples (doc-label) — canvas mais limpo']},
     {ver:'3.35.0',date:'2026-03-10',changes:['Novo formato de dispositivo no canvas: doc-card com barra de cor por categoria e badges integrados como tags','Botão ⚡ conexão agora 20px, z-index 16, sempre visível (sem sobreposição de badges)','Removidos badges flutuantes (NVR ch, Switch portas, Camera NVR) — tudo integrado no info card','Card com borderLeft colorida por categoria, nome + model + status tags em layout limpo','Removida barra doc-accent do círculo — visual mais limpo e profissional','Classe CSS dev-conn-btn com hover scale para botão de conexão']},
     {ver:'3.34.2',date:'2026-03-10',changes:['Fix formulário do cliente: página agora rola quando conteúdo excede viewport (min-height:100vh)','Form compactado: padding, gaps e margins reduzidos para caber em telas 100% zoom','Botão Avançar sempre visível: cf-actions sticky no bottom com fundo blur','Reduzido spacing entre seções, campos e inputs para melhor utilização do espaço vertical']},
     {ver:'3.34.0',date:'2026-03-10',changes:['Refactor: extraído DevicePropertiesPanel.jsx (350 linhas) do monolito ProjectApp.jsx (-510 linhas)','Layout profissional: section titles 12px bold com separadores, hover states em prop-rows, labels 13px/600','Novas classes CSS: dp-section-title, dp-list-item, dp-progress, dp-stepper, dp-conn-item (zero inline styles)','Fontes mínimas aumentadas: 9-10px → 11-13px em todos os textos do painel de propriedades','Progress bars, badges e steppers com classes reutilizáveis em vez de inline styles repetidos']},
