@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 32, build: 3,
+  major: 3, minor: 32, build: 4,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.32.4',date:'2026-03-10',changes:['Fix PDF export: jspdf-autotable v5.x usa API funcional autoTable(doc,opts) em vez de doc.autoTable(opts)','Corrigido erro e.autoTable is not a function que impedia exportação de PDF','Import paralelo: jspdf, html2canvas e jspdf-autotable carregados simultaneamente via Promise.all']},
     {ver:'3.32.3',date:'2026-03-10',changes:['Fix definitivo: fetch() direto para REST API do Supabase contornando client library + service worker','Profile query via GET /rest/v1/profiles com AbortController timeout 8s e cache:no-store','Subscription query via GET /rest/v1/subscriptions com join plans(*) e timeout 8s','Fallback robusto: se REST falhar, usa user_metadata do JWT para nome do usuario','Prevencao de fetch duplo via useRef (fetchInProgress)','Logs granulares: REST fetch status, HTTP errors, access token info']},
     {ver:'3.32.2',date:'2026-03-10',changes:['Fix critico: query REST do Supabase travava por causa do Service Worker (Workbox)','Workbox: trocado de NetworkFirst para NetworkOnly em requests Supabase (sem cache)','AbortSignal timeout: queries de profile/subscription abortam apos 6s (evita trava infinita)','Fallback auth: se profile query falhar, usa user_metadata do token JWT como fallback','Skip duplicado: SIGNED_IN alem de INITIAL_SESSION nao dispara fetch duplo','Safety timeout aumentado para 15s para dar tempo ao retry com refresh de sessao']},
     {ver:'3.32.1',date:'2026-03-10',changes:['Fix auth: retry com refresh de sessao quando perfil nao carrega na primeira tentativa','Fix auth: maybeSingle() em vez de single() para subscription (evita erro em 0 linhas)','Fix auth: skip INITIAL_SESSION duplicado para evitar race condition entre getSession e onAuthStateChange','Safety timeout: loading=false apos 8s para nunca travar na tela de carregamento','Debug banner: indicador visual no Dashboard quando perfil nao carrega, com mensagem do erro','Console logging: logs detalhados [auth] em todas as etapas para diagnostico']},

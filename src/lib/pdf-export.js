@@ -57,14 +57,16 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   } = options;
 
   // Lazy load heavy libraries (code-splitting)
-  const [jspdfModule, html2canvasModule] = await Promise.all([
+  const [jspdfModule, html2canvasModule, autoTableModule] = await Promise.all([
     import('jspdf'),
     import('html2canvas'),
+    import('jspdf-autotable'),
   ]);
-  await import('jspdf-autotable');
-  // jsPDF 2.x uses named export, fallback to default for compatibility
+  // jsPDF 2.x+ uses named export, fallback to default for compatibility
   const jsPDF = jspdfModule.jsPDF || jspdfModule.default;
   const html2canvas = html2canvasModule.default || html2canvasModule;
+  // jspdf-autotable v5.x exports a function instead of patching prototype
+  const autoTable = autoTableModule.default || autoTableModule;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const w = doc.internal.pageSize.getWidth(); // 210
@@ -386,7 +388,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         4: { cellWidth: 10, halign: 'center', fontSize: 6 },
       };
 
-      doc.autoTable({
+      const devTableResult = autoTable(doc, {
         startY: tableY,
         head: devHead,
         body: devBody,
@@ -398,7 +400,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         didDrawPage: () => drawFooter(doc),
       });
 
-      tableY = doc.lastAutoTable.finalY + 8;
+      tableY = devTableResult.finalY + 8;
     }
 
     // Cable table
@@ -416,7 +418,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       doc.text('Cabeamento', 14, tableY);
       tableY += 4;
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: tableY,
         head: [['#', 'Tipo de Cabo', 'Lances', 'Metragem Total']],
         body: cableItems.map((item, i) => [
@@ -588,7 +590,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         ];
       });
 
-      doc.autoTable({
+      const topoResult = autoTable(doc, {
         startY: yPos,
         head: [['Origem', '', 'Destino', 'Cabo', 'Dist.']],
         body: connRows,
@@ -606,7 +608,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         didDrawPage: () => drawFooter(doc),
       });
 
-      yPos = doc.lastAutoTable.finalY + 10;
+      yPos = topoResult.finalY + 10;
     });
 
     drawFooter(doc);
@@ -643,7 +645,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         'OBRIGATÓRIA': 'OBRIG.',
       };
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: 42,
         head: [['Sev.', 'Categoria', 'Regra', 'Problema Detectado']],
         body: activeAlerts.map(v => [
