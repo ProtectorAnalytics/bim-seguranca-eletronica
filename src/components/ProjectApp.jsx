@@ -1901,21 +1901,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
                       </div>
                     )}
-                    {/* NVR capacity badge */}
+                    {/* NVR capacity badge — top-right to avoid label overlap */}
                     {isGravador(dev.key)&&(()=>{
                       const ch=getNvrChannels(dev);
                       const used=getNvrUsedChannels(dev.id,devices);
                       const isOver=used>ch;
                       return (
-                        <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
-                          minWidth:32,height:18,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:10,fontWeight:800,padding:'0 5px',zIndex:13,whiteSpace:'nowrap',
-                          background:isOver?'#ef4444':used>0?'#22c55e':'#94a3b8',
-                          color:'#fff',border:'1.5px solid #fff',
-                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{used}/{ch}ch</div>
+                        <div className="dev-badge" style={{top:-6,right:-8,
+                          background:isOver?'#ef4444':used>0?'#22c55e':'#94a3b8'}}>{used}/{ch}ch</div>
                       );
                     })()}
-                    {/* Switch port badge */}
+                    {/* Switch port badge — top-right to avoid label overlap */}
                     {isSwitch(dev.key)&&(()=>{
                       const totalP=getSwitchPorts(dev);
                       const connected=connections.filter(c=>c.from===dev.id||c.to===dev.id)
@@ -1923,12 +1919,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       const usedP=connected.reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
                       const isOver=usedP>totalP;
                       return usedP>0?(
-                        <div style={{position:'absolute',bottom:-6,left:'50%',transform:'translateX(-50%)',
-                          minWidth:32,height:18,borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:10,fontWeight:800,padding:'0 5px',zIndex:13,whiteSpace:'nowrap',
-                          background:isOver?'#ef4444':'#3b82f6',
-                          color:'#fff',border:'1.5px solid #fff',
-                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>{usedP}/{totalP}p</div>
+                        <div className="dev-badge" style={{top:-6,right:-8,
+                          background:isOver?'#ef4444':'#3b82f6'}}>{usedP}/{totalP}p</div>
                       ):null;
                     })()}
                     {/* Camera NVR indicator */}

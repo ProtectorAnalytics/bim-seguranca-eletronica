@@ -2,7 +2,7 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 34, build: 0,
+  major: 3, minor: 34, build: 1,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },

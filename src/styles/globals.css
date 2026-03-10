@@ -116,6 +116,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 /* Category accent bar inside device circle */
 .device-on-canvas .doc-accent{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:60%;height:4px;border-radius:2px;opacity:.75;transition:opacity .15s}
 .device-on-canvas:hover .doc-accent{opacity:1}
+/* Port/channel badge on device icon (NVR channels, Switch ports) */
+.device-on-canvas .dev-badge{position:absolute;min-width:30px;height:18px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
+  padding:0 5px;z-index:13;white-space:nowrap;color:#fff;border:1.5px solid #fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.device-on-canvas.device-sm .dev-badge{min-width:24px;height:14px;font-size:8px;padding:0 3px;border-radius:7px}
+.device-on-canvas.device-md .dev-badge{min-width:28px;height:16px;font-size:9px;padding:0 4px}
 
 /* Device size: small (36px) */
 .device-on-canvas.device-sm{width:36px}
