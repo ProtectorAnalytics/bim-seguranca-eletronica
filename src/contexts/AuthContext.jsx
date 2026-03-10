@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
@@ -9,21 +9,46 @@ export function useAuth() {
   return ctx
 }
 
-// Helper: wrap a Supabase query in a timeout (AbortController)
-function withTimeout(queryBuilder, ms = 6000) {
+// ── Direct REST fetch (bypasses Supabase client + service worker issues) ──
+async function restQuery(table, query, accessToken, timeoutMs = 8000) {
+  const url = `${supabaseUrl}/rest/v1/${table}?${query}`
+  console.log(`[auth] REST fetch: ${table} ...`)
+
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), ms)
-  return queryBuilder
-    .abortSignal(controller.signal)
-    .then(result => { clearTimeout(timer); return result })
-    .catch(err => {
-      clearTimeout(timer)
-      // AbortError means timeout
-      if (err.name === 'AbortError') {
-        return { data: null, error: { message: `Timeout (${ms}ms)`, code: 'TIMEOUT' } }
-      }
-      return { data: null, error: { message: err.message, code: 'EXCEPTION' } }
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      signal: controller.signal,
+      cache: 'no-store', // bypass any cache layer
     })
+    clearTimeout(timer)
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[auth] REST ${table} HTTP ${res.status}:`, body)
+      return { data: null, error: { message: `HTTP ${res.status}: ${body}`, code: res.status } }
+    }
+
+    const data = await res.json()
+    console.log(`[auth] REST ${table} OK:`, Array.isArray(data) ? `${data.length} rows` : 'object')
+    return { data, error: null }
+  } catch (err) {
+    clearTimeout(timer)
+    if (err.name === 'AbortError') {
+      console.error(`[auth] REST ${table} TIMEOUT (${timeoutMs}ms)`)
+      return { data: null, error: { message: `Timeout ${timeoutMs}ms`, code: 'TIMEOUT' } }
+    }
+    console.error(`[auth] REST ${table} exception:`, err.message)
+    return { data: null, error: { message: err.message, code: 'FETCH_ERROR' } }
+  }
 }
 
 export function AuthProvider({ children }) {
@@ -34,112 +59,151 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(!supabase)
   const [authDebug, setAuthDebug] = useState(null)
+  const fetchInProgress = useRef(false) // prevent concurrent fetches
 
   const isAdmin = profile?.role === 'admin'
 
-  // Build a fallback profile from user_metadata (always available from auth token)
+  // Build fallback profile from JWT user_metadata
   function buildFallbackProfile(authUser) {
     if (!authUser) return null
     return {
       id: authUser.id,
       email: authUser.email,
       full_name: authUser.user_metadata?.full_name || authUser.email,
-      role: 'user', // fallback — no admin access without confirmed profile
-      _fallback: true, // marker so we know this is synthetic
+      role: 'user',
+      _fallback: true,
     }
   }
 
-  // Fetch profile + subscription + plan for a given user (with retry + timeout)
+  // ── Fetch profile + subscription using direct REST API ──
   async function fetchUserData(authUser, attempt = 1) {
     if (!supabase || !authUser) {
-      console.error('[auth] Supabase client not configured or no user')
+      console.error('[auth] No supabase or no user')
       setAuthDebug('Supabase nao configurado')
       return
     }
+
+    // Prevent concurrent fetches
+    if (fetchInProgress.current && attempt === 1) {
+      console.log('[auth] Fetch already in progress, skipping')
+      return
+    }
+    fetchInProgress.current = true
 
     const userId = authUser.id
     console.log(`[auth] fetchUserData attempt=${attempt} userId=${userId}`)
 
     try {
-      // ── Fetch profile (with 6s timeout) ──
-      console.log('[auth] Starting profile query...')
-      const { data: profileData, error: profileError } = await withTimeout(
-        supabase.from('profiles').select('*').eq('id', userId).single(),
-        6000
+      // Get access token from current session
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData?.session?.access_token
+      if (!accessToken) {
+        console.error('[auth] No access token available')
+        const fallback = buildFallbackProfile(authUser)
+        setProfile(fallback)
+        setAuthDebug('Sem access token — usando fallback')
+        fetchInProgress.current = false
+        return
+      }
+      console.log('[auth] Access token obtained, length:', accessToken.length)
+
+      // ── Profile query via direct REST ──
+      const profileResult = await restQuery(
+        'profiles',
+        `id=eq.${userId}&select=*`,
+        accessToken,
+        8000
       )
 
-      if (profileError) {
-        console.error('[auth] Profile fetch error:', profileError.message, profileError.code)
+      if (profileResult.error) {
+        console.error('[auth] Profile error:', profileResult.error.message)
 
-        // Retry once: refresh session first, then retry
+        // Retry once with session refresh
         if (attempt === 1) {
-          console.log('[auth] Retrying profile fetch...')
+          console.log('[auth] Refreshing session and retrying...')
           try {
-            const { data: refreshData } = await supabase.auth.refreshSession()
-            console.log('[auth] Session refreshed:', refreshData?.session ? 'OK' : 'no session')
-          } catch (refreshErr) {
-            console.error('[auth] Session refresh failed:', refreshErr)
+            await supabase.auth.refreshSession()
+            console.log('[auth] Session refreshed')
+          } catch (e) {
+            console.error('[auth] Refresh failed:', e.message)
           }
-          await new Promise(r => setTimeout(r, 1000))
+          await new Promise(r => setTimeout(r, 500))
+          fetchInProgress.current = false
           return fetchUserData(authUser, 2)
         }
 
-        // All retries exhausted — use fallback profile from auth token
-        console.warn('[auth] Using fallback profile from user_metadata')
+        // All retries failed — use fallback
         const fallback = buildFallbackProfile(authUser)
         setProfile(fallback)
-        setSubscription(null)
-        setPlan(null)
-        setAuthDebug(`Perfil via fallback (${profileError.code}): ${profileError.message}`)
+        setAuthDebug(`Erro: ${profileResult.error.message} (fallback ativo)`)
+        fetchInProgress.current = false
         return
       }
 
-      console.log('[auth] Profile loaded:', profileData?.email, 'role:', profileData?.role)
+      // Profile loaded — it's an array, get first item
+      const profileData = Array.isArray(profileResult.data)
+        ? profileResult.data[0] || null
+        : profileResult.data
+
+      if (!profileData) {
+        console.warn('[auth] Profile query returned empty')
+        const fallback = buildFallbackProfile(authUser)
+        setProfile(fallback)
+        setAuthDebug('Perfil nao encontrado no banco (fallback ativo)')
+        fetchInProgress.current = false
+        return
+      }
+
+      console.log('[auth] Profile loaded:', profileData.email, 'role:', profileData.role)
       setProfile(profileData)
       setAuthDebug(null)
 
-      // ── Fetch subscription with plan (with 6s timeout) ──
-      console.log('[auth] Starting subscription query...')
-      const { data: subData, error: subError } = await withTimeout(
-        supabase.from('subscriptions').select('*, plans(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        6000
+      // ── Subscription + plan via direct REST ──
+      const subResult = await restQuery(
+        'subscriptions',
+        `user_id=eq.${userId}&select=*,plans(*)&order=created_at.desc&limit=1`,
+        accessToken,
+        8000
       )
 
-      if (subError) {
-        console.error('[auth] Subscription fetch error:', subError.message)
+      if (subResult.error) {
+        console.warn('[auth] Subscription error:', subResult.error.message)
         setSubscription(null)
         setPlan(null)
       } else {
-        console.log('[auth] Subscription loaded:', subData?.status, 'plan:', subData?.plans?.name)
+        const subData = Array.isArray(subResult.data)
+          ? subResult.data[0] || null
+          : subResult.data
+        console.log('[auth] Subscription:', subData?.status, 'plan:', subData?.plans?.name)
         setSubscription(subData)
         setPlan(subData?.plans || null)
       }
     } catch (err) {
-      console.error('[auth] fetchUserData exception:', err)
+      console.error('[auth] Unhandled exception:', err)
 
       if (attempt === 1) {
-        console.log('[auth] Retrying after exception...')
-        await new Promise(r => setTimeout(r, 1000))
+        fetchInProgress.current = false
+        await new Promise(r => setTimeout(r, 500))
         return fetchUserData(authUser, 2)
       }
 
-      // Last resort fallback
       const fallback = buildFallbackProfile(authUser)
       setProfile(fallback)
-      setAuthDebug(`Erro: ${err.message} (fallback ativo)`)
+      setAuthDebug(`Excecao: ${err.message}`)
+    } finally {
+      fetchInProgress.current = false
     }
   }
 
-  // Auth state listener
+  // ── Auth state listener ──
   useEffect(() => {
     if (!supabase) {
       setLoading(false)
       return
     }
 
-    // Safety timeout: if auth takes more than 15s, stop loading
     const safetyTimer = setTimeout(() => {
-      console.warn('[auth] Safety timeout — forcing loading=false after 15s')
+      console.warn('[auth] Safety timeout 15s')
       setLoading(false)
     }, 15000)
 
@@ -152,7 +216,10 @@ export function AuthProvider({ children }) {
       setUser(currentUser)
       if (currentUser) {
         initialFetchDone = true
-        fetchUserData(currentUser).finally(() => { clearTimeout(safetyTimer); setLoading(false) })
+        fetchUserData(currentUser).finally(() => {
+          clearTimeout(safetyTimer)
+          setLoading(false)
+        })
       } else {
         clearTimeout(safetyTimer)
         setLoading(false)
@@ -169,12 +236,14 @@ export function AuthProvider({ children }) {
         console.log('[auth] onAuthStateChange:', event, session?.user?.email)
         const currentUser = session?.user ?? null
         setUser(currentUser)
+
         if (currentUser) {
-          // Skip if initial fetch already handled this
-          if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && initialFetchDone) {
-            console.log(`[auth] Skipping duplicate ${event} fetch (initialFetchDone=true)`)
+          // Skip if initial fetch already handled this user
+          if (initialFetchDone && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+            console.log(`[auth] Skip duplicate ${event}`)
             return
           }
+          initialFetchDone = true
           await fetchUserData(currentUser)
         } else {
           setProfile(null)
@@ -188,27 +257,22 @@ export function AuthProvider({ children }) {
     return () => authSub?.unsubscribe()
   }, [])
 
-  // Sign in with email/password
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     return data
   }
 
-  // Sign up with email/password + full name
   async function signUp(email, password, fullName) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName }
-      }
+      options: { data: { full_name: fullName } }
     })
     if (error) throw error
     return data
   }
 
-  // Sign out
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -219,24 +283,14 @@ export function AuthProvider({ children }) {
     setAuthDebug(null)
   }
 
-  // Refresh user data (useful after admin changes)
   async function refreshUserData() {
     if (user) await fetchUserData(user)
   }
 
   const value = {
-    user,
-    profile,
-    subscription,
-    plan,
-    loading,
-    isAdmin,
-    configError,
-    authDebug,
-    signIn,
-    signUp,
-    signOut,
-    refreshUserData,
+    user, profile, subscription, plan, loading,
+    isAdmin, configError, authDebug,
+    signIn, signUp, signOut, refreshUserData,
   }
 
   return (
