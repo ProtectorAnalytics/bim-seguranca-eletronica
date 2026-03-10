@@ -21,7 +21,7 @@ import {
 import {
   findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getCustomDevices, saveCustomDevices,
   getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
-  calcPPSection, getDefaultCable, getSettings, saveSettings
+  calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings
 } from '@/lib/helpers';
 import TopoNode from './TopoNode';
 import ModelSelectorModal from './ModelSelectorModal';
@@ -186,8 +186,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         if(c.from!==devId&&c.to!==devId) return c;
         const fd=newDevs.find(d=>d.id===c.from),td=newDevs.find(d=>d.id===c.to);
         if(!fd||!td) return c;
-        const dx=fd.x-td.x,dy=fd.y-td.y;
-        return {...c,distance:Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40))};
+        return {...c,distance:calcCableDistance(fd.x,fd.y,td.x,td.y,c.waypoints)};
       });
       return {...f,devices:newDevs,connections:newConns};
     });
@@ -287,8 +286,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       }
     }
 
-    const dx=fromDev.x-toDev.x;const dy=fromDev.y-toDev.y;
-    const dist=Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40)); // 40px = 1m
+    const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y); // 40px = 1m
 
     // Validate connection (use base device keys for custom devices)
     const chosenCable=type||cableType;
@@ -359,9 +357,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // ---- draw.io-style cable routing with orthogonal segments ----
   const updateConnWaypoints=(connId,waypoints)=>{
-    updateFloor(f=>({...f,connections:f.connections.map(c=>
-      c.id===connId?{...c,waypoints}:c
-    )}));
+    updateFloor(f=>{
+      const devs=f.devices;
+      return {...f,connections:f.connections.map(c=>{
+        if(c.id!==connId) return c;
+        const fd=devs.find(d=>d.id===c.from),td=devs.find(d=>d.id===c.to);
+        const dist=fd&&td?calcCableDistance(fd.x,fd.y,td.x,td.y,waypoints):c.distance;
+        return {...c,waypoints,distance:dist};
+      })};
+    });
   };
   const deleteWaypoint=(connId,wpIdx)=>{
     const conn=connections.find(c=>c.id===connId);
@@ -642,7 +646,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       const cable=getDefaultCable(fromKey,toKey);
       if(!cable) return false;
       const f=devices.find(d=>d.id===fromId),t=devices.find(d=>d.id===toId);
-      const dx=f.x-t.x,dy=f.y-t.y,dist=Math.max(1,Math.round(Math.sqrt(dx*dx+dy*dy)/40));
+      const dist=calcCableDistance(f.x,f.y,t.x,t.y);
       const validation=validateConnection(fromKey,toKey,cable);
       newConns.push({id:uid(),from:fromId,to:toId,type:cable,distance:dist,purpose:validation.purpose||'dados'});
       return true;

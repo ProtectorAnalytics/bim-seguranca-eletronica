@@ -228,6 +228,20 @@ export function findDevDef(key){
 }
 
 // ====================================================================
+// CABLE DISTANCE — real distance along waypoint path
+// ====================================================================
+export function calcCableDistance(x1, y1, x2, y2, waypoints = [], pxPerMeter = 40) {
+  const pts = [{x:x1,y:y1}, ...waypoints, {x:x2,y:y2}];
+  let totalPx = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i-1].x;
+    const dy = pts[i].y - pts[i-1].y;
+    totalPx += Math.sqrt(dx*dx + dy*dy);
+  }
+  return Math.max(1, Math.round(totalPx / pxPerMeter));
+}
+
+// ====================================================================
 // PP CABLE SECTION CALCULATOR
 // ====================================================================
 export const calcPPSection = (distMeters, vias=2) => {

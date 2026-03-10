@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 22, build: 3,
+  major: 3, minor: 23, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.23.0',date:'2026-03-09',changes:['Distância real dos cabos: cálculo agora considera o traçado ortogonal com waypoints (não mais linha reta)','Fix: mover waypoints agora recalcula distância do cabo em tempo real','BOM e etiquetas de cabo refletem a distância real pelo percurso do cabo']},
     {ver:'3.22.3',date:'2026-03-09',changes:['Dispositivos dentro de Quadros agora são conectáveis no modo cabo — clique no nome do dispositivo na lista do QC','Quadro com borda verde brilhante e anchor dots quando contém dispositivos válidos para conexão','Clique no Quadro com 1 único dispositivo válido conecta automaticamente','Indicadores visuais: dot verde pulsante, highlight e cursor crosshair nos dispositivos válidos do Quadro']},
     {ver:'3.22.2',date:'2026-03-09',changes:['Fix: pontos de ancoragem (anchor dots) do modo cabo não aparecem mais em posições fantasma de dispositivos dentro de Quadros','Fix: minimap não mostra mais dots/conexões fantasma de dispositivos dentro de Quadros','Fix: preview circle do modo cabo resolve posição correta para dispositivos em Quadros']},
     {ver:'3.22.1',date:'2026-03-09',changes:['Fix: tela de carregamento infinita quando Supabase está inacessível (missing .catch + safety timeout 8s)','LoadingScreen com aviso de conexão lenta após 5s']},
