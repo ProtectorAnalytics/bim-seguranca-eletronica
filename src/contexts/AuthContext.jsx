@@ -16,12 +16,20 @@ export function AuthProvider({ children }) {
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(!supabase)
+  const [authDebug, setAuthDebug] = useState(null) // debug info for troubleshooting
 
   const isAdmin = profile?.role === 'admin'
 
-  // Fetch profile + subscription + plan for a given user
-  async function fetchUserData(userId) {
-    if (!supabase) return
+  // Fetch profile + subscription + plan for a given user (with retry)
+  async function fetchUserData(userId, attempt = 1) {
+    if (!supabase) {
+      console.error('[auth] Supabase client not configured')
+      setAuthDebug('Supabase nao configurado')
+      return
+    }
+
+    console.log(`[auth] fetchUserData attempt=${attempt} userId=${userId}`)
+
     try {
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -31,13 +39,32 @@ export function AuthProvider({ children }) {
         .single()
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError)
+        console.error('[auth] Profile fetch error:', profileError)
+
+        // Retry once after a short delay (session token might need refresh)
+        if (attempt === 1) {
+          console.log('[auth] Retrying profile fetch in 1.5s...')
+          // Force session refresh before retry
+          try {
+            const { data: refreshData } = await supabase.auth.refreshSession()
+            console.log('[auth] Session refreshed:', refreshData?.session ? 'OK' : 'no session')
+          } catch (refreshErr) {
+            console.error('[auth] Session refresh failed:', refreshErr)
+          }
+          await new Promise(r => setTimeout(r, 1500))
+          return fetchUserData(userId, 2)
+        }
+
         setProfile(null)
         setSubscription(null)
         setPlan(null)
+        setAuthDebug(`Erro perfil: ${profileError.message} (code: ${profileError.code})`)
         return
       }
+
+      console.log('[auth] Profile loaded:', profileData?.email, 'role:', profileData?.role)
       setProfile(profileData)
+      setAuthDebug(null) // clear any previous debug messages
 
       // Fetch subscription with plan
       const { data: subData, error: subError } = await supabase
@@ -46,19 +73,29 @@ export function AuthProvider({ children }) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle() // Use maybeSingle instead of single — won't error on 0 rows
 
       if (subError) {
-        console.error('Error fetching subscription:', subError)
+        console.error('[auth] Subscription fetch error:', subError)
         setSubscription(null)
         setPlan(null)
-        return
+        // Don't return — profile is already loaded, subscription is optional
+      } else {
+        console.log('[auth] Subscription loaded:', subData?.status, 'plan:', subData?.plans?.name)
+        setSubscription(subData)
+        setPlan(subData?.plans || null)
+      }
+    } catch (err) {
+      console.error('[auth] fetchUserData exception:', err)
+
+      // Retry once on exception too
+      if (attempt === 1) {
+        console.log('[auth] Retrying after exception...')
+        await new Promise(r => setTimeout(r, 1500))
+        return fetchUserData(userId, 2)
       }
 
-      setSubscription(subData)
-      setPlan(subData?.plans || null)
-    } catch (err) {
-      console.error('fetchUserData error:', err)
+      setAuthDebug(`Erro: ${err.message}`)
     }
   }
 
@@ -75,11 +112,15 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }, 8000)
 
+    let initialFetchDone = false
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null
+      console.log('[auth] getSession:', currentUser ? currentUser.email : 'no user')
       setUser(currentUser)
       if (currentUser) {
+        initialFetchDone = true
         fetchUserData(currentUser.id).finally(() => { clearTimeout(safetyTimer); setLoading(false) })
       } else {
         clearTimeout(safetyTimer)
@@ -94,9 +135,15 @@ export function AuthProvider({ children }) {
     // Listen for auth changes
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[auth] onAuthStateChange:', event, session?.user?.email)
         const currentUser = session?.user ?? null
         setUser(currentUser)
         if (currentUser) {
+          // Skip if initial fetch already handled this
+          if (event === 'INITIAL_SESSION' && initialFetchDone) {
+            console.log('[auth] Skipping duplicate INITIAL_SESSION fetch')
+            return
+          }
           await fetchUserData(currentUser.id)
         } else {
           setProfile(null)
@@ -138,6 +185,7 @@ export function AuthProvider({ children }) {
     setProfile(null)
     setSubscription(null)
     setPlan(null)
+    setAuthDebug(null)
   }
 
   // Refresh user data (useful after admin changes)
@@ -153,6 +201,7 @@ export function AuthProvider({ children }) {
     loading,
     isAdmin,
     configError,
+    authDebug,
     signIn,
     signUp,
     signOut,
