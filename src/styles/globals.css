@@ -403,3 +403,6 @@ tr.rack-face-free td{color:#cbd5e1}
     margin: 10mm;
   }
 }
+
+/* Pulse animation for valid cable targets in Quadro */
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}

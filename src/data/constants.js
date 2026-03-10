@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 22, build: 2,
+  major: 3, minor: 22, build: 3,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.22.3',date:'2026-03-09',changes:['Dispositivos dentro de Quadros agora são conectáveis no modo cabo — clique no nome do dispositivo na lista do QC','Quadro com borda verde brilhante e anchor dots quando contém dispositivos válidos para conexão','Clique no Quadro com 1 único dispositivo válido conecta automaticamente','Indicadores visuais: dot verde pulsante, highlight e cursor crosshair nos dispositivos válidos do Quadro']},
     {ver:'3.22.2',date:'2026-03-09',changes:['Fix: pontos de ancoragem (anchor dots) do modo cabo não aparecem mais em posições fantasma de dispositivos dentro de Quadros','Fix: minimap não mostra mais dots/conexões fantasma de dispositivos dentro de Quadros','Fix: preview circle do modo cabo resolve posição correta para dispositivos em Quadros']},
     {ver:'3.22.1',date:'2026-03-09',changes:['Fix: tela de carregamento infinita quando Supabase está inacessível (missing .catch + safety timeout 8s)','LoadingScreen com aviso de conexão lenta após 5s']},
     {ver:'3.22.0',date:'2026-03-09',changes:['Tamanho de ícones: Pequeno (36px), Médio (46px) e Normal (58px) — individual por dispositivo ou global','Ícones proporcionais à escala da planta: sm≈0.9m, md≈1.15m, normal≈1.45m','Sidebars flutuantes: painéis laterais com margin, border-radius e sombra','Esconder/exibir sidebars: botões « » para ocultar e reabrir os painéis','Fix: tab Unifilar cortada — font-size reduzido e overflow handling nas tabs','Labels mais largos: nomes completos dos dispositivos visíveis (max-width 140px)','Conexões visuais distintas por tipo: dados azul, energia vermelho, sinal verde, automação roxo','Quadro QC melhorado: bolinhas maiores com borda, header mais destacado, footer com resumo','Persistência: tamanho de ícone e estado dos painéis salvos no localStorage']},

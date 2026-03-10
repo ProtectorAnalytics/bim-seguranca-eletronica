@@ -1600,6 +1600,25 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     ))}
                   </g>;
                 })}
+                {/* Anchor dots on Quadros when they contain valid cable targets */}
+                {cableMode&&quadros.map(qc=>{
+                  const qcDevs=devices.filter(d=>d.quadroId===qc.id);
+                  const hasValidTarget=qcDevs.some(d=>validTargets[d.id]==='valid');
+                  const hasSource=qcDevs.some(d=>d.id===cableMode?.from);
+                  if(!hasValidTarget&&!hasSource) return null;
+                  const qW=160;const headerH=28;const slotH=22;
+                  const qH=headerH+Math.max(2,qcDevs.length)*slotH+12;
+                  const cx=qc.x+qW/2,cy=qc.y+qH/2;
+                  const dotColor=hasSource?'#f59e0b':'#22c55e';
+                  const anchors=[[0,-qH/2-4],[qW/2+4,0],[0,qH/2+4],[-qW/2-4,0]];
+                  return <g key={'anc_qc_'+qc.id}>
+                    {anchors.map(([ax,ay],i)=>(
+                      <circle key={i} cx={cx+ax} cy={cy+ay} r={5}
+                        fill={dotColor} stroke="#fff" strokeWidth={1.5} opacity={0.85}
+                        style={{pointerEvents:'none'}}/>
+                    ))}
+                  </g>;
+                })}
                 {connections.map(conn=>{
                   const from=devices.find(d=>d.id===conn.from);
                   const to=devices.find(d=>d.id===conn.to);
@@ -1775,11 +1794,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   <div key={'qc-'+qc.id}
                     style={{position:'absolute',left:qc.x,top:qc.y,width:qW,minHeight:qH,
                       background:'linear-gradient(180deg,#f0fdf4,#dcfce7)',
-                      border:`2px solid ${isSel?'#16a34a':'#86efac'}`,
-                      borderRadius:8,zIndex:5,boxShadow:isSel?'0 0 16px rgba(22,163,74,.4)':'0 2px 10px rgba(0,0,0,.1)',
-                      cursor:'move',userSelect:'none'}}
+                      border:`2px solid ${isSel?'#16a34a':cableMode&&qcDevices.some(d=>validTargets[d.id]==='valid')?'#22c55e':'#86efac'}`,
+                      borderRadius:8,zIndex:5,
+                      boxShadow:isSel?'0 0 16px rgba(22,163,74,.4)':cableMode&&qcDevices.some(d=>validTargets[d.id]==='valid')?'0 0 16px rgba(34,197,94,.4)':'0 2px 10px rgba(0,0,0,.1)',
+                      cursor:cableMode&&qcDevices.some(d=>validTargets[d.id]==='valid')?'crosshair':'move',userSelect:'none'}}
                     onClick={(e)=>{
                       e.stopPropagation();
+                      // In cable mode, if Quadro has exactly 1 valid target, auto-connect on click
+                      if(cableMode){
+                        const qcDevs=devices.filter(d=>d.quadroId===qc.id);
+                        const validDevs=qcDevs.filter(d=>validTargets[d.id]==='valid');
+                        if(validDevs.length===1){handleDeviceClick(e,validDevs[0].id);return;}
+                        // If multiple valid, just expand/select the quadro to show targets
+                      }
                       setSelectedQuadroId(qc.id);setSelectedDevice(null);setSelectedConn(null);
                       setRightTab('quadro');
                     }}
@@ -1803,16 +1830,28 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     {/* Device list */}
                     {qcDevices.length>0?qcDevices.slice(0,6).map(child=>{
                       const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===child.key))?.color||'#6b7280';
+                      const cableTarget=cableMode?validTargets[child.id]:null;
+                      const isCableSrc=cableMode?.from===child.id;
                       return (
                         <div key={child.id} style={{display:'flex',alignItems:'center',gap:5,padding:'2px 8px',
-                          borderBottom:'1px solid #dcfce7',height:slotH,fontSize:9}}>
-                          <span style={{width:8,height:8,borderRadius:'50%',background:catColor,flexShrink:0,
-                            border:'1.5px solid #fff',boxShadow:'0 1px 2px rgba(0,0,0,.15)'}}/>
+                          borderBottom:'1px solid #dcfce7',height:slotH,fontSize:9,
+                          ...(isCableSrc?{background:'rgba(245,158,11,.15)'}:{}),
+                          ...(cableTarget==='valid'?{background:'rgba(34,197,94,.12)',cursor:'crosshair'}:{}),
+                          ...(cableTarget==='invalid'?{opacity:.4}:{})}}>
+                          <span style={{width:8,height:8,borderRadius:'50%',flexShrink:0,
+                            background:isCableSrc?'#f59e0b':cableTarget==='valid'?'#22c55e':catColor,
+                            border:'1.5px solid #fff',boxShadow:'0 1px 2px rgba(0,0,0,.15)',
+                            ...(cableTarget==='valid'?{animation:'pulse 1.5s infinite'}:{})}}/>
                           <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
-                            color:'#334155',fontWeight:500,cursor:'pointer'}}
-                            onClick={(e)=>{e.stopPropagation();setSelectedDevice(child.id);setRightTab('props')}}>
+                            color:isCableSrc?'#f59e0b':cableTarget==='valid'?'#166534':'#334155',
+                            fontWeight:cableTarget==='valid'||isCableSrc?700:500,cursor:'pointer'}}
+                            onClick={(e)=>{e.stopPropagation();
+                              if(cableMode&&cableTarget==='valid'){handleDeviceClick(e,child.id);return;}
+                              if(!cableMode){setSelectedDevice(child.id);setRightTab('props');}
+                            }}>
                             {child.name}
                           </span>
+                          {cableTarget==='valid'&&<span style={{fontSize:8,color:'#22c55e',fontWeight:800,flexShrink:0}}>●</span>}
                         </div>
                       );
                     }):(
