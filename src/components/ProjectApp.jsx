@@ -1792,6 +1792,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 const inRack=dev.parentRack?racks.find(r=>r.id===dev.parentRack):null;
                 const devSize=dev.iconSize||iconSize;
                 const sizeClass=devSize==='sm'?'device-sm':devSize==='md'?'device-md':'';
+                // Compute status tags for info card
+                const devTags=[];
+                if(isGravador(dev.key)){const ch=getNvrChannels(dev),used=getNvrUsedChannels(dev.id,devices);
+                  devTags.push({t:`${used}/${ch}ch`,c:used>ch?'#ef4444':used>0?'#22c55e':'#94a3b8'})}
+                if(isSwitch(dev.key)){const tp=getSwitchPorts(dev);
+                  const up=connections.filter(c=>c.from===dev.id||c.to===dev.id)
+                    .map(c=>{const o=c.from===dev.id?c.to:c.from;return devices.find(d=>d.id===o)}).filter(Boolean)
+                    .reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
+                  devTags.push({t:`${up}/${tp}p`,c:up>tp?'#ef4444':up>0?'#3b82f6':'#94a3b8'})}
+                if(isCamera(dev.key)){
+                  if((dev.qty||1)>1) devTags.push({t:`×${dev.qty}`,c:'#3b82f6'});
+                  const assigns=dev.nvrAssignments||[];
+                  if(assigns.length>0){const total=dev.qty||1,asgn=assigns.reduce((s,a)=>s+(a.qty||0),0);
+                    devTags.push({t:asgn>=total?'✓ NVR':`${asgn}/${total} NVR`,c:asgn>=total?'#22c55e':'#f59e0b'})}}
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${sizeClass} ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
@@ -1813,18 +1827,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       {DEVICE_THUMBNAILS[dev.key]?(
                         <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:devSize==='sm'?24:devSize==='md'?32:40,height:devSize==='sm'?24:devSize==='md'?32:40,objectFit:'contain'}}/>
                       ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
-                      <div className="doc-accent" style={{background:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}/>
                     </div>
                     {/* Connection button - opens port popup */}
                     {!cableMode&&(()=>{
                       const ifaces=getDeviceInterfaces(dev);
                       if(!ifaces.length) return null;
                       return (
-                        <div style={{position:'absolute',top:-4,right:-4,width:16,height:16,borderRadius:'50%',
-                          background:'var(--azul2)',border:'2px solid #fff',display:'flex',alignItems:'center',
-                          justifyContent:'center',cursor:'pointer',boxShadow:'0 1px 4px rgba(0,0,0,.3)',
-                          fontSize:9,color:'#fff',fontWeight:900,zIndex:12,opacity:portPopup?.devId===dev.id?1:.6,
-                          transition:'.15s'}}
+                        <div className="dev-conn-btn"
+                          style={{top:-6,right:-6,width:20,height:20,
+                            fontSize:11,zIndex:16,opacity:portPopup?.devId===dev.id?1:.75}}
                           title="Conectar porta"
                           onMouseDown={(e)=>{e.stopPropagation();e.preventDefault()}}
                           onClick={(e)=>{
@@ -1844,8 +1855,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         background:ec?.color||'#6b7280',color:'#fff',border:'1.5px solid #fff',
                         boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}>{dev.ambiente}</div>;
                     })()}
-                    <div className="doc-label">{dev.name}</div>
-                    {dev.model&&<div className="doc-model">{dev.model}</div>}
+                    <div className="doc-card" style={{borderLeftColor:color}}>
+                      <div className="doc-card-name">{dev.name}</div>
+                      {dev.model&&<div className="doc-card-model">{dev.model}</div>}
+                      {devTags.length>0&&<div className="doc-card-sub">
+                        {devTags.map((s,i)=><span key={i} className="doc-card-tag" style={{background:s.c}}>{s.t}</span>)}
+                      </div>}
+                    </div>
                     {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
                       fontSize:7,background:'var(--azul)',color:'#fff',padding:'0 4px',borderRadius:3,
                       whiteSpace:'nowrap'}}>📦 {inRack.name}</div>}
@@ -1865,13 +1881,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                           setSelectedDevice(null);
                         }}>✕</div>
                     )}
-                    {/* Quantity badge for cameras */}
-                    {isCamera(dev.key)&&(dev.qty||1)>1&&(
-                      <div style={{position:'absolute',bottom:-4,right:-4,minWidth:20,height:20,borderRadius:10,
-                        background:'#3b82f6',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',
-                        fontSize:11,color:'#fff',fontWeight:900,padding:'0 3px',zIndex:13,
-                        boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>×{dev.qty}</div>
-                    )}
+                    {/* Camera qty now shown inside doc-card tags */}
                     {/* Quantity setter for cameras when selected */}
                     {selectedDevice===dev.id&&isCamera(dev.key)&&!cableMode&&(
                       <div style={{position:'absolute',bottom:-22,left:'50%',transform:'translateX(-50%)',
@@ -1901,44 +1911,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             updateDevice(dev.id,{qty:(dev.qty||1)+1})}}>+</button>
                       </div>
                     )}
-                    {/* NVR capacity badge — top-right to avoid label overlap */}
-                    {isGravador(dev.key)&&(()=>{
-                      const ch=getNvrChannels(dev);
-                      const used=getNvrUsedChannels(dev.id,devices);
-                      const isOver=used>ch;
-                      return (
-                        <div className="dev-badge" style={{top:-6,right:-8,
-                          background:isOver?'#ef4444':used>0?'#22c55e':'#94a3b8'}}>{used}/{ch}ch</div>
-                      );
-                    })()}
-                    {/* Switch port badge — top-right to avoid label overlap */}
-                    {isSwitch(dev.key)&&(()=>{
-                      const totalP=getSwitchPorts(dev);
-                      const connected=connections.filter(c=>c.from===dev.id||c.to===dev.id)
-                        .map(c=>{const oid=c.from===dev.id?c.to:c.from;return devices.find(d=>d.id===oid)}).filter(Boolean);
-                      const usedP=connected.reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
-                      const isOver=usedP>totalP;
-                      return usedP>0?(
-                        <div className="dev-badge" style={{top:-6,right:-8,
-                          background:isOver?'#ef4444':'#3b82f6'}}>{usedP}/{totalP}p</div>
-                      ):null;
-                    })()}
-                    {/* Camera NVR indicator */}
-                    {isCamera(dev.key)&&(dev.nvrAssignments||[]).length>0&&(()=>{
-                      const total=dev.qty||1;
-                      const assigned=(dev.nvrAssignments||[]).reduce((s,a)=>s+(a.qty||0),0);
-                      const allAssigned=assigned>=total;
-                      return (
-                        <div style={{position:'absolute',top:-6,left:-6,minWidth:18,height:18,borderRadius:9,
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          fontSize:10,fontWeight:800,padding:'0 3px',zIndex:14,
-                          background:allAssigned?'#22c55e':'#f59e0b',
-                          color:'#fff',border:'1.5px solid #fff',
-                          boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}>
-                          {allAssigned?'✓':assigned+'/'+total}
-                        </div>
-                      );
-                    })()}
+                    {/* NVR/Switch badges now shown inside doc-card tags */}
                     {targetStatus==='valid'&&<div style={{position:'absolute',top:-6,right:-6,width:18,height:18,
                       borderRadius:'50%',background:'#22c55e',display:'flex',alignItems:'center',justifyContent:'center',
                       fontSize:11,color:'#fff',fontWeight:900}}>✓</div>}
