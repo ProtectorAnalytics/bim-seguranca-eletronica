@@ -242,6 +242,48 @@ export function calcCableDistance(x1, y1, x2, y2, waypoints = [], pxPerMeter = 4
 }
 
 // ====================================================================
+// IP / VLAN VALIDATION
+// ====================================================================
+export function isValidIPv4(ip) {
+  if (!ip || typeof ip !== 'string') return false;
+  const parts = ip.split('.');
+  if (parts.length !== 4) return false;
+  return parts.every(p => {
+    if (!/^\d{1,3}$/.test(p)) return false;
+    const n = parseInt(p, 10);
+    return n >= 0 && n <= 255 && String(n) === p;
+  });
+}
+
+export function isValidSubnetMask(mask) {
+  if (!isValidIPv4(mask)) return false;
+  const num = mask.split('.').reduce((acc, o) => (acc << 8) + parseInt(o), 0) >>> 0;
+  if (num === 0) return false;
+  const inv = ~num >>> 0;
+  return (inv & (inv + 1)) === 0;
+}
+
+export function isValidVLAN(vlan) {
+  const n = parseInt(vlan, 10);
+  return Number.isInteger(n) && n >= 1 && n <= 4094;
+}
+
+export function findDuplicateIPs(devices) {
+  const ipMap = new Map(); // ip -> [device names]
+  devices.forEach(d => {
+    const ip = d.config?.ipAddress;
+    if (!ip || !isValidIPv4(ip)) return;
+    if (!ipMap.has(ip)) ipMap.set(ip, []);
+    ipMap.get(ip).push(d.name || d.key);
+  });
+  const dupes = [];
+  ipMap.forEach((names, ip) => {
+    if (names.length > 1) dupes.push({ ip, devices: names });
+  });
+  return dupes;
+}
+
+// ====================================================================
 // PP CABLE SECTION CALCULATOR
 // ====================================================================
 export const calcPPSection = (distMeters, vias=2) => {

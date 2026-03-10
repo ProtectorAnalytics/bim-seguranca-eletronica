@@ -12,7 +12,7 @@ import {
   isCentralAlarme, isCentralIncendio, isDetectorIncendio, isSirene,
   isPerifericoAlarme, isAutomatizador, isCameraMHD, isNobreak, isFonte,
   isFonteNobreak, isONT, isBateria,
-  isSensorZona, needsPoE, needsACPower, needsDCPower,
+  isSensorZona, needsPoE, needsACPower, needsDCPower, needsIPConfig,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
   canMountInRack, canMountInQuadro, canMountInQuadroEletrico, getDeviceUSize,
@@ -21,7 +21,8 @@ import {
 import {
   findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getCustomDevices, saveCustomDevices,
   getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
-  calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings
+  calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings,
+  isValidIPv4, isValidVLAN
 } from '@/lib/helpers';
 import TopoNode from './TopoNode';
 import ModelSelectorModal from './ModelSelectorModal';
@@ -3077,6 +3078,72 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                         </select>
                       </span>
                     </div>
+                  )}
+
+                  {/* IP / VLAN Config for network devices */}
+                  {needsIPConfig(selectedDev.key)&&(
+                    <>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
+                        letterSpacing:.5,marginBottom:6,marginTop:12}}>Rede (IP/VLAN)</div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Endereço IP:</span>
+                        <span className="pr-value" style={{position:'relative'}}>
+                          <input type="text" placeholder="192.168.1.100"
+                            value={selectedDev.config?.ipAddress||''}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,ipAddress:e.target.value}})}
+                            style={{width:'130px',fontFamily:'monospace',fontSize:11,
+                              borderColor:selectedDev.config?.ipAddress&&!isValidIPv4(selectedDev.config.ipAddress)?'#ef4444':undefined}}/>
+                          {selectedDev.config?.ipAddress&&!isValidIPv4(selectedDev.config.ipAddress)&&(
+                            <span style={{color:'#ef4444',fontSize:9,position:'absolute',right:2,top:-1}}>⚠ inválido</span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Máscara:</span>
+                        <span className="pr-value">
+                          <select value={selectedDev.config?.subnetMask||'255.255.255.0'}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,subnetMask:e.target.value}})}
+                            style={{fontSize:11,fontFamily:'monospace'}}>
+                            <option value="255.255.255.0">/24 (255.255.255.0)</option>
+                            <option value="255.255.255.128">/25 (255.255.255.128)</option>
+                            <option value="255.255.255.192">/26 (255.255.255.192)</option>
+                            <option value="255.255.254.0">/23 (255.255.254.0)</option>
+                            <option value="255.255.252.0">/22 (255.255.252.0)</option>
+                            <option value="255.255.0.0">/16 (255.255.0.0)</option>
+                          </select>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">Gateway:</span>
+                        <span className="pr-value">
+                          <input type="text" placeholder="192.168.1.1"
+                            value={selectedDev.config?.gateway||''}
+                            onChange={e=>updateDevice(selectedDev.id,{config:{...selectedDev.config,gateway:e.target.value}})}
+                            style={{width:'130px',fontFamily:'monospace',fontSize:11,
+                              borderColor:selectedDev.config?.gateway&&!isValidIPv4(selectedDev.config.gateway)?'#ef4444':undefined}}/>
+                        </span>
+                      </div>
+
+                      <div className="prop-row">
+                        <span className="pr-label">VLAN ID:</span>
+                        <span className="pr-value">
+                          <input type="number" min="1" max="4094" placeholder="—"
+                            value={selectedDev.config?.vlanId||''}
+                            onChange={e=>{
+                              const v=e.target.value;
+                              updateDevice(selectedDev.id,{config:{...selectedDev.config,vlanId:v?parseInt(v):null}});
+                            }}
+                            style={{width:'70px',fontFamily:'monospace',fontSize:11,
+                              borderColor:selectedDev.config?.vlanId&&!isValidVLAN(selectedDev.config.vlanId)?'#ef4444':undefined}}/>
+                          {selectedDev.config?.vlanId&&!isValidVLAN(selectedDev.config.vlanId)&&(
+                            <span style={{color:'#ef4444',fontSize:9,marginLeft:4}}>⚠ 1-4094</span>
+                          )}
+                        </span>
+                      </div>
+                    </>
                   )}
 
                   <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',

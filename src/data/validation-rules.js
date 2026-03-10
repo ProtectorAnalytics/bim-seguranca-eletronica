@@ -1,5 +1,7 @@
 import { DEVICE_LIB } from './device-lib';
 import { CABLE_TYPES } from './cable-types';
+import { isValidIPv4, findDuplicateIPs } from '../lib/helpers';
+import { needsIPConfig } from './device-interfaces';
 
 // ====================================================================
 // DEVICE KEY CLASSIFICATION HELPERS (imported from device-interfaces for validation)
@@ -239,6 +241,23 @@ export const REGRAS=[
         if(used>ch) issues.push(`${nvr.name}: ${used}/${ch} canais`);
       });
       if(issues.length) return `Excesso de canais CFTV: ${issues.join('; ')}`;
+      return null;
+    }},
+  {cat:'Rede',regra:'IP duplicado entre dispositivos',sev:'ALTA',
+    check:(devices)=>{
+      const dupes=findDuplicateIPs(devices);
+      if(dupes.length===0) return null;
+      return dupes.map(d=>`IP ${d.ip} usado em: ${d.devices.join(', ')}`).join('; ');
+    }},
+  {cat:'Rede',regra:'IP inválido configurado em dispositivo',sev:'ALTA',
+    check:(devices)=>{
+      const issues=[];
+      devices.forEach(d=>{
+        if(!needsIPConfig(d.key)) return;
+        const ip=d.config?.ipAddress;
+        if(ip && !isValidIPv4(ip)) issues.push(`${d.name}: "${ip}"`);
+      });
+      if(issues.length) return `IP inválido: ${issues.slice(0,3).join(', ')}${issues.length>3?` +${issues.length-3}`:''}`;
       return null;
     }},
 ];

@@ -340,28 +340,59 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
 
     let tableY = 42;
 
-    // Device table
+    // Device table — include IP column if any device has IP configured
+    const hasAnyIP = deviceItems.some(item => {
+      const dev = allDevices.find(d => d.key === item.key && d.config?.ipAddress);
+      return !!dev;
+    });
+    // Build IP map: key → list of IPs
+    const ipByKey = {};
+    if (hasAnyIP) {
+      allDevices.forEach(d => {
+        if (d.config?.ipAddress) {
+          if (!ipByKey[d.key]) ipByKey[d.key] = [];
+          ipByKey[d.key].push(d.config.ipAddress);
+        }
+      });
+    }
+
     if (deviceItems.length > 0) {
-      doc.autoTable({
-        startY: tableY,
-        head: [['#', 'Equipamento', 'Modelo / Ref', 'Qtd', 'Un.']],
-        body: deviceItems.map((item, i) => [
+      const devHead = hasAnyIP
+        ? [['#', 'Equipamento', 'Modelo / Ref', 'IP', 'Qtd', 'Un.']]
+        : [['#', 'Equipamento', 'Modelo / Ref', 'Qtd', 'Un.']];
+      const devBody = deviceItems.map((item, i) => {
+        const row = [
           i + 1,
           item.name,
           item.model || item.def?.ref || item.key,
-          item.qty,
-          item.unit
-        ]),
+        ];
+        if (hasAnyIP) row.push(ipByKey[item.key]?.join(', ') || '—');
+        row.push(item.qty, item.unit);
+        return row;
+      });
+      const devColStyles = hasAnyIP ? {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 50, fontSize: 6, textColor: COLORS.gray },
+        3: { cellWidth: 38, fontSize: 6, fontStyle: 'normal', textColor: [41,128,185] },
+        4: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+        5: { cellWidth: 10, halign: 'center', fontSize: 6 },
+      } : {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 65 },
+        2: { cellWidth: 70, fontSize: 6, textColor: COLORS.gray },
+        3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+        4: { cellWidth: 10, halign: 'center', fontSize: 6 },
+      };
+
+      doc.autoTable({
+        startY: tableY,
+        head: devHead,
+        body: devBody,
         styles: { fontSize: 7, cellPadding: 2, lineColor: [220, 220, 220], lineWidth: 0.1 },
         headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
         alternateRowStyles: { fillColor: [248, 249, 250] },
-        columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 65 },
-          2: { cellWidth: 70, fontSize: 6, textColor: COLORS.gray },
-          3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-          4: { cellWidth: 10, halign: 'center', fontSize: 6 },
-        },
+        columnStyles: devColStyles,
         margin: { left: 14, right: 14 },
         didDrawPage: () => drawFooter(doc),
       });

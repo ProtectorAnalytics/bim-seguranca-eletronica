@@ -138,6 +138,7 @@ export const needsPoE = k => isCameraIP(k) || isAP(k);
 export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
 export const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 export const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
+export const needsIPConfig = k => needsNetwork(k) || isAP(k) || isONT(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 
 // ====================================================================
 // NVR/SWITCH CAPACITY HELPERS
