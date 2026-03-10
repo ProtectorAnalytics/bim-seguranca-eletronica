@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 33, build: 0,
+  major: 3, minor: 33, build: 1,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.33.1',date:'2026-03-10',changes:['Opção para alterar tipo de cabo em conexões existentes via dropdown no painel de propriedades','Dropdown agrupado por categoria (Dados, Sinal, Energia, Automação) com nome e velocidade','Ao trocar tipo de cabo, cor e seção são atualizados automaticamente para os padrões do novo tipo']},
     {ver:'3.33.0',date:'2026-03-10',changes:['Canvas profissional: labels de cabo com fundo retangular SVG em vez de paint-order stroke','Barra de acento colorida por categoria nos dispositivos (cameras=amber, switches=azul, NVR=verde)','Labels de dispositivo mais largos (180px) com fundo opaco, borda sutil e border-radius 6px','Grid de pontos (dot grid) estilo Figma com pontos maiores a cada 5m de referencia','Linhas de conexao mais espessas (+0.3-0.5px) para melhor visibilidade em todos os tipos','Circulos de dispositivo com gradiente sutil, borda refinada e sombra em duas camadas']},
     {ver:'3.32.4',date:'2026-03-10',changes:['Fix PDF export: jspdf-autotable v5.x usa API funcional autoTable(doc,opts) em vez de doc.autoTable(opts)','Corrigido erro e.autoTable is not a function que impedia exportação de PDF','Import paralelo: jspdf, html2canvas e jspdf-autotable carregados simultaneamente via Promise.all']},
     {ver:'3.32.3',date:'2026-03-10',changes:['Fix definitivo: fetch() direto para REST API do Supabase contornando client library + service worker','Profile query via GET /rest/v1/profiles com AbortController timeout 8s e cache:no-store','Subscription query via GET /rest/v1/subscriptions com join plans(*) e timeout 8s','Fallback robusto: se REST falhar, usa user_metadata do JWT para nome do usuario','Prevencao de fetch duplo via useRef (fetchInProgress)','Logs granulares: REST fetch status, HTTP errors, access token info']},

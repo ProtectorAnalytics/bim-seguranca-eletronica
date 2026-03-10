@@ -1,7 +1,20 @@
 import React from 'react';
+import {CABLE_TYPES} from '../data/cable-types.js';
 
 export default function CablePropertiesPanel({conn, cableType, fromDev, toDev, updateConnection, onDelete, onClose}){
   if(!conn) return null;
+
+  const handleCableTypeChange = (newTypeId) => {
+    const newCT = CABLE_TYPES.find(c => c.id === newTypeId);
+    if (!newCT) return;
+    const updates = { type: newTypeId };
+    // Reset custom color to new cable type's default color
+    if (conn.cableColor) updates.cableColor = '';
+    // If changing to/from PP cable, update secao
+    if (newCT.secao != null) updates.secao = newCT.secao;
+    updateConnection(conn.id, updates);
+  };
+
   return (
     <div>
       <div className="prop-header">
@@ -21,7 +34,27 @@ export default function CablePropertiesPanel({conn, cableType, fromDev, toDev, u
         </div>
         <div className="prop-row">
           <span className="pr-label">Tipo:</span>
-          <span className="pr-value" style={{fontWeight:600,color:'var(--azul)'}}>{cableType?.name}</span>
+          <span className="pr-value">
+            <select value={conn.type||''} onChange={e=>handleCableTypeChange(e.target.value)}
+              style={{fontWeight:600,color:'var(--azul)',flex:1,padding:'4px 6px',borderRadius:6,border:'1px solid var(--cinzaM)',fontSize:12,cursor:'pointer'}}>
+              <optgroup label="📡 Dados">
+                {CABLE_TYPES.filter(c=>c.group==='data').map(c=>
+                  <option key={c.id} value={c.id}>{c.name} — {c.speed}</option>)}
+              </optgroup>
+              <optgroup label="📶 Sinal / PP 2 vias">
+                {CABLE_TYPES.filter(c=>c.group==='signal').map(c=>
+                  <option key={c.id} value={c.id}>{c.name} — {c.speed}</option>)}
+              </optgroup>
+              <optgroup label="⚡ Energia">
+                {CABLE_TYPES.filter(c=>c.group==='power').map(c=>
+                  <option key={c.id} value={c.id}>{c.name} — {c.speed}</option>)}
+              </optgroup>
+              <optgroup label="🔧 Automação / PP 4 vias">
+                {CABLE_TYPES.filter(c=>c.group==='automation').map(c=>
+                  <option key={c.id} value={c.id}>{c.name} — {c.speed}</option>)}
+              </optgroup>
+            </select>
+          </span>
         </div>
         <div className="prop-row">
           <span className="pr-label">Metragem:</span>
