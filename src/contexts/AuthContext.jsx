@@ -69,15 +69,26 @@ export function AuthProvider({ children }) {
       return
     }
 
+    // Safety timeout: if auth takes more than 8s, stop loading and show login
+    const safetyTimer = setTimeout(() => {
+      console.warn('[auth] Safety timeout — forcing loading=false after 8s')
+      setLoading(false)
+    }, 8000)
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
-        fetchUserData(currentUser.id).finally(() => setLoading(false))
+        fetchUserData(currentUser.id).finally(() => { clearTimeout(safetyTimer); setLoading(false) })
       } else {
+        clearTimeout(safetyTimer)
         setLoading(false)
       }
+    }).catch(err => {
+      console.error('[auth] getSession error:', err)
+      clearTimeout(safetyTimer)
+      setLoading(false)
     })
 
     // Listen for auth changes

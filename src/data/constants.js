@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 22, build: 0,
+  major: 3, minor: 22, build: 1,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.22.1',date:'2026-03-09',changes:['Fix: tela de carregamento infinita quando Supabase está inacessível (missing .catch + safety timeout 8s)','LoadingScreen com aviso de conexão lenta após 5s']},
     {ver:'3.22.0',date:'2026-03-09',changes:['Tamanho de ícones: Pequeno (36px), Médio (46px) e Normal (58px) — individual por dispositivo ou global','Ícones proporcionais à escala da planta: sm≈0.9m, md≈1.15m, normal≈1.45m','Sidebars flutuantes: painéis laterais com margin, border-radius e sombra','Esconder/exibir sidebars: botões « » para ocultar e reabrir os painéis','Fix: tab Unifilar cortada — font-size reduzido e overflow handling nas tabs','Labels mais largos: nomes completos dos dispositivos visíveis (max-width 140px)','Conexões visuais distintas por tipo: dados azul, energia vermelho, sinal verde, automação roxo','Quadro QC melhorado: bolinhas maiores com borda, header mais destacado, footer com resumo','Persistência: tamanho de ícone e estado dos painéis salvos no localStorage']},
     {ver:'3.21.1',date:'2026-03-09',changes:['Correção: dispositivos montados em Rack permanecem visíveis no canvas com badge de indicação','Correção: dropdowns do Quadro (Caixa, Aterramento, Disjuntor) não fecham mais ao clicar (flickering)','Conexões visuais: ao adicionar dispositivo ao Quadro, conexões roteiam pelo Quadro no canvas']},
     {ver:'3.21.0',date:'2026-03-09',changes:['Autenticação: login/registro com Supabase Auth (email + senha)','3 planos de assinatura: Grátis (trial 14 dias), Básico (R$49,90/mês), Pro (R$99,90/mês)','Feature gating: limites de projetos, dispositivos/andar e exportação por plano','Admin ilimitado: role admin com acesso total a todas as funcionalidades','Portal de Administração: métricas, gestão de usuários, assinaturas, planos e chaves de licença','Chaves de licença: geração em lote, resgate por usuários, revogação pelo admin','Tela de Assinatura: comparação de planos, status atual, resgate de chave de licença','Auto-provisionamento: novo usuário recebe profile + trial de 14 dias automaticamente','RLS (Row Level Security): isolamento de dados entre usuários no Supabase','Dashboard atualizado: nome do usuário, plano atual, botão sair, card admin para administradores']},
