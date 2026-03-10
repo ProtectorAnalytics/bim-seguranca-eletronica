@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 30, build: 0,
+  major: 3, minor: 31, build: 0,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.31.0',date:'2026-03-10',changes:['Central de Controle: AdminPage redesenhado como painel de comando com sidebar, KPIs e ações rápidas','Painel Geral: métricas em tempo real (MRR, usuários, assinaturas, chaves) com barras de progresso','Sidebar de navegação: ícones SVG, indicador ativo com cor da seção, layout de aplicação profissional','Ações Rápidas: acesso direto a cada seção com contadores contextuais','Badge SUPER ADMIN: identificação clara do administrador no header','Composição visual: gráficos de barras para distribuição de usuários, assinaturas e chaves']},
     {ver:'3.30.0',date:'2026-03-10',changes:['UX profissional: Dashboard redesenhado com ícones SVG, hierarquia visual e badges inteligentes','UserMenu: dropdown profissional com avatar de iniciais, ações de navegação e logout confiável','ProfilePage: tela de gerenciamento de perfil — editar nome, empresa e alterar senha','SubscriptionPage: redesenho com status visual claro, ícones e link direto ao perfil','Botão Sair: substituído por menu de usuário com feedback visual e estado de loading','Cards de estatísticas: layout horizontal com ícones coloridos e subinfo contextual','Module cards: ícones SVG consistentes, badges com dados reais (contagens, status do plano)']},
     {ver:'3.29.0',date:'2026-03-09',changes:['Refatoração fase 1: cable-routing.js extraído como módulo puro (autoOrthoRoute, buildOrthoPath)','ToolbarPanel.jsx: toolbar extraída como componente independente com props explícitas','Redução de ~170 linhas no ProjectApp.jsx (3441→3271 linhas)','Padrão estabelecido para futuras extrações: PropertiesPanel, CanvasRenderer, useCanvasInteractions']},
     {ver:'3.28.0',date:'2026-03-09',changes:['Histórico persistente: undo/redo sobrevive ao fechar e reabrir o navegador via IndexedDB (idb-keyval)','50 snapshots máximos armazenados com limpeza automática ao trocar de projeto','PDF vetorial: conexões, dispositivos e labels renderizados como primitivos vetoriais (line, circle, text)','Overlay vetorial nítido em qualquer zoom — sobre a captura rasterizada da planta','Legenda de tipos de cabo no PDF com cores por grupo (dados, energia, sinal, automação)','Dispositivos com cores por tipo: câmeras azul, gravadores roxo, switches verde, energia vermelho, segurança laranja']},
