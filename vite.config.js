@@ -33,14 +33,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,woff,woff2}'],
         runtimeCaching: [
           {
-            // Supabase Auth/API — network first (must be online)
+            // Supabase Auth/API — NEVER cache, always go to network directly
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-              networkTimeoutSeconds: 10
-            }
+            handler: 'NetworkOnly'
           },
           {
             // Google Fonts

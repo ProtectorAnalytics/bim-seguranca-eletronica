@@ -9,6 +9,23 @@ export function useAuth() {
   return ctx
 }
 
+// Helper: wrap a Supabase query in a timeout (AbortController)
+function withTimeout(queryBuilder, ms = 6000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  return queryBuilder
+    .abortSignal(controller.signal)
+    .then(result => { clearTimeout(timer); return result })
+    .catch(err => {
+      clearTimeout(timer)
+      // AbortError means timeout
+      if (err.name === 'AbortError') {
+        return { data: null, error: { message: `Timeout (${ms}ms)`, code: 'TIMEOUT' } }
+      }
+      return { data: null, error: { message: err.message, code: 'EXCEPTION' } }
+    })
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -16,70 +33,82 @@ export function AuthProvider({ children }) {
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(!supabase)
-  const [authDebug, setAuthDebug] = useState(null) // debug info for troubleshooting
+  const [authDebug, setAuthDebug] = useState(null)
 
   const isAdmin = profile?.role === 'admin'
 
-  // Fetch profile + subscription + plan for a given user (with retry)
-  async function fetchUserData(userId, attempt = 1) {
-    if (!supabase) {
-      console.error('[auth] Supabase client not configured')
+  // Build a fallback profile from user_metadata (always available from auth token)
+  function buildFallbackProfile(authUser) {
+    if (!authUser) return null
+    return {
+      id: authUser.id,
+      email: authUser.email,
+      full_name: authUser.user_metadata?.full_name || authUser.email,
+      role: 'user', // fallback — no admin access without confirmed profile
+      _fallback: true, // marker so we know this is synthetic
+    }
+  }
+
+  // Fetch profile + subscription + plan for a given user (with retry + timeout)
+  async function fetchUserData(authUser, attempt = 1) {
+    if (!supabase || !authUser) {
+      console.error('[auth] Supabase client not configured or no user')
       setAuthDebug('Supabase nao configurado')
       return
     }
 
+    const userId = authUser.id
     console.log(`[auth] fetchUserData attempt=${attempt} userId=${userId}`)
 
     try {
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // ── Fetch profile (with 6s timeout) ──
+      console.log('[auth] Starting profile query...')
+      const { data: profileData, error: profileError } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        6000
+      )
 
       if (profileError) {
-        console.error('[auth] Profile fetch error:', profileError)
+        console.error('[auth] Profile fetch error:', profileError.message, profileError.code)
 
-        // Retry once after a short delay (session token might need refresh)
+        // Retry once: refresh session first, then retry
         if (attempt === 1) {
-          console.log('[auth] Retrying profile fetch in 1.5s...')
-          // Force session refresh before retry
+          console.log('[auth] Retrying profile fetch...')
           try {
             const { data: refreshData } = await supabase.auth.refreshSession()
             console.log('[auth] Session refreshed:', refreshData?.session ? 'OK' : 'no session')
           } catch (refreshErr) {
             console.error('[auth] Session refresh failed:', refreshErr)
           }
-          await new Promise(r => setTimeout(r, 1500))
-          return fetchUserData(userId, 2)
+          await new Promise(r => setTimeout(r, 1000))
+          return fetchUserData(authUser, 2)
         }
 
-        setProfile(null)
+        // All retries exhausted — use fallback profile from auth token
+        console.warn('[auth] Using fallback profile from user_metadata')
+        const fallback = buildFallbackProfile(authUser)
+        setProfile(fallback)
         setSubscription(null)
         setPlan(null)
-        setAuthDebug(`Erro perfil: ${profileError.message} (code: ${profileError.code})`)
+        setAuthDebug(`Perfil via fallback (${profileError.code}): ${profileError.message}`)
         return
       }
 
       console.log('[auth] Profile loaded:', profileData?.email, 'role:', profileData?.role)
       setProfile(profileData)
-      setAuthDebug(null) // clear any previous debug messages
+      setAuthDebug(null)
 
-      // Fetch subscription with plan
-      const { data: subData, error: subError } = await supabase
-        .from('subscriptions')
-        .select('*, plans(*)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle() // Use maybeSingle instead of single — won't error on 0 rows
+      // ── Fetch subscription with plan (with 6s timeout) ──
+      console.log('[auth] Starting subscription query...')
+      const { data: subData, error: subError } = await withTimeout(
+        supabase.from('subscriptions').select('*, plans(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        6000
+      )
 
       if (subError) {
-        console.error('[auth] Subscription fetch error:', subError)
+        console.error('[auth] Subscription fetch error:', subError.message)
         setSubscription(null)
         setPlan(null)
-        // Don't return — profile is already loaded, subscription is optional
       } else {
         console.log('[auth] Subscription loaded:', subData?.status, 'plan:', subData?.plans?.name)
         setSubscription(subData)
@@ -88,14 +117,16 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('[auth] fetchUserData exception:', err)
 
-      // Retry once on exception too
       if (attempt === 1) {
         console.log('[auth] Retrying after exception...')
-        await new Promise(r => setTimeout(r, 1500))
-        return fetchUserData(userId, 2)
+        await new Promise(r => setTimeout(r, 1000))
+        return fetchUserData(authUser, 2)
       }
 
-      setAuthDebug(`Erro: ${err.message}`)
+      // Last resort fallback
+      const fallback = buildFallbackProfile(authUser)
+      setProfile(fallback)
+      setAuthDebug(`Erro: ${err.message} (fallback ativo)`)
     }
   }
 
@@ -106,11 +137,11 @@ export function AuthProvider({ children }) {
       return
     }
 
-    // Safety timeout: if auth takes more than 8s, stop loading and show login
+    // Safety timeout: if auth takes more than 15s, stop loading
     const safetyTimer = setTimeout(() => {
-      console.warn('[auth] Safety timeout — forcing loading=false after 8s')
+      console.warn('[auth] Safety timeout — forcing loading=false after 15s')
       setLoading(false)
-    }, 8000)
+    }, 15000)
 
     let initialFetchDone = false
 
@@ -121,7 +152,7 @@ export function AuthProvider({ children }) {
       setUser(currentUser)
       if (currentUser) {
         initialFetchDone = true
-        fetchUserData(currentUser.id).finally(() => { clearTimeout(safetyTimer); setLoading(false) })
+        fetchUserData(currentUser).finally(() => { clearTimeout(safetyTimer); setLoading(false) })
       } else {
         clearTimeout(safetyTimer)
         setLoading(false)
@@ -140,11 +171,11 @@ export function AuthProvider({ children }) {
         setUser(currentUser)
         if (currentUser) {
           // Skip if initial fetch already handled this
-          if (event === 'INITIAL_SESSION' && initialFetchDone) {
-            console.log('[auth] Skipping duplicate INITIAL_SESSION fetch')
+          if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && initialFetchDone) {
+            console.log(`[auth] Skipping duplicate ${event} fetch (initialFetchDone=true)`)
             return
           }
-          await fetchUserData(currentUser.id)
+          await fetchUserData(currentUser)
         } else {
           setProfile(null)
           setSubscription(null)
@@ -190,7 +221,7 @@ export function AuthProvider({ children }) {
 
   // Refresh user data (useful after admin changes)
   async function refreshUserData() {
-    if (user) await fetchUserData(user.id)
+    if (user) await fetchUserData(user)
   }
 
   const value = {
