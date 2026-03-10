@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 26, build: 0,
+  major: 3, minor: 27, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.27.0',date:'2026-03-09',changes:['Testes automatizados com Vitest: 52 testes em 3 suítes','Testes helpers: calcCableDistance, isValidIPv4, isValidSubnetMask, isValidVLAN, findDuplicateIPs, migrateProjectKeys, dedupDeviceIds, findDevDef, calcPPSection, uid/syncUid, KEY_MIGRATION_MAP','Testes validação: 21 testes cobrindo regras de CFTV, rede, IP, nobreak, rack','Smoke test: módulo pdf-export importa sem erros','Setup: mock localStorage e canvas context para ambiente jsdom']},
     {ver:'3.26.0',date:'2026-03-09',changes:['PWA: aplicação instalável no desktop e mobile com ícone na tela inicial','Service Worker: cache offline com Workbox — app shell e assets cacheados automaticamente','Manifest: nome, ícone SVG, orientação landscape, tema dark (#0f172a)','Supabase Auth usa NetworkFirst (requer internet), demais recursos funcionam offline','Meta tags: theme-color, apple-mobile-web-app-capable, description']},
     {ver:'3.25.0',date:'2026-03-09',changes:['Subcategorias no catálogo CFTV IP: Bullet, Dome, Dome VF, Bullet VF, Speed Dome, Especiais e Wi-Fi com seções colapsáveis','Migration Wizard: ferramenta para substituir dispositivos legados por equivalentes modernos do catálogo atual','Sugestão automática de substituição baseada no tipo do dispositivo legado (MHD→IP, DVR→NVR)','Aplicar substituição individual ou em lote (Aplicar Todos)','Badge de alerta na toolbar quando há dispositivos legados no projeto']},
     {ver:'3.24.0',date:'2026-03-09',changes:['Configuração IP/VLAN: campo Endereço IP, Máscara de sub-rede, Gateway e VLAN ID para dispositivos de rede','Validação em tempo real: IP inválido (borda vermelha + ⚠) e VLAN fora do range 1-4094','2 novas regras de validação: "IP duplicado entre dispositivos" e "IP inválido configurado"','Máscara de sub-rede como dropdown (/24, /25, /26, /23, /22, /16)','Coluna IP na tabela de equipamentos do PDF quando há IPs configurados','Classificador needsIPConfig: câmeras IP, switches, NVRs, APs, catracas, leitores faciais, ONTs']},
