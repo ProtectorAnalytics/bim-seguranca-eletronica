@@ -1438,11 +1438,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           <div className="canvas-viewport">
             <div className="canvas-transform" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`}}>
               {/* Grid */}
-              <svg className="canvas-grid" width="2000" height="2000" style={{opacity:.15,display:layers.grid?'block':'none'}}>
-                <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" strokeWidth="0.5"/>
-                </pattern></defs>
-                <rect width="2000" height="2000" fill="url(#grid)"/>
+              <svg className="canvas-grid" width="2000" height="2000" style={{display:layers.grid?'block':'none'}}>
+                <defs>
+                  <pattern id="grid-dots" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <circle cx="20" cy="20" r="0.8" fill="#94a3b8" opacity="0.25"/>
+                  </pattern>
+                  <pattern id="grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
+                    <circle cx="20" cy="20" r="1.4" fill="#64748b" opacity="0.35"/>
+                  </pattern>
+                </defs>
+                <rect width="2000" height="2000" fill="url(#grid-dots)"/>
+                <rect width="2000" height="2000" fill="url(#grid-major)"/>
               </svg>
 
               {/* Background floor plan image */}
@@ -1544,7 +1550,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const isWireless=conn.type==='wireless';
                   // Enhanced visual distinction per cable type
                   const dashArr=isWireless?'4 4':isPower?'8 4':isSignal?'3 3':isAuto?'8 3 2 3':'none';
-                  const sw=isPower?2.8:isAuto?2.2:isSignal?1.8:isWireless?1.2:2;
+                  const sw=isPower?3.2:isAuto?2.6:isSignal?2.2:isWireless?1.5:2.5;
                   const cableColor=isPower?'#dc2626':isSignal?'#16a34a':isAuto?'#7c3aed':isWireless?'#94a3b8':ct.color;
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
                   const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
@@ -1588,12 +1594,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       strokeDasharray={dashArr} strokeLinejoin="round" strokeLinecap="round"
                       style={{pointerEvents:'none'}}/>
                     {/* Endpoint anchor dots */}
-                    <circle cx={x1} cy={y1} r={3} fill={isSel?'#3b82f6':cableColor} opacity={0.7} style={{pointerEvents:'none'}}/>
-                    <circle cx={x2} cy={y2} r={3} fill={isSel?'#3b82f6':cableColor} opacity={0.7} style={{pointerEvents:'none'}}/>
-                    {/* Cable label */}
-                    {showCableLabels&&<text x={labelX} y={labelY} className="cable-label" style={{pointerEvents:'none'}}>
-                      {purposeIcon}{ct.name} · {conn.distance}m{portLabel}
-                    </text>}
+                    <circle cx={x1} cy={y1} r={3.5} fill={isSel?'#3b82f6':cableColor} opacity={0.8} style={{pointerEvents:'none'}}/>
+                    <circle cx={x2} cy={y2} r={3.5} fill={isSel?'#3b82f6':cableColor} opacity={0.8} style={{pointerEvents:'none'}}/>
+                    {/* Cable label with background box */}
+                    {showCableLabels&&(()=>{
+                      const lt=`${purposeIcon}${ct.name} · ${conn.distance}m${portLabel}`;
+                      const estW=Math.max(lt.length*6.5+16,48);
+                      return <g style={{pointerEvents:'none'}}>
+                        <rect x={labelX-estW/2} y={labelY-17} width={estW} height={20}
+                          rx={4} ry={4} fill="#fff" fillOpacity={0.92}
+                          stroke="#cbd5e1" strokeWidth={0.5}/>
+                        <text x={labelX} y={labelY} className="cable-label-v2">{lt}</text>
+                      </g>;
+                    })()}
 
                     {/* draw.io-style: segment drag handles (shown when selected) */}
                     {isSel&&allPts.slice(0,-1).map((pt,si)=>{
@@ -1795,10 +1808,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
                       setCableMode({from:dev.id});setTool('cable')}}>
                     <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
-                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:2,overflow:'hidden'}:{})}}>
+                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:2}:{})}}>
                       {DEVICE_THUMBNAILS[dev.key]?(
                         <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:devSize==='sm'?24:devSize==='md'?32:40,height:devSize==='sm'?24:devSize==='md'?32:40,objectFit:'contain'}}/>
                       ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
+                      <div className="doc-accent" style={{background:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}/>
                     </div>
                     {/* Connection button - opens port popup */}
                     {!cableMode&&(()=>{

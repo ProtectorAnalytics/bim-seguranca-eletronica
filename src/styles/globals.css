@@ -107,27 +107,32 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Device nodes on canvas */
 .device-on-canvas{position:absolute;cursor:move;user-select:none;z-index:5;display:flex;flex-direction:column;align-items:center;width:58px;overflow:visible}
-.device-on-canvas .doc-icon{width:58px;height:58px;background:var(--branco);border:3px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:.15s}
+.device-on-canvas .doc-icon{position:relative;width:58px;height:58px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);border:2.5px solid var(--azul2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12),0 4px 16px rgba(0,0,0,.06);transition:.15s;overflow:hidden}
 .device-on-canvas .doc-icon svg{width:28px;height:28px}
-.device-on-canvas:hover .doc-icon{box-shadow:0 6px 20px rgba(0,0,0,.25);transform:scale(1.08)}
+.device-on-canvas:hover .doc-icon{box-shadow:0 4px 12px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.08);transform:scale(1.06)}
 .device-on-canvas.selected .doc-icon{border-color:var(--laranja);box-shadow:0 0 0 5px rgba(243,156,18,.25)}
-.device-on-canvas .doc-label{font-size:13px;font-weight:700;color:#1e2a3a;margin-top:3px;text-align:center;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.92);padding:3px 8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.12);text-shadow:none}
+.device-on-canvas .doc-label{font-size:12px;font-weight:600;color:#1e293b;margin-top:4px;text-align:center;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#fff;padding:3px 10px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.06);line-height:1.3;text-shadow:none}
 .device-on-canvas .doc-model{font-size:12px;color:#64748b;font-weight:500;text-shadow:none}
+/* Category accent bar inside device circle */
+.device-on-canvas .doc-accent{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:60%;height:4px;border-radius:2px;opacity:.75;transition:opacity .15s}
+.device-on-canvas:hover .doc-accent{opacity:1}
 
 /* Device size: small (36px) */
 .device-on-canvas.device-sm{width:36px}
 .device-on-canvas.device-sm .doc-icon{width:36px;height:36px;border-width:2px}
 .device-on-canvas.device-sm .doc-icon svg{width:18px;height:18px}
 .device-on-canvas.device-sm .doc-icon img{width:24px!important;height:24px!important}
-.device-on-canvas.device-sm .doc-label{font-size:9px;max-width:90px;padding:2px 4px}
+.device-on-canvas.device-sm .doc-label{font-size:9px;max-width:100px;padding:2px 5px}
 .device-on-canvas.device-sm .doc-model{font-size:8px}
+.device-on-canvas.device-sm .doc-accent{height:3px;width:55%;bottom:1px}
 /* Device size: medium (46px) */
 .device-on-canvas.device-md{width:46px}
 .device-on-canvas.device-md .doc-icon{width:46px;height:46px}
 .device-on-canvas.device-md .doc-icon svg{width:22px;height:22px}
 .device-on-canvas.device-md .doc-icon img{width:32px!important;height:32px!important}
-.device-on-canvas.device-md .doc-label{font-size:11px;max-width:120px;padding:2px 6px}
+.device-on-canvas.device-md .doc-label{font-size:11px;max-width:140px;padding:2px 7px}
 .device-on-canvas.device-md .doc-model{font-size:10px}
+.device-on-canvas.device-md .doc-accent{height:3px;width:58%}
 
 /* Connection port popup */
 .port-popup-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:900;background:rgba(0,0,0,.15)}
@@ -156,11 +161,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 
 /* Connection lines -- draw.io style */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:4}
-.conn-line-path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.conn-line-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .conn-hit-area{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;pointer-events:stroke}
 .conn-g:hover .conn-line-path{stroke-opacity:.85;filter:brightness(1.2)}
 .conn-selected .conn-line-path{filter:drop-shadow(0 0 3px rgba(59,130,246,.6))}
 .cable-label{font-size:12px;fill:#475569;text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
+.cable-label-v2{font-size:11px;fill:#334155;text-anchor:middle;font-weight:600;letter-spacing:.2px}
 .seg-hit{fill:none;stroke:transparent;stroke-width:16;cursor:grab;pointer-events:stroke}
 .seg-hit:hover~.seg-highlight{opacity:1}
 .seg-highlight{opacity:0;fill:none;stroke:#3b82f6;stroke-width:3;stroke-dasharray:4 3;pointer-events:none;transition:opacity .12s}
