@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { APP_VERSION } from '../data/constants'
 import UserTable from './admin/UserTable'
 import SubscriptionManager from './admin/SubscriptionManager'
 import PlanEditor from './admin/PlanEditor'
@@ -15,15 +16,44 @@ const I = {
   key: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
   shield: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   back: (c='currentColor') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+  refresh: (c='currentColor') => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+  alertTriangle: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
 const TABS = [
   { id: 'overview', label: 'Painel Geral', icon: I.dashboard, color: '#3b82f6' },
-  { id: 'users', label: 'Usuários', icon: I.users, color: '#8b5cf6' },
+  { id: 'users', label: 'Usuarios', icon: I.users, color: '#8b5cf6' },
   { id: 'subs', label: 'Assinaturas', icon: I.creditCard, color: '#22c55e' },
   { id: 'plans', label: 'Planos', icon: I.sliders, color: '#f59e0b' },
   { id: 'keys', label: 'Chaves', icon: I.key, color: '#ef4444' },
 ];
+
+/* ─── Error Boundary wrapper ─── */
+function ErrorFallback({ error, onRetry }) {
+  return (
+    <div style={{
+      background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)',
+      borderRadius: 12, padding: 28, textAlign: 'center', margin: '20px 0',
+    }}>
+      <div style={{ marginBottom: 12 }}>{I.alertTriangle('#ef4444')}</div>
+      <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#fca5a5' }}>Erro ao carregar dados</h3>
+      <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 16px' }}>
+        {error || 'Ocorreu um erro inesperado. Verifique a conexao com o servidor.'}
+      </p>
+      {onRetry && (
+        <button onClick={onRetry} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 8,
+          padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        }}>
+          {I.refresh('#e2e8f0')} Tentar Novamente
+        </button>
+      )}
+    </div>
+  );
+}
+
+export { ErrorFallback };
 
 export default function AdminPage({ onBack }) {
   const { isAdmin, profile } = useAuth()
@@ -33,7 +63,7 @@ export default function AdminPage({ onBack }) {
     <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0f172a',color:'#ef4444' }}>
       <div style={{ textAlign:'center' }}>
         <h2>Acesso Negado</h2>
-        <p style={{ color:'#94a3b8' }}>Você não tem permissão de administrador.</p>
+        <p style={{ color:'#94a3b8' }}>Voce nao tem permissao de administrador.</p>
         <button onClick={onBack} style={{ marginTop:16,padding:'8px 24px',background:'#334155',color:'#e2e8f0',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600 }}>Voltar</button>
       </div>
     </div>
@@ -120,7 +150,7 @@ export default function AdminPage({ onBack }) {
           {/* Sidebar footer */}
           <div style={{ marginTop:'auto',padding:'12px 14px',borderTop:'1px solid #1e293b' }}>
             <div style={{ fontSize:10,color:'#475569',lineHeight:1.5 }}>
-              Sistema de gestão<br/>Protector v3.31
+              Sistema de gestao<br/>Protector {APP_VERSION.full}
             </div>
           </div>
         </nav>
@@ -142,6 +172,7 @@ export default function AdminPage({ onBack }) {
 function OverviewPanel({ onNav }) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchMetrics();
@@ -149,13 +180,22 @@ function OverviewPanel({ onNav }) {
 
   async function fetchMetrics() {
     setLoading(true);
+    setError(null);
     try {
+      if (!supabase) throw new Error('Supabase nao configurado');
+
       const [usersRes, subsRes, keysRes, plansRes] = await Promise.all([
         supabase.from('profiles').select('id, role, created_at'),
         supabase.from('subscriptions').select('id, status, plan_id, plans(price_brl)'),
         supabase.from('license_keys').select('id, status'),
         supabase.from('plans').select('*').eq('is_active', true),
       ]);
+
+      // Check individual query errors
+      if (usersRes.error) throw new Error('Erro ao buscar usuarios: ' + usersRes.error.message);
+      if (subsRes.error) throw new Error('Erro ao buscar assinaturas: ' + subsRes.error.message);
+      if (keysRes.error) throw new Error('Erro ao buscar chaves: ' + keysRes.error.message);
+
       const users = usersRes.data || [];
       const subs = subsRes.data || [];
       const keys = keysRes.data || [];
@@ -170,43 +210,47 @@ function OverviewPanel({ onNav }) {
       const keysTotal = keys.length;
       const mrr = subs
         .filter(s => s.status === 'active' && s.plans?.price_brl)
-        .reduce((sum, s) => sum + Number(s.plans.price_brl), 0);
+        .reduce((sum, s) => sum + Number(s.plans.price_brl || 0), 0);
 
       // New users this month
       const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
-      const newThisMonth = users.filter(u => new Date(u.created_at) >= thisMonth).length;
+      const newThisMonth = users.filter(u => {
+        try { return new Date(u.created_at) >= thisMonth; } catch { return false; }
+      }).length;
 
       setMetrics({ totalUsers, admins, activeSubs, trialSubs, expiredSubs, keysAvailable, keysRedeemed, keysTotal, mrr, newThisMonth });
     } catch (e) {
       console.error('Metrics fetch error:', e);
+      setError(e.message || 'Erro desconhecido ao carregar metricas');
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return <div style={{ textAlign:'center',padding:60,color:'#64748b' }}>Carregando métricas...</div>;
-  if (!metrics) return <div style={{ textAlign:'center',padding:60,color:'#ef4444' }}>Erro ao carregar métricas</div>;
+  if (loading) return <div style={{ textAlign:'center',padding:60,color:'#64748b' }}>Carregando metricas...</div>;
+  if (error) return <ErrorFallback error={error} onRetry={fetchMetrics} />;
+  if (!metrics) return <ErrorFallback error="Nenhuma metrica disponivel" onRetry={fetchMetrics} />;
 
   return (
     <div>
       {/* Section title */}
       <div style={{ marginBottom:24 }}>
-        <h2 style={{ margin:0,fontSize:22,fontWeight:700 }}>Visão Geral</h2>
-        <p style={{ margin:'4px 0 0',fontSize:13,color:'#64748b' }}>Métricas em tempo real do sistema Protector</p>
+        <h2 style={{ margin:0,fontSize:22,fontWeight:700 }}>Visao Geral</h2>
+        <p style={{ margin:'4px 0 0',fontSize:13,color:'#64748b' }}>Metricas em tempo real do sistema Protector</p>
       </div>
 
       {/* ── Primary KPIs ── */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16,marginBottom:24 }}>
         <KpiCard label="Receita Mensal" value={`R$ ${metrics.mrr.toFixed(2)}`} color="#22c55e"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
         />
-        <KpiCard label="Usuários Totais" value={metrics.totalUsers} sub={`+${metrics.newThisMonth} este mês`} color="#3b82f6"
+        <KpiCard label="Usuarios Totais" value={metrics.totalUsers} sub={`+${metrics.newThisMonth} este mes`} color="#3b82f6"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}
         />
         <KpiCard label="Assinaturas Ativas" value={metrics.activeSubs} sub={`${metrics.trialSubs} em trial`} color="#8b5cf6"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}
         />
-        <KpiCard label="Chaves Disponíveis" value={metrics.keysAvailable} sub={`${metrics.keysRedeemed} resgatadas`} color="#f59e0b"
+        <KpiCard label="Chaves Disponiveis" value={metrics.keysAvailable} sub={`${metrics.keysRedeemed} resgatadas`} color="#f59e0b"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>}
         />
       </div>
@@ -214,23 +258,23 @@ function OverviewPanel({ onNav }) {
       {/* ── Quick Actions ── */}
       <div style={{ marginBottom:24 }}>
         <h3 style={{ margin:'0 0 12px',fontSize:14,fontWeight:600,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.5px' }}>
-          Ações Rápidas
+          Acoes Rapidas
         </h3>
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12 }}>
-          <QuickAction label="Gerenciar Usuários" desc={`${metrics.totalUsers} cadastrados`} color="#8b5cf6" onClick={()=>onNav('users')} />
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12 }}>
+          <QuickAction label="Gerenciar Usuarios" desc={`${metrics.totalUsers} cadastrados`} color="#8b5cf6" onClick={()=>onNav('users')} />
           <QuickAction label="Ver Assinaturas" desc={`${metrics.expiredSubs} expiradas`} color="#22c55e" onClick={()=>onNav('subs')} />
-          <QuickAction label="Editar Planos" desc="Preços e limites" color="#f59e0b" onClick={()=>onNav('plans')} />
+          <QuickAction label="Editar Planos" desc="Precos e limites" color="#f59e0b" onClick={()=>onNav('plans')} />
           <QuickAction label="Gerar Chaves" desc={`${metrics.keysAvailable} prontas`} color="#ef4444" onClick={()=>onNav('keys')} />
         </div>
       </div>
 
       {/* ── Status grid ── */}
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:16 }}>
         {/* Users breakdown */}
-        <StatusCard title="Composição de Usuários">
+        <StatusCard title="Composicao de Usuarios">
           <StatusRow label="Administradores" value={metrics.admins} color="#f59e0b" total={metrics.totalUsers} />
-          <StatusRow label="Usuários padrão" value={metrics.totalUsers - metrics.admins} color="#3b82f6" total={metrics.totalUsers} />
-          <StatusRow label="Novos este mês" value={metrics.newThisMonth} color="#22c55e" total={metrics.totalUsers} />
+          <StatusRow label="Usuarios padrao" value={metrics.totalUsers - metrics.admins} color="#3b82f6" total={metrics.totalUsers} />
+          <StatusRow label="Novos este mes" value={metrics.newThisMonth} color="#22c55e" total={metrics.totalUsers} />
         </StatusCard>
 
         {/* Subscription breakdown */}
@@ -241,18 +285,18 @@ function OverviewPanel({ onNav }) {
         </StatusCard>
 
         {/* License keys */}
-        <StatusCard title="Chaves de Licença">
-          <StatusRow label="Disponíveis" value={metrics.keysAvailable} color="#22c55e" total={metrics.keysTotal} />
+        <StatusCard title="Chaves de Licenca">
+          <StatusRow label="Disponiveis" value={metrics.keysAvailable} color="#22c55e" total={metrics.keysTotal} />
           <StatusRow label="Resgatadas" value={metrics.keysRedeemed} color="#3b82f6" total={metrics.keysTotal} />
           <StatusRow label="Total geradas" value={metrics.keysTotal} color="#64748b" total={metrics.keysTotal} />
         </StatusCard>
 
         {/* System info */}
-        <StatusCard title="Informações do Sistema">
+        <StatusCard title="Informacoes do Sistema">
           <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-            <InfoRow label="Versão" value="v3.31.0" />
+            <InfoRow label="Versao" value={APP_VERSION.full} />
             <InfoRow label="Banco de dados" value="Supabase PostgreSQL" />
-            <InfoRow label="Autenticação" value="Supabase Auth" />
+            <InfoRow label="Autenticacao" value="Supabase Auth" />
             <InfoRow label="Hospedagem" value="Vercel Edge" />
           </div>
         </StatusCard>

@@ -1,43 +1,90 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { ErrorFallback } from '../AdminPage'
+
+/* ─── SVG Icons ─── */
+const RefreshIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+);
 
 export default function UserTable() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [actionError, setActionError] = useState(null)
+  const [confirmingRole, setConfirmingRole] = useState(null) // userId being confirmed
 
   const fetchUsers = async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, subscriptions(*, plans(*))')
-      .order('created_at', { ascending: false })
-    if (!error) setUsers(data || [])
-    setLoading(false)
+    setError(null)
+    try {
+      if (!supabase) throw new Error('Supabase nao configurado')
+      const { data, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('*, subscriptions(*, plans(*))')
+        .order('created_at', { ascending: false })
+      if (fetchErr) throw new Error(fetchErr.message)
+      setUsers(data || [])
+    } catch (e) {
+      console.error('UserTable fetch error:', e)
+      setError(e.message || 'Erro ao carregar usuarios')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchUsers() }, [])
 
   const toggleRole = async (userId, currentRole) => {
     const newRole = currentRole === 'admin' ? 'user' : 'admin'
-    if (!confirm(`Alterar role para "${newRole}"?`)) return
-    await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-    fetchUsers()
+    setActionError(null)
+    setConfirmingRole(null)
+    try {
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId)
+      if (updateErr) throw new Error(updateErr.message)
+      await fetchUsers()
+    } catch (e) {
+      console.error('Toggle role error:', e)
+      setActionError(`Erro ao alterar role: ${e.message}`)
+    }
   }
 
   const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155' }
-  const thStyle = { ...cellStyle, fontWeight: 600, color: '#94a3b8', textAlign: 'left', background: '#0f172a' }
+  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155', fontWeight: 600, color: '#94a3b8', textAlign: 'left', background: '#0f172a' }
 
-  if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando usuários...</div>
+  if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando usuarios...</div>
+  if (error) return <ErrorFallback error={error} onRetry={fetchUsers} />
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 13, color: '#94a3b8' }}>{users.length} usuário(s)</span>
+        <span style={{ fontSize: 13, color: '#94a3b8' }}>{users.length} usuario(s)</span>
         <button onClick={fetchUsers} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
           background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 6,
-          padding: '6px 12px', fontSize: 11, cursor: 'pointer'
-        }}>🔄 Atualizar</button>
+          padding: '6px 12px', fontSize: 11, cursor: 'pointer',
+        }}>
+          <RefreshIcon /> Atualizar
+        </button>
       </div>
+
+      {actionError && (
+        <div style={{
+          padding: '10px 14px', marginBottom: 12, borderRadius: 8, fontSize: 12,
+          background: 'rgba(239,68,68,.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,.2)',
+        }}>
+          {actionError}
+          <button onClick={() => setActionError(null)} style={{
+            float: 'right', background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: 14,
+          }}>x</button>
+        </div>
+      )}
+
       <table style={{ width: '100%', borderCollapse: 'collapse', background: '#1e293b', borderRadius: 8 }}>
         <thead>
           <tr>
@@ -48,7 +95,7 @@ export default function UserTable() {
             <th style={thStyle}>Status</th>
             <th style={thStyle}>Role</th>
             <th style={thStyle}>Cadastro</th>
-            <th style={thStyle}>Ações</th>
+            <th style={thStyle}>Acoes</th>
           </tr>
         </thead>
         <tbody>
@@ -59,6 +106,7 @@ export default function UserTable() {
               trialing: '#f59e0b', active: '#22c55e', expired: '#ef4444',
               cancelled: '#6b7280', suspended: '#ef4444'
             }[sub?.status] || '#6b7280'
+            const isConfirming = confirmingRole === u.id
             return (
               <tr key={u.id}>
                 <td style={cellStyle}>{u.full_name || '—'}</td>
@@ -78,19 +126,35 @@ export default function UserTable() {
                   }}>{u.role}</span>
                 </td>
                 <td style={{ ...cellStyle, color: '#94a3b8', fontSize: 11 }}>
-                  {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                  {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}
                 </td>
                 <td style={cellStyle}>
-                  <button onClick={() => toggleRole(u.id, u.role)} style={{
-                    background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
-                    padding: '3px 8px', fontSize: 10, cursor: 'pointer'
-                  }}>
-                    {u.role === 'admin' ? 'Rebaixar' : 'Promover'}
-                  </button>
+                  {isConfirming ? (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={() => toggleRole(u.id, u.role)} style={{
+                        background: '#22c55e', color: '#000', border: 'none', borderRadius: 4,
+                        padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
+                      }}>Sim</button>
+                      <button onClick={() => setConfirmingRole(null)} style={{
+                        background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
+                        padding: '3px 8px', fontSize: 10, cursor: 'pointer',
+                      }}>Nao</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmingRole(u.id)} style={{
+                      background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
+                      padding: '3px 8px', fontSize: 10, cursor: 'pointer'
+                    }}>
+                      {u.role === 'admin' ? 'Rebaixar' : 'Promover'}
+                    </button>
+                  )}
                 </td>
               </tr>
             )
           })}
+          {users.length === 0 && (
+            <tr><td colSpan={8} style={{ ...cellStyle, textAlign: 'center', color: '#64748b', padding: 20 }}>Nenhum usuario encontrado</td></tr>
+          )}
         </tbody>
       </table>
     </div>
