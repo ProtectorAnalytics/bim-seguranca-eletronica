@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys } from '@/lib/helpers';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
@@ -15,52 +15,28 @@ import AdminPage from './AdminPage';
 import UpgradeBanner from './UpgradeBanner';
 import ProjectApp from './ProjectApp';
 import { useSubscription } from '../hooks/useSubscription';
+import { useProjectHistory } from '../hooks/useProjectHistory';
 
 export default function App(){
   const { user, loading: authLoading, isAdmin, configError } = useAuth();
   const limits = useSubscription();
   const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | admin
   const [project,_setProject]=useState(null);
-  const _historyStore=useRef({past:[],future:[]});
-  const _skipHistory=useRef(false);
+  const { pushSnapshot, undo, redo, clearHistory, skipNext } = useProjectHistory(_setProject);
   const setProject=(updaterOrVal)=>{
     _setProject(prev=>{
       try{
         const next=typeof updaterOrVal==='function'?updaterOrVal(prev):updaterOrVal;
-        if(!_skipHistory.current && prev && next){
+        if(!skipNext.current && prev && next){
           try{
             const ps=JSON.stringify(prev);const ns=JSON.stringify(next);
-            if(ps!==ns){const h=_historyStore.current;h.past.push(ps);if(h.past.length>50)h.past.shift();h.future=[];}
+            if(ps!==ns) pushSnapshot(prev);
           }catch(e){console.warn('History snapshot failed',e)}
         }
-        _skipHistory.current=false;
+        skipNext.current=false;
         return next;
-      }catch(e){console.error('setProject error',e);_skipHistory.current=false;return prev;}
+      }catch(e){console.error('setProject error',e);skipNext.current=false;return prev;}
     });
-  };
-  const undo=()=>{
-    try{
-      const h=_historyStore.current;
-      if(!h||!h.past||!h.past.length) return;
-      _setProject(prev=>{
-        h.future.push(JSON.stringify(prev));
-        const restored=JSON.parse(h.past.pop());
-        _skipHistory.current=true;
-        return restored;
-      });
-    }catch(e){console.error('undo error',e)}
-  };
-  const redo=()=>{
-    try{
-      const h=_historyStore.current;
-      if(!h||!h.future||!h.future.length) return;
-      _setProject(prev=>{
-        h.past.push(JSON.stringify(prev));
-        const restored=JSON.parse(h.future.pop());
-        _skipHistory.current=true;
-        return restored;
-      });
-    }catch(e){console.error('redo error',e)}
   };
   const [editingProjectId,setEditingProjectId]=useState(null);
   const [clientData,setClientData]=useState({
@@ -105,7 +81,7 @@ export default function App(){
     setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''});
     setScreen('client');
   };
-  const onOpenProject=(proj)=>{ const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+  const onOpenProject=(proj)=>{ clearHistory(); const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
 
   // Config error guard
   if(configError) return (

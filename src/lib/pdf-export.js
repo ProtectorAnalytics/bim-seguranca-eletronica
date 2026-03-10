@@ -4,6 +4,7 @@
 // ====================================================================
 import { APP_VERSION } from '@/data/constants';
 import { CABLE_TYPES } from '@/data/cable-types';
+import { drawFloorplanVector } from './pdf-vector';
 
 // ── Color palette ──────────────────────────────────
 const COLORS = {
@@ -503,6 +504,19 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         }
 
         doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
+
+        // Vector overlay — connections, devices & labels as sharp PDF primitives
+        if (activeFloor) {
+          drawFloorplanVector(doc, activeFloor, {
+            offsetX: drawX,
+            offsetY: drawY,
+            areaW: drawW,
+            areaH: drawH,
+            canvasW: canvasEl.scrollWidth,
+            canvasH: canvasEl.scrollHeight,
+            drawGrid: false, // rasterized capture already includes the grid
+          });
+        }
 
         drawFooter(doc);
       } catch (err) {
