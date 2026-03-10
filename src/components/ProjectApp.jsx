@@ -1585,7 +1585,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               {/* Connection lines */}
               <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none',zIndex:4}}>
                 {/* Connection anchor dot indicators on devices in cable mode */}
-                {cableMode&&devices.map(dev=>{
+                {cableMode&&devices.filter(d=>!d.quadroId).map(dev=>{
                   const R=getDevR(dev);
                   const cx=dev.x+R,cy=dev.y+R;
                   const anchors=[[0,-1],[1,0],[0,1],[-1,0]];
@@ -1756,7 +1756,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const from=devices.find(d=>d.id===cableMode.from);
                   if(!from) return null;
                   const R=getDevR(from);
-                  const cx=from.x+R,cy=from.y+R;
+                  let cx=from.x+R,cy=from.y+R;
+                  if(from.quadroId){const qc=quadros.find(q=>q.id===from.quadroId);if(qc){cx=qc.x+80;cy=qc.y+14}}
                   return <circle cx={cx} cy={cy} r={R+3} fill="none"
                     stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" opacity=".6"/>;
                 })()}
@@ -2379,11 +2380,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     if(!fd||!td) return null;
                     const ct=CABLE_TYPES.find(c=>c.id===conn.type);
                     const fr=getDevR(fd),tr=getDevR(td);
-                    return <line key={'mm_c_'+conn.id} x1={(fd.x+fr)*sc} y1={(fd.y+fr)*sc}
-                      x2={(td.x+tr)*sc} y2={(td.y+tr)*sc} stroke={ct?.color||'#475569'} strokeWidth=".5" opacity=".6"/>;
+                    let fx=fd.x+fr,fy=fd.y+fr,tx=td.x+tr,ty=td.y+tr;
+                    if(fd.quadroId){const q=quadros.find(q=>q.id===fd.quadroId);if(q){fx=q.x+80;fy=q.y+14}}
+                    if(td.quadroId){const q=quadros.find(q=>q.id===td.quadroId);if(q){tx=q.x+80;ty=q.y+14}}
+                    return <line key={'mm_c_'+conn.id} x1={fx*sc} y1={fy*sc}
+                      x2={tx*sc} y2={ty*sc} stroke={ct?.color||'#475569'} strokeWidth=".5" opacity=".6"/>;
                   })}
-                  {/* Devices as dots */}
-                  {devices.map(d=>{
+                  {/* Devices as dots (hide devices inside Quadro) */}
+                  {devices.filter(d=>!d.quadroId).map(d=>{
                     const dr=getDevR(d);
                     return <circle key={'mm_d_'+d.id} cx={(d.x+dr)*sc} cy={(d.y+dr)*sc}
                       r={dr<20?1.5:dr<25?2:2.5}
