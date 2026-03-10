@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0f172a"/>
+  <circle cx="256" cy="200" r="60" fill="none" stroke="#3b82f6" stroke-width="16"/>
+  <path d="M256 140 L256 120 M316 200 L336 200 M256 260 L256 280 M196 200 L176 200" stroke="#3b82f6" stroke-width="12" stroke-linecap="round"/>
+  <path d="M296 160 L312 144 M296 240 L312 256 M216 240 L200 256 M216 160 L200 144" stroke="#3b82f6" stroke-width="10" stroke-linecap="round"/>
+  <rect x="206" y="320" width="100" height="80" rx="8" fill="none" stroke="#22c55e" stroke-width="12"/>
+  <circle cx="230" cy="360" r="10" fill="#22c55e"/>
+  <circle cx="256" cy="360" r="10" fill="#22c55e"/>
+  <circle cx="282" cy="360" r="10" fill="#22c55e"/>
+  <line x1="256" y1="260" x2="256" y2="320" stroke="#64748b" stroke-width="6" stroke-dasharray="8 6"/>
+  <text x="256" y="460" text-anchor="middle" fill="#94a3b8" font-family="Arial,sans-serif" font-weight="bold" font-size="48">BIM</text>
+</svg>
