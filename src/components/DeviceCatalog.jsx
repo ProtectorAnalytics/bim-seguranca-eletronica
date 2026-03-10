@@ -3,6 +3,47 @@ import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { ICONS } from '@/icons';
 import { getHiddenDevices, getDeviceOverrides, getHiddenFamilies, saveHiddenFamilies } from '@/lib/helpers';
 
+function DeviceItem({item, cat, overrides, pendingDevice, setPendingDevice, setTool}){
+  return (
+    <div className="dev-item"
+      draggable
+      onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
+      onClick={()=>{setPendingDevice(item.key);setTool('device')}}
+      style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
+      <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
+        <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
+      ):ICONS[item.icon]?.(cat.color)}</div>
+      <div className="di-info">
+        <div className="di-name">{overrides[item.key]?.name||item.name}</div>
+        <div className="di-spec">{(overrides[item.key]?.specs||item.props)?.resolucao||(overrides[item.key]?.specs||item.props)?.portas||(overrides[item.key]?.specs||item.props)?.potencia||''}</div>
+      </div>
+      {item.poe&&<span className="di-tag tag-poe">PoE</span>}
+      {item.ampDC&&<span className="di-tag tag-dc">DC</span>}
+    </div>
+  );
+}
+
+function SubcategoryGroup({name, items, cat, overrides, pendingDevice, setPendingDevice, setTool, defaultOpen}){
+  const [open, setOpen]=useState(defaultOpen);
+  return (
+    <div style={{marginLeft:4,marginBottom:2}}>
+      <div onClick={()=>setOpen(!open)}
+        style={{display:'flex',alignItems:'center',gap:4,padding:'3px 6px',cursor:'pointer',userSelect:'none',
+          fontSize:10,fontWeight:600,color:cat.color,opacity:.85,borderRadius:4,transition:'.12s',
+          background:open?'rgba(0,0,0,.03)':'transparent'}}
+        onMouseOver={e=>e.currentTarget.style.background='rgba(0,0,0,.04)'}
+        onMouseOut={e=>e.currentTarget.style.background=open?'rgba(0,0,0,.03)':'transparent'}>
+        <span style={{fontSize:8,transition:'.15s',transform:open?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>
+        {name} <span style={{fontSize:9,fontWeight:400,color:'#9ca3af'}}>({items.length})</span>
+      </div>
+      {open&&items.map(item=>(
+        <DeviceItem key={item.key} item={item} cat={cat} overrides={overrides}
+          pendingDevice={pendingDevice} setPendingDevice={setPendingDevice} setTool={setTool}/>
+      ))}
+    </div>
+  );
+}
+
 export default function DeviceCatalog({search, setSearch, collapsedCats, toggleCat, pendingDevice, setPendingDevice, setTool, customDevices, DEVICE_LIB, showEquipmentRepo, setShowEquipmentRepo, refreshKey}){
   const hiddenSet=new Set(getHiddenDevices());
   const overrides=getDeviceOverrides();
@@ -123,23 +164,30 @@ export default function DeviceCatalog({search, setSearch, collapsedCats, toggleC
               <span style={{fontSize:9,transition:'.15s',transform:isOpen?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>
               {cat.cat} <span className="cnt">{filtered.length}</span>
             </div>
-            {isOpen&&filtered.map(item=>(
-              <div key={item.key} className="dev-item"
-                draggable
-                onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
-                onClick={()=>{setPendingDevice(item.key);setTool('device')}}
-                style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
-                <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
-                  <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
-                ):ICONS[item.icon]?.(cat.color)}</div>
-                <div className="di-info">
-                  <div className="di-name">{overrides[item.key]?.name||item.name}</div>
-                  <div className="di-spec">{(overrides[item.key]?.specs||item.props)?.resolucao||(overrides[item.key]?.specs||item.props)?.portas||(overrides[item.key]?.specs||item.props)?.potencia||''}</div>
-                </div>
-                {item.poe&&<span className="di-tag tag-poe">PoE</span>}
-                {item.ampDC&&<span className="di-tag tag-dc">DC</span>}
-              </div>
-            ))}
+            {isOpen&&(()=>{
+              // Check if any item has subcategory
+              const hasSubcats=filtered.some(i=>i.subcategory);
+              if(!hasSubcats){
+                // Flat rendering (no subcategories)
+                return filtered.map(item=>(
+                  <DeviceItem key={item.key} item={item} cat={cat} overrides={overrides}
+                    pendingDevice={pendingDevice} setPendingDevice={setPendingDevice} setTool={setTool}/>
+                ));
+              }
+              // Group by subcategory
+              const groups=[];
+              const seen=new Set();
+              filtered.forEach(item=>{
+                const sc=item.subcategory||'Outros';
+                if(!seen.has(sc)){seen.add(sc);groups.push({name:sc,items:[]});}
+                groups.find(g=>g.name===sc).items.push(item);
+              });
+              return groups.map(g=>(
+                <SubcategoryGroup key={g.name} name={g.name} items={g.items} cat={cat}
+                  overrides={overrides} pendingDevice={pendingDevice} setPendingDevice={setPendingDevice} setTool={setTool}
+                  defaultOpen={!!search}/>
+              ));
+            })()}
           </div>
         );
       })}

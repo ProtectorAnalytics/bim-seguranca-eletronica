@@ -35,6 +35,7 @@ import EnvironmentFilterBar from './EnvironmentFilterBar';
 import ValidationPanel from './ValidationPanel';
 import TopologyPanel from './TopologyPanel';
 import EquipmentPanel from './EquipmentPanel';
+import MigrationWizard from './MigrationWizard';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
@@ -56,6 +57,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const toggleCat=(catName)=>setCollapsedCats(prev=>({...prev,[catName]:!prev[catName]}));
   const [modelSelectorModal,setModelSelectorModal]=useState(null); // null | {deviceKey,x,y}
   const [showEquipmentRepo,setShowEquipmentRepo]=useState(false);
+  const [showMigrationWizard,setShowMigrationWizard]=useState(false);
   const [defRefreshKey,setDefRefreshKey]=useState(0);
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
@@ -212,6 +214,24 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const updateConnection=(connId,updates)=>{
     updateFloor(f=>({...f,connections:f.connections.map(c=>c.id===connId?{...c,...updates}:c)}));
   };
+
+  // Migration wizard: replace legacy device with modern equivalent
+  const handleMigrationReplace=(devId,newKey)=>{
+    const def=findDevDef(newKey);
+    if(!def) return;
+    updateDevice(devId,{
+      key:newKey,
+      name:def.name,
+      _legacy:false,
+      _originalKey:undefined,
+      icon:def.icon||undefined
+    });
+  };
+
+  // Count legacy devices across all floors (for badge)
+  const legacyCount=useMemo(()=>
+    devices.filter(d=>d._legacy).length
+  ,[devices]);
 
   // Copy device
   const copyDevice=(devId)=>{
@@ -1262,6 +1282,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         {/* Ações rápidas */}
         <div className="tool-group">
           <button className="tool-btn" title="Auto Cabear" onClick={autoCable}>⚡</button>
+          <button className="tool-btn" title="Migration Wizard — substituir dispositivos legados"
+            onClick={()=>setShowMigrationWizard(true)}
+            style={{position:'relative'}}>
+            🔄
+            {legacyCount>0&&<span style={{position:'absolute',top:-4,right:-4,background:'#f59e0b',color:'#fff',
+              fontSize:8,fontWeight:700,borderRadius:'50%',width:14,height:14,display:'flex',alignItems:'center',
+              justifyContent:'center',lineHeight:1}}>{legacyCount}</span>}
+          </button>
         </div>
 
         {/* Opções de cabo (aparece só no modo cabo) */}
@@ -3350,6 +3378,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         onSave={saveCustomDevice} onDelete={deleteCustomDevice}
         onClose={()=>setShowEquipmentRepo(false)}
         onRefreshDefaults={()=>setDefRefreshKey(k=>k+1)}/>}
+
+      {/* MIGRATION WIZARD MODAL */}
+      {showMigrationWizard&&<MigrationWizard
+        devices={devices}
+        onReplace={handleMigrationReplace}
+        onClose={()=>setShowMigrationWizard(false)}/>}
 
       {/* CALIBRATION DISTANCE MODAL */}
       {showCalibModal&&calibStart&&calibEnd&&(()=>{

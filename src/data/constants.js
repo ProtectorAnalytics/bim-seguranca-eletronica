@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 24, build: 0,
+  major: 3, minor: 25, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.25.0',date:'2026-03-09',changes:['Subcategorias no catálogo CFTV IP: Bullet, Dome, Dome VF, Bullet VF, Speed Dome, Especiais e Wi-Fi com seções colapsáveis','Migration Wizard: ferramenta para substituir dispositivos legados por equivalentes modernos do catálogo atual','Sugestão automática de substituição baseada no tipo do dispositivo legado (MHD→IP, DVR→NVR)','Aplicar substituição individual ou em lote (Aplicar Todos)','Badge de alerta na toolbar quando há dispositivos legados no projeto']},
     {ver:'3.24.0',date:'2026-03-09',changes:['Configuração IP/VLAN: campo Endereço IP, Máscara de sub-rede, Gateway e VLAN ID para dispositivos de rede','Validação em tempo real: IP inválido (borda vermelha + ⚠) e VLAN fora do range 1-4094','2 novas regras de validação: "IP duplicado entre dispositivos" e "IP inválido configurado"','Máscara de sub-rede como dropdown (/24, /25, /26, /23, /22, /16)','Coluna IP na tabela de equipamentos do PDF quando há IPs configurados','Classificador needsIPConfig: câmeras IP, switches, NVRs, APs, catracas, leitores faciais, ONTs']},
     {ver:'3.23.0',date:'2026-03-09',changes:['Distância real dos cabos: cálculo agora considera o traçado ortogonal com waypoints (não mais linha reta)','Fix: mover waypoints agora recalcula distância do cabo em tempo real','BOM e etiquetas de cabo refletem a distância real pelo percurso do cabo']},
     {ver:'3.22.3',date:'2026-03-09',changes:['Dispositivos dentro de Quadros agora são conectáveis no modo cabo — clique no nome do dispositivo na lista do QC','Quadro com borda verde brilhante e anchor dots quando contém dispositivos válidos para conexão','Clique no Quadro com 1 único dispositivo válido conecta automaticamente','Indicadores visuais: dot verde pulsante, highlight e cursor crosshair nos dispositivos válidos do Quadro']},
