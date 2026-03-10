@@ -11,10 +11,10 @@
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F5;color:#2C3E50;overflow:hidden;height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
 /* ===== LANDING ===== */
-.landing{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%)}
+.landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%);overflow-y:auto;padding:24px 0}
 .landing-logo{color:rgba(255,255,255,.5);font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
 .landing-title{color:#fff;font-size:38px;font-weight:800;margin-bottom:6px}
-.landing-sub{color:rgba(255,255,255,.5);font-size:15px;margin-bottom:48px}
+.landing-sub{color:rgba(255,255,255,.5);font-size:15px;margin-bottom:24px}
 .scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:720px}
 .scenario-card{width:160px;background:rgba(255,255,255,.06);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px 16px;cursor:pointer;transition:.25s;text-align:center;color:#fff}
 .scenario-card:hover{background:rgba(255,255,255,.12);border-color:var(--laranja);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
@@ -22,23 +22,23 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .scenario-card h4{font-size:15px;margin-bottom:6px;font-weight:600}
 .scenario-card p{font-size:12px;opacity:.5;line-height:1.4}
 /* Client form */
-.client-form{width:100%;max-width:680px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:36px 40px;animation:portPopIn .2s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-.client-form .cf-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
-.client-form .cf-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px}
-.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.client-form{width:100%;max-width:680px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px 28px;animation:portPopIn .2s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.client-form .cf-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.client-form .cf-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px}
+.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cf-grid.full{grid-template-columns:1fr}
-.cf-field{display:flex;flex-direction:column;gap:5px}
+.cf-field{display:flex;flex-direction:column;gap:4px}
 .cf-field label{font-size:12px;color:rgba(255,255,255,.65);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.cf-field input,.cf-field select,.cf-field textarea{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:11px 14px;color:#fff;font-size:14px;outline:none;transition:.2s;font-family:inherit}
+.cf-field input,.cf-field select,.cf-field textarea{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:14px;outline:none;transition:.2s;font-family:inherit}
 .cf-field input:focus,.cf-field select:focus,.cf-field textarea:focus{border-color:var(--laranja);background:rgba(255,255,255,.12)}
 .cf-field input::placeholder{color:rgba(255,255,255,.3);font-size:13px}
-.cf-field textarea{resize:vertical;min-height:60px}
+.cf-field textarea{resize:vertical;min-height:48px}
 .cf-field select option{background:#1B4F72;color:#fff}
-.cf-actions{display:flex;gap:12px;margin-top:24px;justify-content:flex-end}
+.cf-actions{display:flex;gap:12px;margin-top:16px;justify-content:flex-end;position:sticky;bottom:0;background:rgba(13,33,55,.85);backdrop-filter:blur(8px);padding:14px 0 4px;border-top:1px solid rgba(255,255,255,.08)}
 .cf-btn{padding:12px 32px;border-radius:8px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:.2s}
 .cf-btn.primary{background:var(--laranja);color:#000}.cf-btn.primary:hover{background:#e5a817;transform:translateY(-1px)}
 .cf-btn.secondary{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6)}.cf-btn.secondary:hover{border-color:rgba(255,255,255,.4);color:#fff}
-.cf-section{font-size:12px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-top:20px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.cf-section{font-size:12px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-top:14px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.1)}
 
 /* ===== APP SHELL ===== */
 .app-shell{display:flex;flex-direction:column;height:100vh}
