@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 33, build: 1,
+  major: 3, minor: 34, build: 0,
   date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.34.0',date:'2026-03-10',changes:['Refactor: extraído DevicePropertiesPanel.jsx (350 linhas) do monolito ProjectApp.jsx (-510 linhas)','Layout profissional: section titles 12px bold com separadores, hover states em prop-rows, labels 13px/600','Novas classes CSS: dp-section-title, dp-list-item, dp-progress, dp-stepper, dp-conn-item (zero inline styles)','Fontes mínimas aumentadas: 9-10px → 11-13px em todos os textos do painel de propriedades','Progress bars, badges e steppers com classes reutilizáveis em vez de inline styles repetidos']},
     {ver:'3.33.1',date:'2026-03-10',changes:['Opção para alterar tipo de cabo em conexões existentes via dropdown no painel de propriedades','Dropdown agrupado por categoria (Dados, Sinal, Energia, Automação) com nome e velocidade','Ao trocar tipo de cabo, cor e seção são atualizados automaticamente para os padrões do novo tipo']},
     {ver:'3.33.0',date:'2026-03-10',changes:['Canvas profissional: labels de cabo com fundo retangular SVG em vez de paint-order stroke','Barra de acento colorida por categoria nos dispositivos (cameras=amber, switches=azul, NVR=verde)','Labels de dispositivo mais largos (180px) com fundo opaco, borda sutil e border-radius 6px','Grid de pontos (dot grid) estilo Figma com pontos maiores a cada 5m de referencia','Linhas de conexao mais espessas (+0.3-0.5px) para melhor visibilidade em todos os tipos','Circulos de dispositivo com gradiente sutil, borda refinada e sombra em duas camadas']},
     {ver:'3.32.4',date:'2026-03-10',changes:['Fix PDF export: jspdf-autotable v5.x usa API funcional autoTable(doc,opts) em vez de doc.autoTable(opts)','Corrigido erro e.autoTable is not a function que impedia exportação de PDF','Import paralelo: jspdf, html2canvas e jspdf-autotable carregados simultaneamente via Promise.all']},
