@@ -11,6 +11,7 @@ import ClientListPage from './ClientListPage';
 import EquipmentRepoPage from './EquipmentRepoPage';
 import SettingsPage from './SettingsPage';
 import SubscriptionPage from './SubscriptionPage';
+import ProfilePage from './ProfilePage';
 import AdminPage from './AdminPage';
 import UpgradeBanner from './UpgradeBanner';
 import ProjectApp from './ProjectApp';
@@ -20,7 +21,7 @@ import { useProjectHistory } from '../hooks/useProjectHistory';
 export default function App(){
   const { user, loading: authLoading, isAdmin, configError } = useAuth();
   const limits = useSubscription();
-  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | admin
+  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | profile | admin
   const [project,_setProject]=useState(null);
   const { pushSnapshot, undo, redo, clearHistory, skipNext } = useProjectHistory(_setProject);
   const setProject=(updaterOrVal)=>{
@@ -112,6 +113,7 @@ export default function App(){
     onRepo={()=>setScreen('repo')}
     onSettings={()=>setScreen('settings')}
     onSubscription={()=>setScreen('subscription')}
+    onProfile={()=>setScreen('profile')}
     onAdmin={isAdmin?()=>setScreen('admin'):null}
     limitMsg={limitMsg}
     onDismissLimit={()=>setLimitMsg('')}
@@ -148,7 +150,9 @@ export default function App(){
 
   if(screen==='settings') return <SettingsPage onBack={()=>setScreen('dashboard')} />;
 
-  if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} />;
+  if(screen==='profile') return <ProfilePage onBack={()=>setScreen('dashboard')} />;
+
+  if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} onProfile={()=>setScreen('profile')} />;
 
   return <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} onBack={()=>setScreen('dashboard')}/>;
 }

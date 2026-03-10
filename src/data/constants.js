@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 29, build: 0,
-  date: '2026-03-09',
+  major: 3, minor: 30, build: 0,
+  date: '2026-03-10',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.30.0',date:'2026-03-10',changes:['UX profissional: Dashboard redesenhado com ícones SVG, hierarquia visual e badges inteligentes','UserMenu: dropdown profissional com avatar de iniciais, ações de navegação e logout confiável','ProfilePage: tela de gerenciamento de perfil — editar nome, empresa e alterar senha','SubscriptionPage: redesenho com status visual claro, ícones e link direto ao perfil','Botão Sair: substituído por menu de usuário com feedback visual e estado de loading','Cards de estatísticas: layout horizontal com ícones coloridos e subinfo contextual','Module cards: ícones SVG consistentes, badges com dados reais (contagens, status do plano)']},
     {ver:'3.29.0',date:'2026-03-09',changes:['Refatoração fase 1: cable-routing.js extraído como módulo puro (autoOrthoRoute, buildOrthoPath)','ToolbarPanel.jsx: toolbar extraída como componente independente com props explícitas','Redução de ~170 linhas no ProjectApp.jsx (3441→3271 linhas)','Padrão estabelecido para futuras extrações: PropertiesPanel, CanvasRenderer, useCanvasInteractions']},
     {ver:'3.28.0',date:'2026-03-09',changes:['Histórico persistente: undo/redo sobrevive ao fechar e reabrir o navegador via IndexedDB (idb-keyval)','50 snapshots máximos armazenados com limpeza automática ao trocar de projeto','PDF vetorial: conexões, dispositivos e labels renderizados como primitivos vetoriais (line, circle, text)','Overlay vetorial nítido em qualquer zoom — sobre a captura rasterizada da planta','Legenda de tipos de cabo no PDF com cores por grupo (dados, energia, sinal, automação)','Dispositivos com cores por tipo: câmeras azul, gravadores roxo, switches verde, energia vermelho, segurança laranja']},
     {ver:'3.27.0',date:'2026-03-09',changes:['Testes automatizados com Vitest: 52 testes em 3 suítes','Testes helpers: calcCableDistance, isValidIPv4, isValidSubnetMask, isValidVLAN, findDuplicateIPs, migrateProjectKeys, dedupDeviceIds, findDevDef, calcPPSection, uid/syncUid, KEY_MIGRATION_MAP','Testes validação: 21 testes cobrindo regras de CFTV, rede, IP, nobreak, rack','Smoke test: módulo pdf-export importa sem erros','Setup: mock localStorage e canvas context para ambiente jsdom']},
