@@ -1583,8 +1583,18 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const isSel=selectedConn===conn.id;
 
                   const R=29;
-                  const fcx=from.x+R, fcy=from.y+R;
-                  const tcx=to.x+R, tcy=to.y+R;
+                  // Se device está em Quadro, usar posição do Quadro como referência visual
+                  const resolvePos=(dev)=>{
+                    if(dev.quadroId){
+                      const qc=quadros.find(q=>q.id===dev.quadroId);
+                      if(qc) return {x:qc.x+80,y:qc.y+14};
+                    }
+                    return {x:dev.x+R,y:dev.y+R};
+                  };
+                  const fromPos=resolvePos(from);
+                  const toPos=resolvePos(to);
+                  const fcx=fromPos.x, fcy=fromPos.y;
+                  const tcx=toPos.x, tcy=toPos.y;
 
                   // Offset for multiple connections between same pair
                   const pairKey=[conn.from,conn.to].sort().join('|');
@@ -1803,14 +1813,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 );
               })}
 
-              {/* Device nodes — hide devices that are mounted inside a rack or quadro */}
-              {layers.devices&&devices.filter(d=>!d.parentRack&&!d.quadroId).map(dev=>{
+              {/* Device nodes — hide devices that are inside a quadro (rack devices stay visible) */}
+              {layers.devices&&devices.filter(d=>!d.quadroId).map(dev=>{
                 const def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
                 const color=catInfo?.color||'#6b7280';
                 const targetStatus=cableMode?validTargets[dev.id]:null;
                 const isSource=cableMode?.from===dev.id;
-                const inRack=null;
+                const inRack=dev.parentRack?racks.find(r=>r.id===dev.parentRack):null;
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
@@ -2404,7 +2414,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       </div>
                       {/* Expanded details when selected */}
                       {isSel&&(
-                        <div style={{padding:'8px 10px'}}>
+                        <div style={{padding:'8px 10px'}} onClick={e=>e.stopPropagation()}>
                           {/* Name */}
                           <div className="prop-row">
                             <span className="pr-label" style={{fontSize:9}}>Nome:</span>
