@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 28, build: 0,
+  major: 3, minor: 29, build: 0,
   date: '2026-03-09',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.29.0',date:'2026-03-09',changes:['Refatoração fase 1: cable-routing.js extraído como módulo puro (autoOrthoRoute, buildOrthoPath)','ToolbarPanel.jsx: toolbar extraída como componente independente com props explícitas','Redução de ~170 linhas no ProjectApp.jsx (3441→3271 linhas)','Padrão estabelecido para futuras extrações: PropertiesPanel, CanvasRenderer, useCanvasInteractions']},
     {ver:'3.28.0',date:'2026-03-09',changes:['Histórico persistente: undo/redo sobrevive ao fechar e reabrir o navegador via IndexedDB (idb-keyval)','50 snapshots máximos armazenados com limpeza automática ao trocar de projeto','PDF vetorial: conexões, dispositivos e labels renderizados como primitivos vetoriais (line, circle, text)','Overlay vetorial nítido em qualquer zoom — sobre a captura rasterizada da planta','Legenda de tipos de cabo no PDF com cores por grupo (dados, energia, sinal, automação)','Dispositivos com cores por tipo: câmeras azul, gravadores roxo, switches verde, energia vermelho, segurança laranja']},
     {ver:'3.27.0',date:'2026-03-09',changes:['Testes automatizados com Vitest: 52 testes em 3 suítes','Testes helpers: calcCableDistance, isValidIPv4, isValidSubnetMask, isValidVLAN, findDuplicateIPs, migrateProjectKeys, dedupDeviceIds, findDevDef, calcPPSection, uid/syncUid, KEY_MIGRATION_MAP','Testes validação: 21 testes cobrindo regras de CFTV, rede, IP, nobreak, rack','Smoke test: módulo pdf-export importa sem erros','Setup: mock localStorage e canvas context para ambiente jsdom']},
     {ver:'3.26.0',date:'2026-03-09',changes:['PWA: aplicação instalável no desktop e mobile com ícone na tela inicial','Service Worker: cache offline com Workbox — app shell e assets cacheados automaticamente','Manifest: nome, ícone SVG, orientação landscape, tema dark (#0f172a)','Supabase Auth usa NetworkFirst (requer internet), demais recursos funcionam offline','Meta tags: theme-color, apple-mobile-web-app-capable, description']},
