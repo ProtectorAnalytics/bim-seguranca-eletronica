@@ -16,11 +16,11 @@ const ic = (Icon, defaultColor) => (c) => (
 export const ICONS = {
   // CFTV
   cam_dome:    ic(Webcam, '#f59e0b'),
-  cam_bullet:  ic(Camera, '#f59e0b'),
+  cam_bullet:  ic(Video, '#f59e0b'),
   cam_ptz:     ic(ScanEye, '#f59e0b'),
   cam_fisheye: ic(Eye, '#f59e0b'),
   cam_lpr:     ic(Car, '#f59e0b'),
-  cam_wifi:    ic(Video, '#f59e0b'),
+  cam_wifi:    ic(Video, '#0ea5e9'),
   // Controle de Acesso
   leitor_facial: ic(ScanFace, '#8b5cf6'),
   controladora:  ic(Fingerprint, '#8b5cf6'),
