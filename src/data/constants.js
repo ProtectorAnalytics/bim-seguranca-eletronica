@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 37, build: 0,
-  date: '2026-03-11',
+  major: 3, minor: 38, build: 0,
+  date: '2026-03-12',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.38.0',date:'2026-03-12',changes:['Identidade visual Protector Lombada: topbar branco com texto azul, dashboard com cards brancos e bordas #E2E8F0','Font Inter carregada via Google Fonts em toda a aplicacao','Fix icones em branco no canvas: getDeviceIconKey() agora resolve campo icon da definicao do dispositivo','Toggle 3 estados para info de dispositivo: Card completo → Label → Oculto (so icone)','Cores e sombras padronizadas: --radius-lg 12px, sombras sutis, border-radius uniformes','Dashboard redesenhado: header branco, stat cards com borda, module cards estilo Lombada']},
     {ver:'3.37.0',date:'2026-03-11',changes:['Projetos na nuvem: salvar projetos BIM no Supabase (cloud) com sync automatico debounced 2s','Tabelas projects e project_floors no Supabase com RLS e trigger de limite por plano','Toggle Nuvem/Local na criacao do projeto — escolha onde salvar antes de comecar','Lista de projetos dual: mostra projetos locais e cloud com icones Cloud/HardDrive','Migracao automatica: ao logar, sugere mover projetos locais para a nuvem','Botao Mover para Nuvem individual por projeto na lista','Export/Import .bim.json: backup manual independente da nuvem','Cache local de projetos cloud para acesso offline (fallback)','Dashboard merge: estatisticas combinam projetos locais + cloud']},
     {ver:'3.36.0',date:'2026-03-10',changes:['Identidade visual Protector Sistemas aplicada em todas as paginas (paleta #046bd2/#045cb4/#033d7a)','Logo oficial logo-proti.png no Login, Dashboard e topbar do canvas','Icones universais lucide-react substituem 43 SVGs custom (tree-shakeable, consistente)','Sistema de sombras profissional (shadow-xs a shadow-xl) em cards, modais e paineis','Animacoes CSS em todas as telas: fadeIn, slideUp, scaleIn nos cards e modais','Modais com backdrop-filter blur e animacao scaleIn ao abrir','Dashboard: lucide icons nos stats e module cards, cores Protector, anim-slide-up','LoginPage: logo acima do form, gradiente azul Protector, botao primario #046bd2','ProfilePage e SubscriptionPage: SVGs inline substituidos por lucide-react','EquipmentRepoPage: background cinzaL, shadow-md, animacoes nos cards','Border-radius padronizado 6-8px em toda a aplicacao']},
     {ver:'3.35.1',date:'2026-03-10',changes:['Toggle exibir/ocultar info dos dispositivos (📋) na toolbar ao lado do toggle de cabos','Com info ligada: doc-card completo com nome, modelo e tags de ocupação','Com info desligada: apenas nome simples (doc-label) — canvas mais limpo']},

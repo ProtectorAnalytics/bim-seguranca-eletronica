@@ -39,7 +39,7 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
               }} />
               <div>
                 <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>PROTECTOR</h1>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', margin: 0 }}>BIM Seguranca Eletronica</p>
+                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>BIM Seguranca Eletronica</p>
               </div>
             </div>
             <div className="dh-version">{APP_VERSION.label}</div>
@@ -118,8 +118,8 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
             <div className="mc-title">Novo Projeto</div>
             <div className="mc-desc">Criar um novo projeto de seguranca eletronica do zero</div>
             <div style={{
-              fontSize: 11, background: 'rgba(4,107,210,.2)', padding: '5px 12px', borderRadius: 6,
-              color: '#93c5fd', marginTop: 'auto', fontWeight: 700, letterSpacing: '.3px',
+              fontSize: 11, background: 'rgba(4,107,210,.08)', padding: '5px 12px', borderRadius: 6,
+              color: '#046bd2', marginTop: 'auto', fontWeight: 700, letterSpacing: '.3px',
             }}>
               {limits.maxProjects === -1 ? 'ILIMITADO' : `${projects.length}/${limits.maxProjects} projetos`}
             </div>
@@ -176,8 +176,8 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
               <div className="mc-title">Administracao</div>
               <div className="mc-desc">Gerenciar usuarios, planos, licencas e metricas</div>
               <div style={{
-                fontSize: 10, background: 'rgba(4,107,210,.2)', padding: '4px 10px', borderRadius: 20,
-                color: '#93c5fd', marginTop: 'auto', fontWeight: 700, letterSpacing: '.5px',
+                fontSize: 10, background: 'rgba(4,107,210,.08)', padding: '4px 10px', borderRadius: 20,
+                color: '#046bd2', marginTop: 'auto', fontWeight: 700, letterSpacing: '.5px',
               }}>
                 ADMIN
               </div>
@@ -206,7 +206,7 @@ function StatCard({ icon, value, label, color, sub, isDate }) {
           lineHeight: 1.1, marginBottom: 2,
         }}>{value}</div>
         <div className="stat-label" style={{ fontSize: 12, textTransform: 'none', letterSpacing: 0 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -218,7 +218,7 @@ function ModuleCard({ icon, title, desc, badge, badgeColor, onClick }) {
     <div className="module-card anim-slide-up" onClick={onClick}>
       <div style={{
         width: 48, height: 48, borderRadius: 10,
-        background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(4,107,210,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 14,
       }}>
         {icon}

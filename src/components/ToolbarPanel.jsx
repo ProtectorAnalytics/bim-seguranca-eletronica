@@ -15,7 +15,7 @@ export default function ToolbarPanel({
   setShowMigrationWizard, legacyCount,
   iconSize, changeIconSize,
   showCableLabels, setShowCableLabels,
-  showDeviceInfo, setShowDeviceInfo,
+  deviceLabel, setDeviceLabel,
   snapToGrid, setSnapToGrid,
   layers, toggleLayer,
   undo, redo,
@@ -100,8 +100,11 @@ export default function ToolbarPanel({
       <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
         <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
           style={{width:30,height:30,fontSize:12}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
-        <button className={`tool-btn ${showDeviceInfo?'active':''}`} title={showDeviceInfo?'Ocultar info dos dispositivos':'Mostrar info dos dispositivos'}
-          style={{width:30,height:30,fontSize:12}} onClick={()=>setShowDeviceInfo(v=>!v)}>📋</button>
+        <button className={`tool-btn ${deviceLabel!=='none'?'active':''}`}
+          title={deviceLabel==='card'?'Modo: Card completo → Label':'Modo: '+(deviceLabel==='label'?'Label → Oculto':'Oculto → Card completo')}
+          style={{width:30,height:30,fontSize:12}}
+          onClick={()=>setDeviceLabel(v=>v==='card'?'label':v==='label'?'none':'card')}>
+          {deviceLabel==='card'?'📋':deviceLabel==='label'?'🏷️':'⊘'}</button>
         <button className={`tool-btn ${snapToGrid?'active':''}`} title={snapToGrid?'Desativar snap na grade':'Ativar snap na grade'}
           style={{width:30,height:30,fontSize:13}} onClick={()=>setSnapToGrid(v=>!v)}>⊞</button>
         {/* Layers dropdown */}
