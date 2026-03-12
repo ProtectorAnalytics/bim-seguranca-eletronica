@@ -76,10 +76,21 @@ export function AuthProvider({ children }) {
   }
 
   // ── Fetch profile + subscription using direct REST API ──
-  async function fetchUserData(authUser, attempt = 1) {
+  // IMPORTANT: accessToken must be passed in from the onAuthStateChange callback.
+  // Calling supabase.auth.getSession() inside onAuthStateChange causes a deadlock
+  // in Supabase JS v2 due to an internal lock.
+  async function fetchUserData(authUser, accessToken, attempt = 1) {
     if (!supabase || !authUser) {
       console.error('[auth] No supabase or no user')
       setAuthDebug('Supabase nao configurado')
+      return
+    }
+
+    if (!accessToken) {
+      console.error('[auth] No access token provided')
+      const fallback = buildFallbackProfile(authUser)
+      setProfile(fallback)
+      setAuthDebug('Sem access token — usando fallback')
       return
     }
 
@@ -91,22 +102,9 @@ export function AuthProvider({ children }) {
     fetchInProgress.current = true
 
     const userId = authUser.id
-    console.log(`[auth] fetchUserData attempt=${attempt} userId=${userId}`)
+    console.log(`[auth] fetchUserData attempt=${attempt} userId=${userId} tokenLen=${accessToken.length}`)
 
     try {
-      // Get access token from current session
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData?.session?.access_token
-      if (!accessToken) {
-        console.error('[auth] No access token available')
-        const fallback = buildFallbackProfile(authUser)
-        setProfile(fallback)
-        setAuthDebug('Sem access token — usando fallback')
-        fetchInProgress.current = false
-        return
-      }
-      console.log('[auth] Access token obtained, length:', accessToken.length)
-
       // ── Profile query via direct REST ──
       const profileResult = await restQuery(
         'profiles',
@@ -118,18 +116,12 @@ export function AuthProvider({ children }) {
       if (profileResult.error) {
         console.error('[auth] Profile error:', profileResult.error.message)
 
-        // Retry once with session refresh
+        // Retry once with a small delay (same token — no refreshSession to avoid deadlock)
         if (attempt === 1) {
-          console.log('[auth] Refreshing session and retrying...')
-          try {
-            await supabase.auth.refreshSession()
-            console.log('[auth] Session refreshed')
-          } catch (e) {
-            console.error('[auth] Refresh failed:', e.message)
-          }
-          await new Promise(r => setTimeout(r, 500))
+          console.log('[auth] Retrying in 1s...')
+          await new Promise(r => setTimeout(r, 1000))
           fetchInProgress.current = false
-          return fetchUserData(authUser, 2)
+          return fetchUserData(authUser, accessToken, 2)
         }
 
         // All retries failed — use fallback
@@ -183,8 +175,8 @@ export function AuthProvider({ children }) {
 
       if (attempt === 1) {
         fetchInProgress.current = false
-        await new Promise(r => setTimeout(r, 500))
-        return fetchUserData(authUser, 2)
+        await new Promise(r => setTimeout(r, 1000))
+        return fetchUserData(authUser, accessToken, 2)
       }
 
       const fallback = buildFallbackProfile(authUser)
@@ -241,7 +233,8 @@ export function AuthProvider({ children }) {
         }
         didFetch = true
 
-        await fetchUserData(currentUser)
+        const token = session?.access_token
+        await fetchUserData(currentUser, token)
         clearTimeout(safetyTimer)
         setLoading(false)
       }
@@ -277,7 +270,11 @@ export function AuthProvider({ children }) {
   }
 
   async function refreshUserData() {
-    if (user) await fetchUserData(user)
+    if (!user) return
+    // refreshUserData is called outside onAuthStateChange, so getSession is safe here
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    if (token) await fetchUserData(user, token)
   }
 
   // ── Get fresh access token (for projectStorage and other REST calls) ──
