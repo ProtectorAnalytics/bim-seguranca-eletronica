@@ -97,7 +97,7 @@ export default function ToolbarPanel({
       </div>
 
       {/* Toggles de visualizacao */}
-      <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8,position:'relative'}}>
+      <div className="tool-group" style={{borderLeft:'1px solid var(--cinzaM)',paddingLeft:8,position:'relative'}}>
         <button className={`tool-btn ${showCableLabels?'active':''}`} title={showCableLabels?'Ocultar nomes dos cabos':'Mostrar nomes dos cabos'}
           style={{width:30,height:30,fontSize:12}} onClick={()=>setShowCableLabels(v=>!v)}>Aa</button>
         <button className={`tool-btn ${deviceLabel!=='none'?'active':''}`}
@@ -116,9 +116,9 @@ export default function ToolbarPanel({
               dd.style.display=dd.style.display==='block'?'none':'block';
             }}>◧</button>
           <div style={{display:'none',position:'absolute',top:'100%',left:0,zIndex:100,
-            background:'#1e293b',border:'1px solid #334155',borderRadius:6,padding:'6px 0',
-            minWidth:150,boxShadow:'0 8px 24px rgba(0,0,0,.4)'}}>
-            <div style={{fontSize:10,color:'#94a3b8',padding:'2px 10px 4px',fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Camadas</div>
+            background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:8,padding:'6px 0',
+            minWidth:160,boxShadow:'0 8px 24px rgba(0,0,0,.12)'}}>
+            <div style={{fontSize:10,color:'#64748b',padding:'2px 10px 4px',fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Camadas</div>
             {[
               {key:'devices',label:'Dispositivos',icon:'📦'},
               {key:'cables',label:'Cabos',icon:'🔗'},
@@ -128,13 +128,13 @@ export default function ToolbarPanel({
               {key:'dimensions',label:'Cotas',icon:'📏'}
             ].map(l=>(
               <div key={l.key} onClick={()=>toggleLayer(l.key)}
-                style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',cursor:'pointer',
-                  fontSize:11,color:layers[l.key]?'#e2e8f0':'#64748b',transition:'.15s',
+                style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',cursor:'pointer',
+                  fontSize:11,color:layers[l.key]?'#1e293b':'#94a3b8',transition:'.15s',
                   background:'transparent'}}
-                onMouseOver={e=>e.currentTarget.style.background='#334155'}
+                onMouseOver={e=>e.currentTarget.style.background='#F0F5FA'}
                 onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                 <span style={{width:14,height:14,borderRadius:3,border:'1.5px solid',
-                  borderColor:layers[l.key]?'#3b82f6':'#475569',background:layers[l.key]?'#3b82f6':'transparent',
+                  borderColor:layers[l.key]?'#046BD2':'#cbd5e1',background:layers[l.key]?'#046BD2':'transparent',
                   display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',flexShrink:0}}>
                   {layers[l.key]?'✓':''}
                 </span>
@@ -146,7 +146,7 @@ export default function ToolbarPanel({
       </div>
 
       {/* Undo / Redo / Print */}
-      <div className="tool-group" style={{borderLeft:'1px solid #555',paddingLeft:8}}>
+      <div className="tool-group" style={{borderLeft:'1px solid var(--cinzaM)',paddingLeft:8}}>
         <button className="tool-btn" title="Desfazer (Ctrl+Z)" style={{width:30,height:30,fontSize:16}}
           onClick={undo}>↩</button>
         <button className="tool-btn" title="Refazer (Ctrl+Y)" style={{width:30,height:30,fontSize:16}}

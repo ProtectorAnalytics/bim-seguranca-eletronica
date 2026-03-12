@@ -1221,9 +1221,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <img src="/logo-proti.png" alt="P" style={{height:28,marginRight:4,filter:'brightness(1.1)'}}/>
         <span className="logo">PROTECTOR</span>
         <span style={{fontSize:9,opacity:.4,marginLeft:-8}}>{APP_VERSION.full}</span>
-        <span style={{width:1,height:24,background:'rgba(255,255,255,.2)'}}/>
+        <span style={{width:1,height:24,background:'var(--cinzaM)'}}/>
         <input value={project.name} onChange={e=>setProject(p=>({...p,name:e.target.value}))}
-          style={{background:'transparent',border:'none',color:'#fff',fontSize:14,fontWeight:600,width:200,outline:'none'}}/>
+          style={{background:'transparent',border:'none',color:'#1e293b',fontSize:14,fontWeight:600,width:200,outline:'none'}}/>
         <span style={{flex:1}}/>
         {project.client&&(project.client.razaoSocial||project.client.nome)&&(
           <span style={{fontSize:10,opacity:.5}}>👤 {project.client.razaoSocial||project.client.nome}</span>
@@ -1908,21 +1908,21 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     {/* Quantity setter for cameras when selected */}
                     {selectedDevice===dev.id&&isCamera(dev.key)&&!cableMode&&(
                       <div style={{position:'absolute',bottom:-22,left:'50%',transform:'translateX(-50%)',
-                        display:'flex',alignItems:'center',gap:2,background:'#1e293b',borderRadius:4,padding:'2px 4px',
-                        boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:15,whiteSpace:'nowrap'}}
+                        display:'flex',alignItems:'center',gap:2,background:'#ffffff',borderRadius:4,padding:'2px 4px',
+                        boxShadow:'0 2px 8px rgba(0,0,0,.15)',border:'1px solid #E2E8F0',zIndex:15,whiteSpace:'nowrap'}}
                         onMouseDown={e=>{e.stopPropagation();e.preventDefault()}}
                         onDoubleClick={e=>e.stopPropagation()}>
-                        <button style={{width:16,height:16,fontSize:12,background:'#334155',border:'none',borderRadius:3,
-                          color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                        <button style={{width:16,height:16,fontSize:12,background:'#F0F5FA',border:'1px solid #E2E8F0',borderRadius:3,
+                          color:'#1e293b',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();const cur=dev.qty||1;if(cur>1){
                             const newQty=cur-1;
                             const trimmed=trimNvrAssignments(dev,newQty);
                             updateDevice(dev.id,{qty:newQty,nvrAssignments:trimmed});
                           }}}>−</button>
-                        <span style={{fontSize:10,color:'#e2e8f0',fontWeight:700,minWidth:16,textAlign:'center'}}>{dev.qty||1}</span>
-                        <button style={{width:16,height:16,fontSize:12,background:'#334155',border:'none',borderRadius:3,
-                          color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                        <span style={{fontSize:10,color:'#1e293b',fontWeight:700,minWidth:16,textAlign:'center'}}>{dev.qty||1}</span>
+                        <button style={{width:16,height:16,fontSize:12,background:'#F0F5FA',border:'1px solid #E2E8F0',borderRadius:3,
+                          color:'#1e293b',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
                           onDoubleClick={e=>e.stopPropagation()}
                           onClick={e=>{e.stopPropagation();
                             // Check port availability on connected switch
@@ -1949,11 +1949,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 const floorName=floor?.name||'';
                 const dateStr=new Date().toLocaleDateString('pt-BR');
                 return <div className="carimbo-canvas" style={{position:'absolute',left:cx,top:cy,width:cw,height:ch,
-                  border:'2px solid #334155',background:'rgba(255,255,255,0.95)',
-                  fontFamily:'system-ui,sans-serif',fontSize:10,color:'#1e293b',zIndex:5,
+                  border:'2px solid #E2E8F0',background:'rgba(255,255,255,0.98)',
+                  fontFamily:"Inter,system-ui,sans-serif",fontSize:10,color:'#1e293b',zIndex:5,
                   display:'flex',flexDirection:'column',pointerEvents:'none',userSelect:'none'}}>
                   {/* Header */}
-                  <div style={{background:'#1e293b',color:'#fff',padding:'4px 8px',fontSize:11,fontWeight:700,
+                  <div style={{background:'#046BD2',color:'#fff',padding:'4px 8px',fontSize:11,fontWeight:700,
                     display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <span>PROTECTOR SISTEMAS</span>
                     <span style={{fontSize:8,opacity:.7}}>BIM {APP_VERSION.full}</span>
@@ -2083,7 +2083,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               <span>{multiSelect.size} dispositivos selecionados</span>
               <span style={{fontSize:9,opacity:.8}}>Arraste para mover grupo</span>
               <button onClick={()=>setMultiSelect(new Set())}
-                style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',
+                style={{background:'rgba(255,255,255,.25)',border:'none',color:'#fff',
                   padding:'2px 6px',borderRadius:10,cursor:'pointer',fontSize:10}}>✕</button>
             </div>
           )}
@@ -2289,9 +2289,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               }}>
                 <svg width={mmW} height={mmH} style={{display:'block'}}>
                   {/* Background */}
-                  <rect width={mmW} height={mmH} fill="#0f172a" rx="4"/>
+                  <rect width={mmW} height={mmH} fill="#f8fafc" rx="4"/>
                   {/* Grid hint */}
-                  <rect width={mmW} height={mmH} fill="none" stroke="#1e293b" strokeWidth=".5"/>
+                  <rect width={mmW} height={mmH} fill="none" stroke="#E2E8F0" strokeWidth=".5"/>
                   {/* Environments */}
                   {environments.map(env=>(
                     <rect key={'mm_e_'+env.id} x={env.x*sc} y={env.y*sc} width={env.w*sc} height={env.h*sc}
@@ -2640,7 +2640,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   ):(
                     <div>
                       {/* QGBT Summary */}
-                      <div style={{background:'#1e293b',borderRadius:6,padding:8,marginBottom:8,color:'#e2e8f0'}}>
+                      <div style={{background:'#F0F5FA',borderRadius:6,padding:8,marginBottom:8,color:'#1e293b',border:'1px solid #E2E8F0'}}>
                         <div style={{fontSize:10,fontWeight:700,marginBottom:4}}>QGBT — Quadro Geral</div>
                         <div style={{fontSize:9,color:'#94a3b8',lineHeight:1.6}}>
                           Pot. Total: {totalPot}W ({(totalPot/1000).toFixed(1)}kW)<br/>

@@ -122,8 +122,8 @@ export default function LicenseKeyManager() {
   }
 
   const filtered = filter === 'all' ? keys : keys.filter(k => k.status === filter)
-  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155' }
-  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155', fontWeight: 600, color: '#94a3b8', textAlign: 'left', background: '#0f172a' }
+  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0' }
+  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748b', textAlign: 'left', background: '#F0F5FA' }
 
   if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando chaves...</div>
   if (error) return <ErrorFallback error={error} onRetry={fetchData} />
@@ -144,13 +144,13 @@ export default function LicenseKeyManager() {
 
       {/* Generator */}
       <div style={{
-        background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: 16, marginBottom: 16,
+        background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 16, marginBottom: 16,
         display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap'
       }}>
         <div>
           <label style={{ fontSize: 11, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Plano</label>
           <select value={genPlanId} onChange={e => setGenPlanId(e.target.value)} style={{
-            background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155',
+            background: '#F0F5FA', color: '#1e293b', border: '1px solid #E2E8F0',
             borderRadius: 6, padding: '6px 10px', fontSize: 12
           }}>
             {plans.map(p => <option key={p.id} value={p.id}>{p.name} (R$ {Number(p.price_brl || 0).toFixed(2)})</option>)}
@@ -159,7 +159,7 @@ export default function LicenseKeyManager() {
         <div>
           <label style={{ fontSize: 11, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Quantidade</label>
           <input type="number" min={1} max={50} value={genCount} onChange={e => setGenCount(parseInt(e.target.value) || 1)}
-            style={{ background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: '6px 10px', fontSize: 12, width: 70 }} />
+            style={{ background: '#F0F5FA', color: '#1e293b', border: '1px solid #E2E8F0', borderRadius: 6, padding: '6px 10px', fontSize: 12, width: 70 }} />
         </div>
         <button onClick={generateKeys} disabled={generating} style={{
           display: 'flex', alignItems: 'center', gap: 6,
@@ -175,7 +175,7 @@ export default function LicenseKeyManager() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {['all', 'available', 'redeemed', 'revoked'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
-            background: filter === f ? '#3b82f6' : '#334155', color: '#e2e8f0', border: 'none',
+            background: filter === f ? '#3b82f6' : '#E2E8F0', color: filter === f ? '#fff' : '#64748b', border: 'none',
             borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer',
             fontWeight: filter === f ? 700 : 400,
           }}>
@@ -186,7 +186,7 @@ export default function LicenseKeyManager() {
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#1e293b', borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#ffffff', borderRadius: 8 }}>
           <thead>
             <tr>
               <th style={thStyle}>Chave</th>
@@ -203,7 +203,7 @@ export default function LicenseKeyManager() {
               return (
                 <tr key={k.id}>
                   <td style={cellStyle}>
-                    <code style={{ background: '#0f172a', padding: '2px 6px', borderRadius: 4, fontSize: 11, letterSpacing: 1 }}>
+                    <code style={{ background: '#F0F5FA', padding: '2px 6px', borderRadius: 4, fontSize: 11, letterSpacing: 1 }}>
                       {k.key || '—'}
                     </code>
                     {k.key && (
@@ -237,7 +237,7 @@ export default function LicenseKeyManager() {
                             padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
                           }}>Sim</button>
                           <button onClick={() => setConfirmRevoke(null)} style={{
-                            background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
+                            background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
                             padding: '3px 8px', fontSize: 10, cursor: 'pointer',
                           }}>Nao</button>
                         </div>

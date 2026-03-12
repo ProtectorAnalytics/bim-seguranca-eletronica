@@ -11,10 +11,10 @@ export default function LoadingScreen() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', background: '#0f172a', color: '#e2e8f0', gap: 16
+      height: '100vh', background: '#F0F5FA', color: '#1e293b', gap: 16
     }}>
       <div style={{
-        width: 48, height: 48, border: '4px solid #334155',
+        width: 48, height: 48, border: '4px solid #E2E8F0',
         borderTop: '4px solid #3b82f6', borderRadius: '50%',
         animation: 'spin 1s linear infinite'
       }} />

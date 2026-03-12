@@ -48,12 +48,12 @@ const WrenchIcon = () => (
 );
 
 const cardStyle = {
-  background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 20,
+  background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 10, padding: 20,
   flex: '1 1 280px', minWidth: 260
 }
 const inputStyle = {
-  width: '100%', padding: '6px 8px', background: '#0f172a', border: '1px solid #334155',
-  borderRadius: 6, color: '#e2e8f0', fontSize: 12, boxSizing: 'border-box'
+  width: '100%', padding: '6px 8px', background: '#F0F5FA', border: '1px solid #E2E8F0',
+  borderRadius: 6, color: '#1e293b', fontSize: 12, boxSizing: 'border-box'
 }
 
 function BoolBadge({ value }) {
@@ -70,13 +70,13 @@ function PlanCard({ plan, isEditing, onEdit, onSave, onCancel, saveError }) {
   // Reset form when plan data changes or editing state changes
   useEffect(() => { setForm({ ...plan }) }, [plan, isEditing])
 
-  const color = COLORS[plan.slug] || '#334155'
+  const color = COLORS[plan.slug] || '#94a3b8'
 
   return (
     <div style={{ ...cardStyle, borderColor: color }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, color, fontSize: 18 }}>{plan.name}</h3>
-        <span style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0' }}>
+        <span style={{ fontSize: 22, fontWeight: 700, color: '#1e293b' }}>
           {plan.price_brl > 0 ? `R$ ${Number(plan.price_brl).toFixed(2)}` : 'Gratis'}
         </span>
       </div>
@@ -116,7 +116,7 @@ function PlanCard({ plan, isEditing, onEdit, onSave, onCancel, saveError }) {
               padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', flex: 1
             }}>Salvar</button>
             <button onClick={onCancel} style={{
-              background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 6,
+              background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 6,
               padding: '6px 14px', fontSize: 12, cursor: 'pointer'
             }}>Cancelar</button>
           </div>
@@ -143,7 +143,7 @@ function PlanCard({ plan, isEditing, onEdit, onSave, onCancel, saveError }) {
           </div>
           <button onClick={() => onEdit(plan.id)} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            marginTop: 12, background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 6,
+            marginTop: 12, background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 6,
             padding: '6px 14px', fontSize: 12, cursor: 'pointer', width: '100%'
           }}>
             <EditIcon /> Editar

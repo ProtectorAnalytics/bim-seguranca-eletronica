@@ -74,8 +74,8 @@ export default function SubscriptionManager() {
   }
 
   const filtered = filter === 'all' ? subs : subs.filter(s => s.status === filter)
-  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155' }
-  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155', fontWeight: 600, color: '#94a3b8', textAlign: 'left', background: '#0f172a' }
+  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0' }
+  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748b', textAlign: 'left', background: '#F0F5FA' }
 
   if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando assinaturas...</div>
   if (error) return <ErrorFallback error={error} onRetry={fetchData} />
@@ -97,7 +97,7 @@ export default function SubscriptionManager() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {['all', 'trialing', 'active', 'expired', 'cancelled', 'suspended'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
-            background: filter === f ? '#3b82f6' : '#334155', color: '#e2e8f0', border: 'none',
+            background: filter === f ? '#3b82f6' : '#E2E8F0', color: filter === f ? '#fff' : '#64748b', border: 'none',
             borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontWeight: filter === f ? 700 : 400
           }}>
             {f === 'all' ? 'Todos' : f} ({f === 'all' ? subs.length : subs.filter(s => s.status === f).length})
@@ -106,7 +106,7 @@ export default function SubscriptionManager() {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#1e293b', borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#ffffff', borderRadius: 8 }}>
           <thead>
             <tr>
               <th style={thStyle}>Usuario</th>
@@ -127,7 +127,7 @@ export default function SubscriptionManager() {
                   </td>
                   <td style={cellStyle}>
                     <select value={s.plan_id || ''} onChange={e => changePlan(s, e.target.value)} style={{
-                      background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155',
+                      background: '#F0F5FA', color: '#1e293b', border: '1px solid #E2E8F0',
                       borderRadius: 4, padding: '3px 6px', fontSize: 11
                     }}>
                       {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -161,7 +161,7 @@ export default function SubscriptionManager() {
                           background: '#22c55e', color: '#000', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
                         }}>Sim</button>
                         <button onClick={() => setConfirmAction(null)} style={{
-                          background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer',
+                          background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer',
                         }}>Nao</button>
                       </div>
                     ) : (

@@ -54,8 +54,8 @@ export default function UserTable() {
     }
   }
 
-  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155' }
-  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #334155', fontWeight: 600, color: '#94a3b8', textAlign: 'left', background: '#0f172a' }
+  const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0' }
+  const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748b', textAlign: 'left', background: '#F0F5FA' }
 
   if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando usuarios...</div>
   if (error) return <ErrorFallback error={error} onRetry={fetchUsers} />
@@ -66,7 +66,7 @@ export default function UserTable() {
         <span style={{ fontSize: 13, color: '#94a3b8' }}>{users.length} usuario(s)</span>
         <button onClick={fetchUsers} style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 6,
+          background: '#046BD2', color: '#fff', border: 'none', borderRadius: 6,
           padding: '6px 12px', fontSize: 11, cursor: 'pointer',
         }}>
           <RefreshIcon /> Atualizar
@@ -85,7 +85,7 @@ export default function UserTable() {
         </div>
       )}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#1e293b', borderRadius: 8 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#ffffff', borderRadius: 8 }}>
         <thead>
           <tr>
             <th style={thStyle}>Nome</th>
@@ -120,8 +120,8 @@ export default function UserTable() {
                 </td>
                 <td style={cellStyle}>
                   <span style={{
-                    background: u.role === 'admin' ? '#f59e0b' : '#334155',
-                    color: u.role === 'admin' ? '#000' : '#e2e8f0',
+                    background: u.role === 'admin' ? '#f59e0b' : '#E2E8F0',
+                    color: u.role === 'admin' ? '#000' : '#1e293b',
                     padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600
                   }}>{u.role}</span>
                 </td>
@@ -136,13 +136,13 @@ export default function UserTable() {
                         padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
                       }}>Sim</button>
                       <button onClick={() => setConfirmingRole(null)} style={{
-                        background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
+                        background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
                         padding: '3px 8px', fontSize: 10, cursor: 'pointer',
                       }}>Nao</button>
                     </div>
                   ) : (
                     <button onClick={() => setConfirmingRole(u.id)} style={{
-                      background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 4,
+                      background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
                       padding: '3px 8px', fontSize: 10, cursor: 'pointer'
                     }}>
                       {u.role === 'admin' ? 'Rebaixar' : 'Promover'}

@@ -84,14 +84,14 @@ export default function LicenseRedeemForm({ onSuccess, onCancel }) {
   }
 
   const inputStyle = {
-    width: '100%', padding: '12px 14px', background: '#0f172a', border: '1px solid #334155',
-    borderRadius: 8, color: '#e2e8f0', fontSize: 16, letterSpacing: 2,
+    width: '100%', padding: '12px 14px', background: '#F0F5FA', border: '1px solid #E2E8F0',
+    borderRadius: 8, color: '#1e293b', fontSize: 16, letterSpacing: 2,
     textAlign: 'center', fontFamily: 'monospace', boxSizing: 'border-box'
   }
 
   return (
     <div style={{
-      background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 24,
+      background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24,
       maxWidth: 420, margin: '0 auto'
     }}>
       <h3 style={{ margin: '0 0 8px', fontSize: 16, textAlign: 'center' }}>🔑 Resgatar Chave de Licença</h3>
@@ -132,7 +132,7 @@ export default function LicenseRedeemForm({ onSuccess, onCancel }) {
           </button>
           {onCancel && (
             <button type="button" onClick={onCancel} style={{
-              padding: '10px 16px', background: '#334155', color: '#e2e8f0', border: 'none',
+              padding: '10px 16px', background: 'transparent', color: '#64748b', border: '1px solid #E2E8F0',
               borderRadius: 8, fontSize: 14, cursor: 'pointer'
             }}>Cancelar</button>
           )}

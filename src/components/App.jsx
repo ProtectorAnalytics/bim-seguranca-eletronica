@@ -150,14 +150,14 @@ export default function App(){
 
   // Config error guard
   if(configError) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0f172a',color:'#e2e8f0',fontFamily:'system-ui,sans-serif'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#F0F5FA',color:'#1e293b',fontFamily:'system-ui,sans-serif'}}>
       <div style={{textAlign:'center',maxWidth:500,padding:40}}>
         <div style={{fontSize:48,marginBottom:16}}>⚙️</div>
         <h2 style={{marginBottom:8}}>Configuração Pendente</h2>
         <p style={{color:'#94a3b8',fontSize:14,lineHeight:1.6}}>
           As variáveis de ambiente do Supabase não foram configuradas.<br/>
-          Configure <code style={{background:'#1e293b',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_URL</code> e{' '}
-          <code style={{background:'#1e293b',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_ANON_KEY</code> no
+          Configure <code style={{background:'rgba(4,107,210,.08)',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_URL</code> e{' '}
+          <code style={{background:'rgba(4,107,210,.08)',padding:'2px 6px',borderRadius:4}}>VITE_SUPABASE_ANON_KEY</code> no
           painel do Vercel (Settings → Environment Variables) e faça um novo deploy.
         </p>
       </div>

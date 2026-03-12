@@ -63,8 +63,8 @@ export default function ProfilePage({ onBack }) {
 
   const inputStyle = {
     width: '100%', padding: '12px 14px',
-    background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)',
-    borderRadius: 6, color: '#fff', fontSize: 14, fontFamily: 'inherit',
+    background: '#F0F5FA', border: '1px solid #E2E8F0',
+    borderRadius: 6, color: '#1e293b', fontSize: 14, fontFamily: 'inherit',
     outline: 'none', transition: 'border-color .15s', boxSizing: 'border-box',
   };
 
@@ -74,7 +74,7 @@ export default function ProfilePage({ onBack }) {
   };
 
   const sectionStyle = {
-    background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
+    background: '#ffffff', border: '1px solid #E2E8F0',
     borderRadius: 8, padding: 24, marginBottom: 20,
     boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08))',
   };
@@ -101,7 +101,7 @@ export default function ProfilePage({ onBack }) {
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Meu Perfil</h2>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,.5)' }}>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94a3b8' }}>
                 Gerencie suas informacoes pessoais e seguranca
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function ProfilePage({ onBack }) {
                   type="text" value={fullName} onChange={e => setFullName(e.target.value)}
                   placeholder="Seu nome completo" style={inputStyle}
                   onFocus={e => e.target.style.borderColor = '#046bd2'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
+                  onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
               <div>
@@ -130,7 +130,7 @@ export default function ProfilePage({ onBack }) {
                   type="text" value={company} onChange={e => setCompany(e.target.value)}
                   placeholder="Nome da empresa" style={inputStyle}
                   onFocus={e => e.target.style.borderColor = '#046bd2'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
+                  onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
               <div>
@@ -149,7 +149,7 @@ export default function ProfilePage({ onBack }) {
               <div style={{
                 marginTop: 14, padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500,
                 background: profileMsg.type === 'success' ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
-                color: profileMsg.type === 'success' ? '#86efac' : '#fca5a5',
+                color: profileMsg.type === 'success' ? '#22c55e' : '#ef4444',
                 border: `1px solid ${profileMsg.type === 'success' ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)'}`,
               }}>
                 {profileMsg.type === 'success' ? '✓' : '✕'} {profileMsg.text}
@@ -183,7 +183,7 @@ export default function ProfilePage({ onBack }) {
                   type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
                   placeholder="Minimo 6 caracteres" style={inputStyle}
                   onFocus={e => e.target.style.borderColor = '#f59e0b'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
+                  onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
               <div>
@@ -192,7 +192,7 @@ export default function ProfilePage({ onBack }) {
                   type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Repita a nova senha" style={inputStyle}
                   onFocus={e => e.target.style.borderColor = '#f59e0b'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
+                  onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function ProfilePage({ onBack }) {
               <div style={{
                 marginTop: 14, padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500,
                 background: passwordMsg.type === 'success' ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
-                color: passwordMsg.type === 'success' ? '#86efac' : '#fca5a5',
+                color: passwordMsg.type === 'success' ? '#22c55e' : '#ef4444',
                 border: `1px solid ${passwordMsg.type === 'success' ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)'}`,
               }}>
                 {passwordMsg.type === 'success' ? '✓' : '✕'} {passwordMsg.text}
@@ -225,7 +225,7 @@ export default function ProfilePage({ onBack }) {
 
           {/* Account info */}
           <div style={{
-            ...sectionStyle, background: 'rgba(255,255,255,.03)',
+            ...sectionStyle, background: '#F0F5FA',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
           }}>
             <div>

@@ -103,7 +103,8 @@ export function getDeviceIconKey(deviceKey){
     const custom=getCustomDevices().find(c=>c.key===deviceKey);
     return custom?custom.deviceType:deviceKey;
   }
-  return deviceKey;
+  const def=findDevDef(deviceKey);
+  return def?.icon||deviceKey;
 }
 
 // Scenarios

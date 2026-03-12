@@ -36,17 +36,17 @@ function ErrorFallback({ error, onRetry }) {
       borderRadius: 12, padding: 28, textAlign: 'center', margin: '20px 0',
     }}>
       <div style={{ marginBottom: 12 }}>{I.alertTriangle('#ef4444')}</div>
-      <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#fca5a5' }}>Erro ao carregar dados</h3>
+      <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#ef4444' }}>Erro ao carregar dados</h3>
       <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 16px' }}>
         {error || 'Ocorreu um erro inesperado. Verifique a conexao com o servidor.'}
       </p>
       {onRetry && (
         <button onClick={onRetry} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: 8,
+          background: '#046BD2', color: '#fff', border: 'none', borderRadius: 8,
           padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>
-          {I.refresh('#e2e8f0')} Tentar Novamente
+          {I.refresh('#fff')} Tentar Novamente
         </button>
       )}
     </div>
@@ -60,32 +60,33 @@ export default function AdminPage({ onBack }) {
   const [activeTab, setActiveTab] = useState('overview')
 
   if (!isAdmin) return (
-    <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0f172a',color:'#ef4444' }}>
+    <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#F0F5FA',color:'#ef4444' }}>
       <div style={{ textAlign:'center' }}>
         <h2>Acesso Negado</h2>
-        <p style={{ color:'#94a3b8' }}>Voce nao tem permissao de administrador.</p>
-        <button onClick={onBack} style={{ marginTop:16,padding:'8px 24px',background:'#334155',color:'#e2e8f0',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600 }}>Voltar</button>
+        <p style={{ color:'#64748b' }}>Voce nao tem permissao de administrador.</p>
+        <button onClick={onBack} style={{ marginTop:16,padding:'8px 24px',background:'#046BD2',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontWeight:600 }}>Voltar</button>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight:'100vh',background:'#0b1120',color:'#e2e8f0',fontFamily:'system-ui,sans-serif' }}>
+    <div style={{ minHeight:'100vh',background:'#F0F5FA',color:'#1e293b',fontFamily:"Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" }}>
       {/* ── Top bar ── */}
       <div style={{
-        background:'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)',
-        borderBottom:'1px solid #1e293b',padding:'16px 28px',
+        background:'#ffffff',
+        borderBottom:'1px solid #E2E8F0',padding:'16px 28px',
         display:'flex',alignItems:'center',justifyContent:'space-between',
+        boxShadow:'0 1px 3px rgba(0,0,0,.06)',
       }}>
         <div style={{ display:'flex',alignItems:'center',gap:16 }}>
           <button onClick={onBack} style={{
             display:'flex',alignItems:'center',gap:6,
-            background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',
-            borderRadius:8,padding:'8px 16px',color:'#94a3b8',cursor:'pointer',
+            background:'transparent',border:'1px solid #E2E8F0',
+            borderRadius:8,padding:'8px 16px',color:'#64748b',cursor:'pointer',
             fontSize:13,fontWeight:500,transition:'all .15s',
           }}
-            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.color='#e2e8f0'}}
-            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.06)';e.currentTarget.style.color='#94a3b8'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='#F0F5FA';e.currentTarget.style.color='#046BD2'}}
+            onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#64748b'}}
           >
             {I.back()} Voltar
           </button>
@@ -108,14 +109,13 @@ export default function AdminPage({ onBack }) {
 
         <div style={{ display:'flex',alignItems:'center',gap:12 }}>
           <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:12,fontWeight:600,color:'#e2e8f0' }}>{profile?.full_name || 'Admin'}</div>
+            <div style={{ fontSize:12,fontWeight:600,color:'#1e293b' }}>{profile?.full_name || 'Admin'}</div>
             <div style={{ fontSize:10,color:'#64748b' }}>{profile?.email}</div>
           </div>
           <div style={{
             fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.5px',
-            background:'linear-gradient(135deg,#78350f,#92400e)',color:'#fbbf24',
+            background:'rgba(245,158,11,.1)',color:'#d97706',
             padding:'5px 12px',borderRadius:20,
-            boxShadow:'0 2px 8px rgba(245,158,11,.15)',
           }}>SUPER ADMIN</div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function AdminPage({ onBack }) {
       <div style={{ display:'flex',minHeight:'calc(100vh - 73px)' }}>
         {/* Sidebar navigation */}
         <nav style={{
-          width:220,flexShrink:0,background:'#0f172a',borderRight:'1px solid #1e293b',
+          width:220,flexShrink:0,background:'#ffffff',borderRight:'1px solid #E2E8F0',
           padding:'16px 10px',display:'flex',flexDirection:'column',gap:4,
         }}>
           {TABS.map(tab => {
@@ -133,12 +133,12 @@ export default function AdminPage({ onBack }) {
               <button key={tab.id} onClick={()=>setActiveTab(tab.id)} style={{
                 display:'flex',alignItems:'center',gap:10,width:'100%',
                 padding:'11px 14px',border:'none',borderRadius:10,
-                background: isActive ? `${tab.color}15` : 'transparent',
+                background: isActive ? `${tab.color}10` : 'transparent',
                 color: isActive ? tab.color : '#64748b',
                 cursor:'pointer',transition:'all .15s',textAlign:'left',
                 borderLeft: isActive ? `3px solid ${tab.color}` : '3px solid transparent',
               }}
-                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background='rgba(255,255,255,.04)';e.currentTarget.style.color='#94a3b8'}}}
+                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background='#F0F5FA';e.currentTarget.style.color='#1e293b'}}}
                 onMouseLeave={e=>{if(!isActive){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#64748b'}}}
               >
                 {tab.icon(isActive ? tab.color : '#64748b')}
@@ -148,7 +148,7 @@ export default function AdminPage({ onBack }) {
           })}
 
           {/* Sidebar footer */}
-          <div style={{ marginTop:'auto',padding:'12px 14px',borderTop:'1px solid #1e293b' }}>
+          <div style={{ marginTop:'auto',padding:'12px 14px',borderTop:'1px solid #E2E8F0' }}>
             <div style={{ fontSize:10,color:'#475569',lineHeight:1.5 }}>
               Sistema de gestao<br/>Protector {APP_VERSION.full}
             </div>
@@ -310,16 +310,17 @@ function OverviewPanel({ onNav }) {
 function KpiCard({ label, value, sub, color, icon }) {
   return (
     <div style={{
-      background:'#111827',border:'1px solid #1e293b',borderRadius:14,
+      background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:14,
       padding:'20px 18px',position:'relative',overflow:'hidden',
+      boxShadow:'0 1px 3px rgba(0,0,0,.06)',
     }}>
       <div style={{
         position:'absolute',top:12,right:12,width:36,height:36,borderRadius:10,
-        background:`${color}12`,display:'flex',alignItems:'center',justifyContent:'center',
+        background:`${color}10`,display:'flex',alignItems:'center',justifyContent:'center',
       }}>{icon}</div>
       <div style={{ fontSize:11,color:'#64748b',fontWeight:600,textTransform:'uppercase',letterSpacing:'.3px',marginBottom:8 }}>{label}</div>
       <div style={{ fontSize:28,fontWeight:800,color,lineHeight:1 }}>{value}</div>
-      {sub && <div style={{ fontSize:11,color:'#475569',marginTop:6 }}>{sub}</div>}
+      {sub && <div style={{ fontSize:11,color:'#94a3b8',marginTop:6 }}>{sub}</div>}
     </div>
   );
 }
@@ -327,13 +328,13 @@ function KpiCard({ label, value, sub, color, icon }) {
 function QuickAction({ label, desc, color, onClick }) {
   return (
     <button onClick={onClick} style={{
-      background:'#111827',border:'1px solid #1e293b',borderRadius:12,
+      background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:12,
       padding:'16px 14px',cursor:'pointer',transition:'all .15s',textAlign:'left',
-      color:'#e2e8f0',display:'flex',flexDirection:'column',gap:4,
-      borderLeft:`3px solid ${color}`,
+      color:'#1e293b',display:'flex',flexDirection:'column',gap:4,
+      borderLeft:`3px solid ${color}`,boxShadow:'0 1px 3px rgba(0,0,0,.06)',
     }}
-      onMouseEnter={e=>{e.currentTarget.style.background='#1e293b';e.currentTarget.style.borderColor='#334155'}}
-      onMouseLeave={e=>{e.currentTarget.style.background='#111827';e.currentTarget.style.borderColor='#1e293b'}}
+      onMouseEnter={e=>{e.currentTarget.style.background='#F0F5FA';e.currentTarget.style.borderColor='#E2E8F0'}}
+      onMouseLeave={e=>{e.currentTarget.style.background='#ffffff';e.currentTarget.style.borderColor='#E2E8F0'}}
     >
       <div style={{ fontSize:13,fontWeight:600 }}>{label}</div>
       <div style={{ fontSize:11,color:'#64748b' }}>{desc}</div>
@@ -344,7 +345,8 @@ function QuickAction({ label, desc, color, onClick }) {
 function StatusCard({ title, children }) {
   return (
     <div style={{
-      background:'#111827',border:'1px solid #1e293b',borderRadius:14,padding:20,
+      background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:14,padding:20,
+      boxShadow:'0 1px 3px rgba(0,0,0,.06)',
     }}>
       <h4 style={{ margin:'0 0 16px',fontSize:13,fontWeight:600,color:'#94a3b8' }}>{title}</h4>
       <div style={{ display:'flex',flexDirection:'column',gap:12 }}>{children}</div>
@@ -360,7 +362,7 @@ function StatusRow({ label, value, color, total }) {
         <span style={{ fontSize:12,color:'#94a3b8' }}>{label}</span>
         <span style={{ fontSize:12,fontWeight:700,color }}>{value}</span>
       </div>
-      <div style={{ height:4,background:'#1e293b',borderRadius:2,overflow:'hidden' }}>
+      <div style={{ height:4,background:'#E2E8F0',borderRadius:2,overflow:'hidden' }}>
         <div style={{ height:'100%',width:`${pct}%`,background:color,borderRadius:2,transition:'width .5s' }} />
       </div>
     </div>

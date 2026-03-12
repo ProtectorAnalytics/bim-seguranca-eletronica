@@ -198,7 +198,7 @@ export default function ProjectListPage({onBack,onOpenProject}){
           <input type="text" className="search-input" placeholder="Buscar por nome ou cliente..." value={search} onChange={e=>setSearch(e.target.value)}/>
 
           {loadingCloud && (
-            <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',fontSize:12,color:'rgba(255,255,255,.5)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',fontSize:12,color:'#94a3b8'}}>
               <Loader2 size={14} className="spin"/> Carregando projetos da nuvem...
             </div>
           )}
@@ -212,7 +212,7 @@ export default function ProjectListPage({onBack,onOpenProject}){
                 <Cloud size={16} style={{verticalAlign:'middle',marginRight:6}}/>
                 Sincronizar projetos com a nuvem?
               </div>
-              <p style={{fontSize:12,color:'rgba(255,255,255,.6)',margin:'0 0 12px'}}>
+              <p style={{fontSize:12,color:'#64748b',margin:'0 0 12px'}}>
                 Voce tem {localProjects.filter(p=>!p.storageMode||p.storageMode==='local').length} projeto(s) local(is).
                 Deseja mover para a nuvem? Assim eles ficam seguros e acessiveis de qualquer lugar.
               </p>
@@ -221,7 +221,7 @@ export default function ProjectListPage({onBack,onOpenProject}){
                   background:'#046bd2',color:'#fff',border:'none',padding:'6px 16px',borderRadius:6,fontSize:12,cursor:'pointer'
                 }}>Sim, mover para nuvem</button>
                 <button onClick={()=>setShowMigrationDialog(false)} style={{
-                  background:'transparent',color:'rgba(255,255,255,.5)',border:'1px solid rgba(255,255,255,.15)',
+                  background:'transparent',color:'#94a3b8',border:'1px solid #E2E8F0',
                   padding:'6px 16px',borderRadius:6,fontSize:12,cursor:'pointer'
                 }}>Depois</button>
               </div>
@@ -229,7 +229,7 @@ export default function ProjectListPage({onBack,onOpenProject}){
           )}
 
           {filtered.length===0?(
-            <p style={{color:'rgba(255,255,255,.5)',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum projeto encontrado</p>
+            <p style={{color:'#94a3b8',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum projeto encontrado</p>
           ):(
             filtered.map(p=>(
               <div key={p.id} className="list-item" style={{position:'relative'}}>

@@ -21,7 +21,7 @@ export default function ClientListPage({onBack,onSelectClient}){
           <input type="text" className="search-input" placeholder="Buscar por nome..." value={search} onChange={e=>setSearch(e.target.value)}/>
 
           {filtered.length===0?(
-            <p style={{color:'rgba(255,255,255,.5)',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum cliente cadastrado</p>
+            <p style={{color:'#94a3b8',fontSize:12,textAlign:'center',padding:'20px'}}>Nenhum cliente cadastrado</p>
           ):(
             filtered.map(c=>(
               <div key={c.id} className="list-item">

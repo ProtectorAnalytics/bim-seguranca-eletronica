@@ -51,7 +51,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Sua Assinatura</h2>
-              <p style={{ margin: '2px 0 0', fontSize: 13, color: 'rgba(255,255,255,.45)' }}>
+              <p style={{ margin: '2px 0 0', fontSize: 13, color: '#94a3b8' }}>
                 Gerencie seu plano e licencas de acesso
               </p>
             </div>
@@ -59,7 +59,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
 
           {/* ── Current plan status card ── */}
           <div style={{
-            background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
+            background: '#ffffff', border: '1px solid #E2E8F0',
             borderRadius: 8, padding: 24, marginBottom: 24,
             boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08))',
           }}>
@@ -68,7 +68,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <div style={{
                     fontSize: 24, fontWeight: 800,
-                    color: colors[currentSlug] || '#e2e8f0',
+                    color: colors[currentSlug] || '#1e293b',
                   }}>
                     {limits.planName}
                   </div>
@@ -106,7 +106,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
                 <button
                   onClick={() => setShowRedeem(!showRedeem)}
                   style={{
-                    background: showRedeem ? '#334155' : '#22c55e', color: showRedeem ? '#e2e8f0' : '#000',
+                    background: showRedeem ? '#E2E8F0' : '#22c55e', color: showRedeem ? '#64748b' : '#000',
                     border: 'none', borderRadius: 6, padding: '10px 20px',
                     fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .2s',
                     display: 'flex', alignItems: 'center', gap: 6,
@@ -119,8 +119,8 @@ export default function SubscriptionPage({ onBack, onProfile }) {
                   <button
                     onClick={onProfile}
                     style={{
-                      background: 'rgba(255,255,255,.08)', color: '#e2e8f0',
-                      border: '1px solid rgba(255,255,255,.15)', borderRadius: 6,
+                      background: 'transparent', color: '#64748b',
+                      border: '1px solid #E2E8F0', borderRadius: 6,
                       padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 6,
                     }}
@@ -156,8 +156,8 @@ export default function SubscriptionPage({ onBack, onProfile }) {
               return (
                 <div key={p.id} className="anim-slide-up" style={{
                   flex: '1 1 260px', minWidth: 240,
-                  background: isCurrent ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)',
-                  border: `2px solid ${isCurrent ? borderColor : 'rgba(255,255,255,.08)'}`,
+                  background: isCurrent ? '#ffffff' : '#F0F5FA',
+                  border: `2px solid ${isCurrent ? borderColor : '#E2E8F0'}`,
                   borderRadius: 8, padding: 24, position: 'relative',
                   boxShadow: isCurrent ? `0 0 24px ${borderColor}22` : 'var(--shadow-xs, none)',
                   transition: 'all .2s',
@@ -171,7 +171,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
 
                   <div style={{ textAlign: 'center', marginBottom: 20 }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: borderColor }}>{p.name}</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: '#e2e8f0', marginTop: 6 }}>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: '#1e293b', marginTop: 6 }}>
                       {p.price_brl > 0 ? `R$ ${Number(p.price_brl).toFixed(2)}` : 'Gratis'}
                     </div>
                     {p.price_brl > 0 && <div style={{ fontSize: 12, color: '#64748b' }}>/mes</div>}
@@ -216,7 +216,7 @@ export default function SubscriptionPage({ onBack, onProfile }) {
 
           {/* ── Contact box ── */}
           <div style={{
-            marginTop: 24, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
+            marginTop: 24, background: '#ffffff', border: '1px solid #E2E8F0',
             borderRadius: 8, padding: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
           }}>
             <div style={{
