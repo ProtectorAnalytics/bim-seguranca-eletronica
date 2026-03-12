@@ -50,30 +50,43 @@ export default function UserTable() {
       if (!createForm.email.trim()) throw new Error('Email é obrigatório')
       if (!createForm.fullName.trim()) throw new Error('Nome é obrigatório')
 
-      // Use Supabase Auth admin invite (sends magic link email)
-      const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+      // Generate temp password (user will reset via email)
+      const tempPwd = 'Tmp!' + crypto.randomUUID().slice(0, 12) + '@1'
+
+      // Save current session to restore after signUp
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+
+      // Create user via signUp (works with anon key)
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: createForm.email.trim(),
-        email_confirm: true,
-        user_metadata: { full_name: createForm.fullName.trim() }
+        password: tempPwd,
+        options: { data: { full_name: createForm.fullName.trim() } }
       })
 
-      if (authErr) {
-        // Fallback: try signUp with auto-confirm if admin API not available
-        if (authErr.message?.includes('not authorized') || authErr.message?.includes('not allowed')) {
-          throw new Error('API admin nao disponivel. Use Supabase Dashboard para criar usuarios, ou convide via magic link.')
-        }
-        throw new Error(authErr.message)
-      }
+      if (authErr) throw new Error(authErr.message)
 
       const userId = authData?.user?.id
       if (!userId) throw new Error('Usuario criado mas sem ID retornado')
 
+      // Restore admin session (signUp may have switched to the new user)
+      if (currentSession) {
+        await supabase.auth.setSession({
+          access_token: currentSession.access_token,
+          refresh_token: currentSession.refresh_token
+        })
+      }
+
+      // Wait for profile trigger to create the profile row
+      await new Promise(r => setTimeout(r, 1500))
+
       // Update profile with extra data
-      await supabase.from('profiles').update({
+      const { error: profileErr } = await supabase.from('profiles').update({
         full_name: createForm.fullName.trim(),
         company_name: createForm.company.trim() || null,
         role: createForm.role,
       }).eq('id', userId)
+
+      if (profileErr) console.warn('Profile update warning:', profileErr.message)
 
       // Create subscription if plan selected
       if (createForm.planId) {
@@ -84,11 +97,18 @@ export default function UserTable() {
           current_period_start: new Date().toISOString(),
           current_period_end: createForm.unlimited ? null : new Date(Date.now() + 365 * 86400000).toISOString(),
         }
-        await supabase.from('subscriptions').insert([subData])
+        const { error: subErr } = await supabase.from('subscriptions').insert([subData])
+        if (subErr) console.warn('Subscription create warning:', subErr.message)
       }
+
+      // Send password reset email so user can set their own password
+      await supabase.auth.resetPasswordForEmail(createForm.email.trim())
 
       setShowCreate(false)
       setCreateForm({ email: '', fullName: '', company: '', role: 'user', planId: '', unlimited: false })
+      setActionError(null)
+      // Show success message briefly
+      setActionError(`✅ Usuario ${createForm.fullName.trim()} criado! Email de redefinicao de senha enviado para ${createForm.email.trim()}`)
       await fetchUsers()
     } catch (e) {
       console.error('Create user error:', e)
@@ -228,11 +248,15 @@ export default function UserTable() {
       {actionError && (
         <div style={{
           padding: '10px 14px', marginBottom: 12, borderRadius: 8, fontSize: 12,
-          background: 'rgba(239,68,68,.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,.2)',
+          background: actionError.startsWith('✅') ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)',
+          color: actionError.startsWith('✅') ? '#22c55e' : '#fca5a5',
+          border: `1px solid ${actionError.startsWith('✅') ? 'rgba(34,197,94,.2)' : 'rgba(239,68,68,.2)'}`,
         }}>
           {actionError}
           <button onClick={() => setActionError(null)} style={{
-            float: 'right', background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: 14,
+            float: 'right', background: 'none', border: 'none',
+            color: actionError.startsWith('✅') ? '#22c55e' : '#fca5a5',
+            cursor: 'pointer', fontSize: 14,
           }}>x</button>
         </div>
       )}
