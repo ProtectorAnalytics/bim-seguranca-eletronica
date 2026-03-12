@@ -221,9 +221,22 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-s
   margin:8px 8px 8px 0;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);z-index:20;
   transition:width .25s ease,margin .25s ease,opacity .25s ease}
 .right-panel.collapsed{width:0;margin-left:0;margin-right:0;padding:0;opacity:0;pointer-events:none;overflow:hidden}
-.rp-tabs{display:flex;border-bottom:1px solid var(--cinzaM)}
-.rp-tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza);transition:.15s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.rp-tab.active{color:var(--azul);border-color:var(--azul2)}
+.rp-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--cinzaM);padding:4px 4px 0;gap:2px}
+.rp-tab{display:flex;align-items:center;gap:4px;padding:7px 8px;font-size:10px;font-weight:600;
+  cursor:pointer;border-radius:6px 6px 0 0;color:#64748b;transition:.15s;white-space:nowrap;
+  border:1px solid transparent;border-bottom:none;position:relative}
+.rp-tab:hover{background:#f1f5f9;color:#475569}
+.rp-tab.active{background:#eff6ff;color:var(--azul);border-color:#dbeafe}
+.rp-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--azul2);border-radius:2px 2px 0 0}
+.rp-tab svg{flex-shrink:0;opacity:.7}
+.rp-tab.active svg{opacity:1}
+.rp-tab span{line-height:1}
+.rp-tab-close{padding:7px 6px;color:#94a3b8}
+.rp-tab-close:hover{color:var(--vermelho);background:#fef2f2}
+.rp-badge{font-size:8px;font-weight:700;color:#fff;background:var(--azul2);
+  padding:1px 5px;border-radius:8px;line-height:1.3;min-width:14px;text-align:center}
+.rp-badge-green{background:#16a34a}
+.rp-badge-red{background:var(--vermelho)}
 .rp-content{flex:1;overflow-y:auto;padding:14px}
 
 /* RACK PANEL */
@@ -433,7 +446,9 @@ tr.rack-face-free td{color:#cbd5e1}
   /* Canvas: narrower panels */
   .left-panel{width:220px;margin:6px 0 6px 6px}
   .right-panel{width:300px;margin:6px 6px 6px 0}
-  .rp-tab,.lp-tab{font-size:10px;padding:6px 2px}
+  .rp-tab{font-size:9px;padding:5px 6px}
+  .rp-tab svg{width:13px;height:13px}
+  .lp-tab{font-size:10px;padding:6px 2px}
   .prop-row .pr-label{width:100px;font-size:12px}
   .toolbar{padding:0 8px;gap:6px}
   .tool-group{padding:0 4px}

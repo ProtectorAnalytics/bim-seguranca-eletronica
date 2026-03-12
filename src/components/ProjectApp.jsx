@@ -23,6 +23,10 @@ import {
   calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings,
   isValidIPv4, isValidVLAN
 } from '@/lib/helpers';
+import {
+  SlidersHorizontal, Server, LayoutGrid, GitBranch,
+  ClipboardList, ShieldCheck, Zap, PanelRightClose
+} from 'lucide-react';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
 import EquipmentRepoModal from './EquipmentRepoModal';
@@ -2324,33 +2328,47 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         {/* RIGHT PANEL */}
         <div className={`right-panel ${!rightPanelOpen?(isSmallScreen?'responsive-collapsed':'collapsed'):''}`}>
           <div className="rp-tabs">
-            <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}>
-              {selectedDev?'Props':'Info'}
+            <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}
+              title={selectedDev?'Propriedades':'Informações'}>
+              <SlidersHorizontal size={15} strokeWidth={2}/>
+              <span>{selectedDev?'Props':'Info'}</span>
             </div>
-            <div className={`rp-tab ${rightTab==='rack'?'active':''}`} onClick={()=>setRightTab('rack')}>
-              Rack {racks.length>0&&<span style={{background:'var(--azul2)',color:'#fff',
-                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{racks.length}</span>}
+            <div className={`rp-tab ${rightTab==='rack'?'active':''}`} onClick={()=>setRightTab('rack')}
+              title="Racks">
+              <Server size={15} strokeWidth={2}/>
+              <span>Rack</span>
+              {racks.length>0&&<span className="rp-badge">{racks.length}</span>}
             </div>
-            <div className={`rp-tab ${rightTab==='quadro'?'active':''}`} onClick={()=>setRightTab('quadro')}>
-              Quadro {quadros.length>0&&<span style={{background:'#16a34a',color:'#fff',
-                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{quadros.length}</span>}
+            <div className={`rp-tab ${rightTab==='quadro'?'active':''}`} onClick={()=>setRightTab('quadro')}
+              title="Quadros de Conectividade">
+              <LayoutGrid size={15} strokeWidth={2}/>
+              <span>Quadro</span>
+              {quadros.length>0&&<span className="rp-badge rp-badge-green">{quadros.length}</span>}
             </div>
-            <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}>
-              Topo
+            <div className={`rp-tab ${rightTab==='topology'?'active':''}`} onClick={()=>setRightTab('topology')}
+              title="Topologia de Rede">
+              <GitBranch size={15} strokeWidth={2}/>
+              <span>Topo</span>
             </div>
-            <div className={`rp-tab ${rightTab==='equipment'?'active':''}`} onClick={()=>setRightTab('equipment')}>
-              Materiais
+            <div className={`rp-tab ${rightTab==='equipment'?'active':''}`} onClick={()=>setRightTab('equipment')}
+              title="Lista de Materiais">
+              <ClipboardList size={15} strokeWidth={2}/>
+              <span>Materiais</span>
             </div>
-            <div className={`rp-tab ${rightTab==='validation'?'active':''}`} onClick={()=>setRightTab('validation')}>
-              Válid. {validations.length>0&&<span style={{background:'var(--vermelho)',color:'#fff',
-                borderRadius:8,padding:'0 5px',fontSize:9,marginLeft:3}}>{validations.length}</span>}
+            <div className={`rp-tab ${rightTab==='validation'?'active':''}`} onClick={()=>setRightTab('validation')}
+              title="Validação do Projeto">
+              <ShieldCheck size={15} strokeWidth={2}/>
+              <span>Válid.</span>
+              {validations.length>0&&<span className="rp-badge rp-badge-red">{validations.length}</span>}
             </div>
-            <div className={`rp-tab ${rightTab==='unifilar'?'active':''}`} onClick={()=>setRightTab('unifilar')}>
-              Unifilar
+            <div className={`rp-tab ${rightTab==='unifilar'?'active':''}`} onClick={()=>setRightTab('unifilar')}
+              title="Diagrama Unifilar">
+              <Zap size={15} strokeWidth={2}/>
+              <span>Unifilar</span>
             </div>
-            <button onClick={toggleRightPanel} title="Esconder painel"
-              style={{width:28,padding:0,background:'transparent',border:'none',cursor:'pointer',
-                fontSize:14,color:'var(--cinza)',flexShrink:0}}>»</button>
+            <div className="rp-tab rp-tab-close" onClick={toggleRightPanel} title="Esconder painel">
+              <PanelRightClose size={15} strokeWidth={2}/>
+            </div>
           </div>
           <div className="rp-content">
             {/* RACK PANEL */}
