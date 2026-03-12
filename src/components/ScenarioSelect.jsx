@@ -6,9 +6,8 @@ export default function ScenarioSelect({clientData,storageMode,onStorageModeChan
   const displayName=clientData.razaoSocial||clientData.nome||'Cliente';
   return (
     <div className="landing">
-      <div className="landing-logo">PROTECTOR SISTEMAS</div>
-      <div className="landing-title">BIM Segurança Eletrônica</div>
-      <div style={{fontSize:11,color:'var(--cinza)',marginTop:-8,marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
+      <img src="/logo-proti.png" alt="Protector" style={{height:48,marginBottom:8,filter:'drop-shadow(0 2px 8px rgba(0,0,0,.15))'}}/>
+      <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
       <div style={{fontSize:13,color:'var(--laranja)',marginBottom:4,fontWeight:600}}>{displayName}</div>
       <div className="landing-sub">Selecione o cenário do projeto</div>
 

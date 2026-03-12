@@ -69,8 +69,6 @@ export default function LoginPage() {
         <img src="/logo-proti.png" alt="Protector Sistemas" style={{
           height: 56, marginBottom: 12, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.3))'
         }} />
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '0.5px', color: '#fff' }}>PROTECTOR SISTEMAS</h1>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', margin: '4px 0' }}>BIM Seguranca Eletronica</p>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>{APP_VERSION.label}</div>
       </div>
 

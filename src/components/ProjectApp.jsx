@@ -1218,8 +1218,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     <div className="app-shell">
       {/* ===== TOP BAR ===== */}
       <div className="app-topbar">
-        <img src="/logo-proti.png" alt="P" style={{height:28,marginRight:4,filter:'brightness(1.1)'}}/>
-        <span className="logo">PROTECTOR</span>
+        <img src="/logo-proti.png" alt="Protector" style={{height:28,marginRight:4,filter:'brightness(1.1)'}}/>
         <span style={{fontSize:9,opacity:.4,marginLeft:-8}}>{APP_VERSION.full}</span>
         <span style={{width:1,height:24,background:'var(--cinzaM)'}}/>
         <input value={project.name} onChange={e=>setProject(p=>({...p,name:e.target.value}))}
