@@ -27,7 +27,9 @@ export function useSubscription() {
   const daysLeft = neverExpires ? Infinity
     : isTrialing && subscription?.trial_ends_at
       ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at) - new Date()) / 86400000))
-      : null
+      : status === 'active' && subscription?.current_period_end
+        ? Math.max(0, Math.ceil((new Date(subscription.current_period_end) - new Date()) / 86400000))
+        : null
 
   // -1 nos planos = ilimitado
   const maxProjects = plan?.max_projects === -1 ? Infinity : (plan?.max_projects ?? 1)

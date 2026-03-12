@@ -76,17 +76,20 @@ export default function UserTable() {
         })
       }
 
-      // Wait for profile trigger to create the profile row
-      await new Promise(r => setTimeout(r, 1500))
-
-      // Update profile with extra data
-      const { error: profileErr } = await supabase.from('profiles').update({
-        full_name: createForm.fullName.trim(),
-        company_name: createForm.company.trim() || null,
-        role: createForm.role,
-      }).eq('id', userId)
-
-      if (profileErr) console.warn('Profile update warning:', profileErr.message)
+      // Wait for profile trigger, then update — retry up to 5x (500ms each)
+      let profileErr = null
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(r => setTimeout(r, 600))
+        const { error: pErr } = await supabase.from('profiles').update({
+          full_name: createForm.fullName.trim(),
+          company_name: createForm.company.trim() || null,
+          role: createForm.role,
+        }).eq('id', userId)
+        if (!pErr) { profileErr = null; break }
+        profileErr = pErr
+        console.warn(`Profile update attempt ${attempt + 1} failed:`, pErr.message)
+      }
+      if (profileErr) console.warn('Profile update failed after retries:', profileErr.message)
 
       // Create subscription if plan selected
       if (createForm.planId) {

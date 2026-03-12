@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { ErrorFallback } from '../AdminPage'
 
-const COLORS = { gratis: '#94a3b8', basico: '#3b82f6', pro: '#f59e0b' }
+// Dynamic color palette — known slugs + hash-based for custom plans
+const KNOWN_COLORS = { gratis: '#94a3b8', basico: '#3b82f6', pro: '#f59e0b' }
+const PALETTE = ['#8b5cf6','#ec4899','#06b6d4','#14b8a6','#f97316','#6366f1','#84cc16','#a855f7','#ef4444','#0ea5e9']
+function slugColor(slug) {
+  if (KNOWN_COLORS[slug]) return KNOWN_COLORS[slug]
+  let h = 0; for (let i = 0; i < slug.length; i++) h = ((h << 5) - h + slug.charCodeAt(i)) | 0
+  return PALETTE[Math.abs(h) % PALETTE.length]
+}
 
 /* ─── SVG Icons ─── */
 const EditIcon = () => (
@@ -71,7 +78,7 @@ function PlanCard({ plan, isEditing, onEdit, onSave, onCancel, onDelete, saveErr
   // Reset form when plan data changes or editing state changes
   useEffect(() => { setForm({ ...plan }) }, [plan, isEditing])
 
-  const color = COLORS[plan.slug] || '#94a3b8'
+  const color = slugColor(plan.slug)
 
   return (
     <div style={{ ...cardStyle, borderColor: color }}>
@@ -228,6 +235,8 @@ export default function PlanEditor() {
       if (!supabase) throw new Error('Supabase nao configurado')
       if (!createForm.name.trim()) throw new Error('Nome é obrigatório')
       if (!createForm.slug.trim()) throw new Error('Slug é obrigatório')
+      if (createForm.slug.trim().length < 3) throw new Error('Slug deve ter pelo menos 3 caracteres')
+      if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(createForm.slug.trim())) throw new Error('Slug deve começar/terminar com letra ou número (ex: meu-plano)')
       const { error: insertErr } = await supabase.from('plans').insert([{
         ...createForm,
         price_brl: Number(createForm.price_brl) || 0,
@@ -252,7 +261,11 @@ export default function PlanEditor() {
     try {
       if (!supabase) throw new Error('Supabase nao configurado')
       const { error: delErr } = await supabase.from('plans').delete().eq('id', planId)
-      if (delErr) throw new Error(delErr.message)
+      if (delErr) {
+        if (delErr.message?.includes('violates foreign key') || delErr.code === '23503')
+          throw new Error('Este plano possui assinaturas ativas. Remova ou altere as assinaturas antes de excluir.')
+        throw new Error(delErr.message)
+      }
       await fetchPlans()
     } catch (e) {
       console.error('Delete plan error:', e)
