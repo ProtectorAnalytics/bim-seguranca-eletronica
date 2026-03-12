@@ -196,78 +196,58 @@ export function AuthProvider({ children }) {
   }
 
   // ── Auth state listener ──
+  // Single-trigger design: onAuthStateChange(INITIAL_SESSION) handles the first
+  // load. getSession() is NOT used as a fetch trigger — this eliminates the race
+  // condition where two parallel fetchUserData calls compete and one is silently
+  // skipped while setLoading(false) fires prematurely.
   useEffect(() => {
     if (!supabase) {
       setLoading(false)
       return
     }
 
-    const safetyTimer = setTimeout(async () => {
-      console.warn('[auth] Safety timeout 12s')
-      // If profile still not loaded, build a fallback from the JWT
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user && !profile) {
-          const fallback = buildFallbackProfile(session.user)
-          setProfile(fallback)
-          setAuthDebug('Timeout carregando perfil — dados basicos do JWT')
-          console.warn('[auth] Fallback profile set from JWT')
-        }
-      } catch (e) {
-        console.error('[auth] Safety fallback error:', e)
-      }
+    // Safety net: if nothing resolves auth within 10s, force loading=false
+    const safetyTimer = setTimeout(() => {
+      console.warn('[auth] Safety timeout 10s — forcing loading=false')
       setLoading(false)
-    }, 12000)
+    }, 10000)
 
-    let initialFetchDone = false
+    let didFetch = false
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null
-      console.log('[auth] getSession:', currentUser ? currentUser.email : 'no user')
-      setUser(currentUser)
-      if (currentUser) {
-        initialFetchDone = true
-        fetchUserData(currentUser).finally(() => {
-          clearTimeout(safetyTimer)
-          setLoading(false)
-        })
-      } else {
-        clearTimeout(safetyTimer)
-        setLoading(false)
-      }
-    }).catch(err => {
-      console.error('[auth] getSession error:', err)
-      clearTimeout(safetyTimer)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[auth] onAuthStateChange:', event, session?.user?.email)
+        console.log('[auth] Event:', event, session?.user?.email)
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
-        if (currentUser) {
-          // Skip duplicate events during initial load (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED)
-          if (initialFetchDone && ['INITIAL_SESSION', 'SIGNED_IN', 'TOKEN_REFRESHED'].includes(event)) {
-            console.log(`[auth] Skip duplicate ${event}`)
-            return  // don't touch loading — getSession handler controls it
-          }
-          initialFetchDone = true
-          await fetchUserData(currentUser)
-          setLoading(false)
-        } else {
+        // Token refresh doesn't change profile — skip
+        if (event === 'TOKEN_REFRESHED') return
+
+        // Sign-out: reset state so next sign-in triggers a fresh fetch
+        if (event === 'SIGNED_OUT' || !currentUser) {
+          didFetch = false
           setProfile(null)
           setSubscription(null)
           setPlan(null)
+          clearTimeout(safetyTimer)
           setLoading(false)
+          return
         }
+
+        // Prevent duplicate fetches (INITIAL_SESSION + SIGNED_IN can fire back-to-back)
+        if (didFetch) {
+          console.log(`[auth] Skip duplicate ${event}`)
+          return
+        }
+        didFetch = true
+
+        await fetchUserData(currentUser)
+        clearTimeout(safetyTimer)
+        setLoading(false)
       }
     )
 
-    return () => authSub?.unsubscribe()
+    return () => { clearTimeout(safetyTimer); authSub?.unsubscribe() }
   }, [])
 
   async function signIn(email, password) {
