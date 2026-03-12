@@ -33,15 +33,9 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
         {/* ── Header ── */}
         <div className="dashboard-header">
           <div className="dh-left">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              <img src="/logo-proti.png" alt="Protector" style={{
-                height: 44, flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.2))'
-              }} />
-              <div>
-                <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>PROTECTOR</h1>
-                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>BIM Seguranca Eletronica</p>
-              </div>
-            </div>
+            <img src="/logo-proti.png" alt="Protector" style={{
+              height: 48, flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.15))'
+            }} />
             <div className="dh-version">{APP_VERSION.label}</div>
           </div>
 

@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
       id: authUser.id,
       email: authUser.email,
       full_name: authUser.user_metadata?.full_name || authUser.email,
-      role: 'user',
+      role: authUser.app_metadata?.role || 'user',
       _fallback: true,
     }
   }
