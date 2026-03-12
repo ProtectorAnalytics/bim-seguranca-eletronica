@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   const boxStyle = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    height: '100vh', background: 'linear-gradient(160deg, #046BD2 0%, #045cb4 50%, #033d7a 100%)',
+    height: '100vh', background: '#F0F5FA',
     color: '#1e293b', fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
   }
   const cardStyle = {
@@ -69,7 +69,7 @@ export default function LoginPage() {
         <img src="/logo-proti.png" alt="Protector Sistemas" style={{
           height: 56, marginBottom: 12, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.3))'
         }} />
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>{APP_VERSION.label}</div>
+        <div style={{ fontSize: 11, color: '#94a3b8' }}>{APP_VERSION.label}</div>
       </div>
 
       <div style={cardStyle}>

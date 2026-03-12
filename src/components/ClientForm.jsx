@@ -106,9 +106,9 @@ export default function ClientForm({data,setData,onNext,onBack}){
         <div style={{display:'flex',gap:8,marginBottom:16}}>
           {[{id:'pj',label:'Pessoa Jurídica'},{id:'pf',label:'Pessoa Física'}].map(t=>(
             <button key={t.id} onClick={()=>upd('tipo',t.id)}
-              style={{flex:1,padding:'8px',borderRadius:8,border:`2px solid ${data.tipo===t.id?'var(--laranja)':'rgba(255,255,255,.12)'}`,
-                background:data.tipo===t.id?'rgba(241,196,15,.12)':'transparent',
-                color:data.tipo===t.id?'var(--laranja)':'rgba(255,255,255,.5)',
+              style={{flex:1,padding:'8px',borderRadius:8,border:`2px solid ${data.tipo===t.id?'var(--azul)':'var(--cinzaM)'}`,
+                background:data.tipo===t.id?'rgba(4,107,210,.08)':'var(--branco)',
+                color:data.tipo===t.id?'var(--azul)':'#64748b',
                 fontSize:11,fontWeight:700,cursor:'pointer',transition:'.2s'}}>
               {t.id==='pj'?'🏢':'👤'} {t.label}
             </button>
@@ -143,9 +143,9 @@ export default function ClientForm({data,setData,onNext,onBack}){
                 placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
               {data.tipo==='pj'&&(
                 <button onClick={()=>fetchCNPJ(data.cnpj)} disabled={cnpjLoading||data.cnpj.replace(/\D/g,'').length!==14}
-                  style={{padding:'0 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.15)',
-                    background:cnpjLoading?'rgba(255,255,255,.05)':'rgba(241,196,15,.15)',
-                    color:cnpjLoading?'rgba(255,255,255,.3)':'var(--laranja)',fontSize:10,fontWeight:700,
+                  style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--cinzaM)',
+                    background:cnpjLoading?'#f8fafc':'rgba(4,107,210,.06)',
+                    color:cnpjLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
                     cursor:cnpjLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
                   {cnpjLoading?'⏳':'🔍'} Buscar
                 </button>
@@ -188,9 +188,9 @@ export default function ClientForm({data,setData,onNext,onBack}){
                 }}
                 placeholder="00000-000"/>
               <button onClick={()=>fetchCEP(data.cep)} disabled={cepLoading||data.cep.replace(/\D/g,'').length!==8}
-                style={{padding:'0 10px',borderRadius:8,border:'1px solid rgba(255,255,255,.15)',
-                  background:cepLoading?'rgba(255,255,255,.05)':'rgba(241,196,15,.15)',
-                  color:cepLoading?'rgba(255,255,255,.3)':'var(--laranja)',fontSize:10,fontWeight:700,
+                style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--cinzaM)',
+                  background:cepLoading?'#f8fafc':'rgba(4,107,210,.06)',
+                  color:cepLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
                   cursor:cepLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
                 {cepLoading?'⏳':'🔍'}
               </button>
