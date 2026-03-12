@@ -11,22 +11,27 @@ const RefreshIcon = () => (
 
 export default function UserTable() {
   const [users, setUsers] = useState([])
+  const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
-  const [confirmingRole, setConfirmingRole] = useState(null) // userId being confirmed
+  const [confirmingRole, setConfirmingRole] = useState(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState({ email: '', fullName: '', company: '', role: 'user', planId: '', unlimited: false })
+  const [creating, setCreating] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
     setError(null)
     try {
       if (!supabase) throw new Error('Supabase nao configurado')
-      const { data, error: fetchErr } = await supabase
-        .from('profiles')
-        .select('*, subscriptions(*, plans(*))')
-        .order('created_at', { ascending: false })
-      if (fetchErr) throw new Error(fetchErr.message)
-      setUsers(data || [])
+      const [usersRes, plansRes] = await Promise.all([
+        supabase.from('profiles').select('*, subscriptions(*, plans(*))').order('created_at', { ascending: false }),
+        supabase.from('plans').select('*').order('price_brl')
+      ])
+      if (usersRes.error) throw new Error(usersRes.error.message)
+      setUsers(usersRes.data || [])
+      setPlans(plansRes.data || [])
     } catch (e) {
       console.error('UserTable fetch error:', e)
       setError(e.message || 'Erro ao carregar usuarios')
@@ -36,6 +41,79 @@ export default function UserTable() {
   }
 
   useEffect(() => { fetchUsers() }, [])
+
+  const createUser = async () => {
+    setCreating(true)
+    setActionError(null)
+    try {
+      if (!supabase) throw new Error('Supabase nao configurado')
+      if (!createForm.email.trim()) throw new Error('Email é obrigatório')
+      if (!createForm.fullName.trim()) throw new Error('Nome é obrigatório')
+
+      // Use Supabase Auth admin invite (sends magic link email)
+      const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+        email: createForm.email.trim(),
+        email_confirm: true,
+        user_metadata: { full_name: createForm.fullName.trim() }
+      })
+
+      if (authErr) {
+        // Fallback: try signUp with auto-confirm if admin API not available
+        if (authErr.message?.includes('not authorized') || authErr.message?.includes('not allowed')) {
+          throw new Error('API admin nao disponivel. Use Supabase Dashboard para criar usuarios, ou convide via magic link.')
+        }
+        throw new Error(authErr.message)
+      }
+
+      const userId = authData?.user?.id
+      if (!userId) throw new Error('Usuario criado mas sem ID retornado')
+
+      // Update profile with extra data
+      await supabase.from('profiles').update({
+        full_name: createForm.fullName.trim(),
+        company_name: createForm.company.trim() || null,
+        role: createForm.role,
+      }).eq('id', userId)
+
+      // Create subscription if plan selected
+      if (createForm.planId) {
+        const subData = {
+          user_id: userId,
+          plan_id: createForm.planId,
+          status: 'active',
+          current_period_start: new Date().toISOString(),
+          current_period_end: createForm.unlimited ? null : new Date(Date.now() + 365 * 86400000).toISOString(),
+        }
+        await supabase.from('subscriptions').insert([subData])
+      }
+
+      setShowCreate(false)
+      setCreateForm({ email: '', fullName: '', company: '', role: 'user', planId: '', unlimited: false })
+      await fetchUsers()
+    } catch (e) {
+      console.error('Create user error:', e)
+      setActionError(`Erro ao criar usuario: ${e.message}`)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const createSubscriptionForUser = async (userId, planId) => {
+    setActionError(null)
+    try {
+      const { error: insertErr } = await supabase.from('subscriptions').insert([{
+        user_id: userId,
+        plan_id: planId,
+        status: 'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 365 * 86400000).toISOString(),
+      }])
+      if (insertErr) throw new Error(insertErr.message)
+      await fetchUsers()
+    } catch (e) {
+      setActionError(`Erro: ${e.message}`)
+    }
+  }
 
   const toggleRole = async (userId, currentRole) => {
     const newRole = currentRole === 'admin' ? 'user' : 'admin'
@@ -56,6 +134,10 @@ export default function UserTable() {
 
   const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0' }
   const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748b', textAlign: 'left', background: '#F0F5FA' }
+  const inputSt = {
+    width: '100%', padding: '6px 8px', background: '#F0F5FA', border: '1px solid #E2E8F0',
+    borderRadius: 6, color: '#1e293b', fontSize: 12, boxSizing: 'border-box'
+  }
 
   if (loading) return <div style={{ color: '#94a3b8', padding: 20 }}>Carregando usuarios...</div>
   if (error) return <ErrorFallback error={error} onRetry={fetchUsers} />
@@ -64,14 +146,84 @@ export default function UserTable() {
     <div style={{ overflowX: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 13, color: '#94a3b8' }}>{users.length} usuario(s)</span>
-        <button onClick={fetchUsers} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: '#046BD2', color: '#fff', border: 'none', borderRadius: 6,
-          padding: '6px 12px', fontSize: 11, cursor: 'pointer',
-        }}>
-          <RefreshIcon /> Atualizar
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => { setShowCreate(true); setActionError(null) }} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#22c55e', color: '#000', border: 'none', borderRadius: 6,
+            padding: '6px 14px', fontSize: 11, cursor: 'pointer', fontWeight: 600,
+          }}>
+            + Criar Usuario
+          </button>
+          <button onClick={fetchUsers} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#046BD2', color: '#fff', border: 'none', borderRadius: 6,
+            padding: '6px 12px', fontSize: 11, cursor: 'pointer',
+          }}>
+            <RefreshIcon /> Atualizar
+          </button>
+        </div>
       </div>
+
+      {/* ── Create User Form ── */}
+      {showCreate && (
+        <div style={{
+          background: '#ffffff', border: '2px solid #22c55e', borderRadius: 10, padding: 20,
+          marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8
+        }}>
+          <h4 style={{ margin: '0 0 4px', fontSize: 14, color: '#22c55e' }}>Novo Usuário</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div>
+              <label style={{ fontSize: 11, color: '#94a3b8' }}>Nome completo *</label>
+              <input style={inputSt} placeholder="João Silva" value={createForm.fullName}
+                onChange={e => setCreateForm({ ...createForm, fullName: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#94a3b8' }}>Email *</label>
+              <input type="email" style={inputSt} placeholder="email@empresa.com" value={createForm.email}
+                onChange={e => setCreateForm({ ...createForm, email: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#94a3b8' }}>Empresa</label>
+              <input style={inputSt} placeholder="Nome da empresa" value={createForm.company}
+                onChange={e => setCreateForm({ ...createForm, company: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#94a3b8' }}>Role</label>
+              <select style={inputSt} value={createForm.role}
+                onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#94a3b8' }}>Plano (opcional)</label>
+              <select style={inputSt} value={createForm.planId}
+                onChange={e => setCreateForm({ ...createForm, planId: e.target.value })}>
+                <option value="">— Sem plano —</option>
+                {plans.map(p => <option key={p.id} value={p.id}>{p.name} (R$ {Number(p.price_brl).toFixed(2)})</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 18 }}>
+              <label style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input type="checkbox" checked={createForm.unlimited}
+                  onChange={e => setCreateForm({ ...createForm, unlimited: e.target.checked })} />
+                Assinatura sem validade (∞)
+              </label>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={createUser} disabled={creating} style={{
+              background: '#22c55e', color: '#000', border: 'none', borderRadius: 6,
+              padding: '8px 20px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              opacity: creating ? 0.6 : 1,
+            }}>{creating ? 'Criando...' : 'Criar Usuário'}</button>
+            <button onClick={() => setShowCreate(false)} style={{
+              background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 6,
+              padding: '8px 20px', fontSize: 12, cursor: 'pointer'
+            }}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       {actionError && (
         <div style={{
@@ -129,25 +281,39 @@ export default function UserTable() {
                   {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}
                 </td>
                 <td style={cellStyle}>
-                  {isConfirming ? (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => toggleRole(u.id, u.role)} style={{
-                        background: '#22c55e', color: '#000', border: 'none', borderRadius: 4,
-                        padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
-                      }}>Sim</button>
-                      <button onClick={() => setConfirmingRole(null)} style={{
-                        background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
-                        padding: '3px 8px', fontSize: 10, cursor: 'pointer',
-                      }}>Nao</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmingRole(u.id)} style={{
-                      background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
-                      padding: '3px 8px', fontSize: 10, cursor: 'pointer'
-                    }}>
-                      {u.role === 'admin' ? 'Rebaixar' : 'Promover'}
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {isConfirming ? (
+                      <>
+                        <button onClick={() => toggleRole(u.id, u.role)} style={{
+                          background: '#22c55e', color: '#000', border: 'none', borderRadius: 4,
+                          padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
+                        }}>Sim</button>
+                        <button onClick={() => setConfirmingRole(null)} style={{
+                          background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
+                          padding: '3px 8px', fontSize: 10, cursor: 'pointer',
+                        }}>Nao</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setConfirmingRole(u.id)} style={{
+                          background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4,
+                          padding: '3px 8px', fontSize: 10, cursor: 'pointer'
+                        }}>
+                          {u.role === 'admin' ? 'Rebaixar' : 'Promover'}
+                        </button>
+                        {!sub && plans.length > 0 && (
+                          <select onChange={e => { if (e.target.value) createSubscriptionForUser(u.id, e.target.value); e.target.value = '' }}
+                            defaultValue="" style={{
+                              background: '#046BD2', color: '#fff', border: 'none', borderRadius: 4,
+                              padding: '3px 6px', fontSize: 10, cursor: 'pointer'
+                            }}>
+                            <option value="" disabled>+ Assinatura</option>
+                            {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             )

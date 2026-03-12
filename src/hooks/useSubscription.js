@@ -20,12 +20,14 @@ export function useSubscription() {
 
   const status = subscription?.status
   const isTrialing = status === 'trialing'
+  const neverExpires = subscription?.current_period_end === null && status === 'active'
   const isActive = status === 'active' || isTrialing
-  const isExpired = ['expired', 'cancelled', 'suspended'].includes(status)
+  const isExpired = !neverExpires && ['expired', 'cancelled', 'suspended'].includes(status)
 
-  const daysLeft = isTrialing && subscription?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at) - new Date()) / 86400000))
-    : null
+  const daysLeft = neverExpires ? Infinity
+    : isTrialing && subscription?.trial_ends_at
+      ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at) - new Date()) / 86400000))
+      : null
 
   // -1 nos planos = ilimitado
   const maxProjects = plan?.max_projects === -1 ? Infinity : (plan?.max_projects ?? 1)

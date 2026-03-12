@@ -73,6 +73,22 @@ export default function SubscriptionManager() {
     await updateSub(sub.id, { trial_ends_at: newEnd.toISOString(), status: 'trialing' })
   }
 
+  const setNeverExpires = async (sub) => {
+    setConfirmAction(null)
+    await updateSub(sub.id, {
+      status: 'active',
+      current_period_end: null,
+      current_period_start: sub.current_period_start || new Date().toISOString()
+    })
+  }
+
+  const extendPeriod = async (sub, days) => {
+    setConfirmAction(null)
+    const base = sub.current_period_end ? new Date(sub.current_period_end) : new Date()
+    base.setDate(base.getDate() + days)
+    await updateSub(sub.id, { current_period_end: base.toISOString(), status: 'active' })
+  }
+
   const filtered = filter === 'all' ? subs : subs.filter(s => s.status === filter)
   const cellStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0' }
   const thStyle = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748b', textAlign: 'left', background: '#F0F5FA' }
@@ -147,7 +163,9 @@ export default function SubscriptionManager() {
                   <td style={{ ...cellStyle, fontSize: 10, color: '#94a3b8' }}>
                     {s.current_period_start ? new Date(s.current_period_start).toLocaleDateString('pt-BR') : '—'}
                     {' → '}
-                    {s.current_period_end ? new Date(s.current_period_end).toLocaleDateString('pt-BR') : '—'}
+                    {s.current_period_end ? new Date(s.current_period_end).toLocaleDateString('pt-BR') : (
+                      <span style={{ color: '#22c55e', fontWeight: 700 }}>∞ sem validade</span>
+                    )}
                   </td>
                   <td style={cellStyle}>
                     {isConfirming ? (
@@ -157,6 +175,7 @@ export default function SubscriptionManager() {
                           if (confirmAction.action === 'activate') changeStatus(s, 'active')
                           else if (confirmAction.action === 'suspend') changeStatus(s, 'suspended')
                           else if (confirmAction.action === 'extend') extendTrial(s, 14)
+                          else if (confirmAction.action === 'never_expires') setNeverExpires(s)
                         }} style={{
                           background: '#22c55e', color: '#000', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
                         }}>Sim</button>
@@ -180,6 +199,19 @@ export default function SubscriptionManager() {
                           <button onClick={() => setConfirmAction({ subId: s.id, action: 'extend', label: '+14 dias' })} style={{
                             background: '#f59e0b', color: '#000', border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 10, cursor: 'pointer'
                           }}>+14 dias</button>
+                        )}
+                        {s.current_period_end && (
+                          <>
+                            <button onClick={() => setConfirmAction({ subId: s.id, action: 'never_expires', label: '∞ Sem validade' })} style={{
+                              background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 10, cursor: 'pointer'
+                            }}>∞</button>
+                            <button onClick={() => extendPeriod(s, 30)} style={{
+                              background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4, padding: '3px 6px', fontSize: 10, cursor: 'pointer'
+                            }}>+30d</button>
+                            <button onClick={() => extendPeriod(s, 365)} style={{
+                              background: '#F0F5FA', color: '#64748b', border: 'none', borderRadius: 4, padding: '3px 6px', fontSize: 10, cursor: 'pointer'
+                            }}>+1a</button>
+                          </>
                         )}
                       </div>
                     )}
