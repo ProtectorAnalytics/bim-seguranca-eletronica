@@ -15,7 +15,7 @@ import {
   isSensorZona, needsPoE, needsACPower, needsDCPower, needsIPConfig,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
-  canMountInRack, canMountInQuadro, canMountInQuadroEletrico, getDeviceUSize,
+  canMountInRack, canMountInQuadro, getDeviceUSize,
   getSwitchPorts
 } from '@/data/device-interfaces';
 import {
@@ -24,14 +24,12 @@ import {
   calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings,
   isValidIPv4, isValidVLAN
 } from '@/lib/helpers';
-import TopoNode from './TopoNode';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
 import EquipmentRepoModal from './EquipmentRepoModal';
 import DeviceCatalog from './DeviceCatalog';
 import CablePropertiesPanel from './CablePropertiesPanel';
 import RackPanel from './RackPanel';
-import EnvironmentFilterBar from './EnvironmentFilterBar';
 import ToolbarPanel from './ToolbarPanel';
 import ValidationPanel from './ValidationPanel';
 import TopologyPanel from './TopologyPanel';
@@ -119,6 +117,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Panel toggle helpers
   const toggleLeftPanel=()=>{const next=!leftPanelOpen;setLeftPanelOpen(next);saveSettings({...getSettings(),leftPanelOpen:next})};
   const toggleRightPanel=()=>{const next=!rightPanelOpen;setRightPanelOpen(next);saveSettings({...getSettings(),rightPanelOpen:next})};
+
+  // Responsive: auto-collapse panels on small screens
+  const [isSmallScreen,setIsSmallScreen]=useState(()=>typeof window!=='undefined'&&window.innerWidth<=768);
+  useEffect(()=>{
+    const mq=window.matchMedia('(max-width:768px)');
+    const handler=(e)=>{
+      setIsSmallScreen(e.matches);
+      if(e.matches){setLeftPanelOpen(false);setRightPanelOpen(false)}
+    };
+    mq.addEventListener('change',handler);
+    // Initial check
+    if(mq.matches&&leftPanelOpen){setLeftPanelOpen(false);setRightPanelOpen(false)}
+    return()=>mq.removeEventListener('change',handler);
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Migrate legacy rack devices → floor.racks[]
   useEffect(()=>{
@@ -1206,6 +1218,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     <div className="app-shell">
       {/* ===== TOP BAR ===== */}
       <div className="app-topbar">
+        <img src="/logo-proti.png" alt="P" style={{height:28,marginRight:4,filter:'brightness(1.1)'}}/>
         <span className="logo">PROTECTOR</span>
         <span style={{fontSize:9,opacity:.4,marginLeft:-8}}>{APP_VERSION.full}</span>
         <span style={{width:1,height:24,background:'rgba(255,255,255,.2)'}}/>
@@ -1251,8 +1264,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
       {/* ===== MAIN CONTENT ===== */}
       <div className="main-area">
+        {/* Backdrop for overlay panels on small screens */}
+        {isSmallScreen&&(leftPanelOpen||rightPanelOpen)&&(
+          <div className="panel-backdrop visible" onClick={()=>{setLeftPanelOpen(false);setRightPanelOpen(false)}}/>
+        )}
         {/* LEFT PANEL */}
-        <div className={`left-panel ${!leftPanelOpen?'collapsed':''}`}>
+        <div className={`left-panel ${!leftPanelOpen?(isSmallScreen?'responsive-collapsed':'collapsed'):''}`}>
           <div className="lp-tabs">
             <button onClick={toggleLeftPanel} title="Esconder painel"
               style={{width:28,padding:0,background:'transparent',border:'none',cursor:'pointer',
@@ -2310,7 +2327,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         </div>
 
         {/* RIGHT PANEL */}
-        <div className={`right-panel ${!rightPanelOpen?'collapsed':''}`}>
+        <div className={`right-panel ${!rightPanelOpen?(isSmallScreen?'responsive-collapsed':'collapsed'):''}`}>
           <div className="rp-tabs">
             <div className={`rp-tab ${rightTab==='props'?'active':''}`} onClick={()=>setRightTab('props')}>
               {selectedDev?'Props':'Info'}

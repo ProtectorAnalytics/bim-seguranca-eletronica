@@ -5,7 +5,7 @@ export default function ClientListPage({onBack,onSelectClient}){
   const [clients,setClients]=useState(getSavedClients());
   const [search,setSearch]=useState('');
 
-  const filtered=clients.filter(c=>c.nome.toLowerCase().includes(search.toLowerCase())||c.razaoSocial.toLowerCase().includes(search.toLowerCase()));
+  const filtered=clients.filter(c=>(c.nome||'').toLowerCase().includes(search.toLowerCase())||(c.razaoSocial||'').toLowerCase().includes(search.toLowerCase()));
 
   const handleEdit=(client)=>{
     onSelectClient(client);

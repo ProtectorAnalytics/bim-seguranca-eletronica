@@ -215,7 +215,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         const color=isDone?'#22c55e':isActive?'var(--laranja)':'#d1d5db';
         return <React.Fragment key={s.id}>
           {i>0&&<div style={{flex:1,height:2,background:isDone?'#22c55e':'#e5e8eb',margin:'0 2px'}}/>}
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,minWidth:50,cursor:isDone?'pointer':'default',opacity:step<s.id?.5:1}}
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,minWidth:50,cursor:isDone?'pointer':'default',opacity:(step<s.id)?.5:1}}
             onClick={()=>{if(isDone)setStep(s.id);}}>
             <div style={{width:28,height:28,borderRadius:'50%',background:isActive?'var(--laranja)':isDone?'#22c55e':'#f3f4f6',
               border:`2px solid ${color}`,display:'flex',alignItems:'center',justifyContent:'center',

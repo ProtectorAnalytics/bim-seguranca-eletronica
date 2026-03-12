@@ -1,15 +1,48 @@
 import React from 'react';
 import { SCENARIOS, APP_VERSION } from '@/data/constants';
+import { Cloud, HardDrive } from 'lucide-react';
 
-export default function ScenarioSelect({clientData,onBack,onStart}){
+export default function ScenarioSelect({clientData,storageMode,onStorageModeChange,onBack,onStart}){
   const displayName=clientData.razaoSocial||clientData.nome||'Cliente';
   return (
     <div className="landing">
       <div className="landing-logo">PROTECTOR SISTEMAS</div>
       <div className="landing-title">BIM Segurança Eletrônica</div>
       <div style={{fontSize:11,color:'var(--cinza)',marginTop:-8,marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
-      <div style={{fontSize:13,color:'var(--laranja)',marginBottom:4,fontWeight:600}}>📋 {displayName}</div>
+      <div style={{fontSize:13,color:'var(--laranja)',marginBottom:4,fontWeight:600}}>{displayName}</div>
       <div className="landing-sub">Selecione o cenário do projeto</div>
+
+      {/* Storage mode toggle */}
+      {onStorageModeChange && (
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:16}}>
+          <span style={{fontSize:11,color:'rgba(255,255,255,.5)'}}>Salvar em:</span>
+          <button
+            onClick={()=>onStorageModeChange('cloud')}
+            style={{
+              display:'flex',alignItems:'center',gap:5,padding:'5px 12px',borderRadius:6,fontSize:11,cursor:'pointer',
+              border: storageMode==='cloud' ? '1px solid #046bd2' : '1px solid rgba(255,255,255,.15)',
+              background: storageMode==='cloud' ? 'rgba(4,107,210,.2)' : 'transparent',
+              color: storageMode==='cloud' ? '#93c5fd' : 'rgba(255,255,255,.4)',
+              transition:'.2s',
+            }}
+          >
+            <Cloud size={13}/> Nuvem
+          </button>
+          <button
+            onClick={()=>onStorageModeChange('local')}
+            style={{
+              display:'flex',alignItems:'center',gap:5,padding:'5px 12px',borderRadius:6,fontSize:11,cursor:'pointer',
+              border: storageMode==='local' ? '1px solid #64748b' : '1px solid rgba(255,255,255,.15)',
+              background: storageMode==='local' ? 'rgba(100,116,139,.2)' : 'transparent',
+              color: storageMode==='local' ? '#cbd5e1' : 'rgba(255,255,255,.4)',
+              transition:'.2s',
+            }}
+          >
+            <HardDrive size={13}/> Local
+          </button>
+        </div>
+      )}
+
       <div className="scenario-grid">
         {SCENARIOS.map(s=>(
           <div key={s.id} className="scenario-card" onClick={()=>onStart(s.id)}>

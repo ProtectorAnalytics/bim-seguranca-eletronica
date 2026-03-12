@@ -4,7 +4,7 @@
 // Background image is still rasterized; overlay is sharp at any zoom
 // ====================================================================
 import { CABLE_TYPES } from '@/data/cable-types';
-import { findDevDef, calcCableDistance } from './helpers';
+import { findDevDef } from './helpers';
 
 // Cable type → PDF line color [R, G, B]
 const CABLE_COLORS = {

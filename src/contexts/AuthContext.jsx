@@ -287,10 +287,21 @@ export function AuthProvider({ children }) {
     if (user) await fetchUserData(user)
   }
 
+  // ── Get fresh access token (for projectStorage and other REST calls) ──
+  async function getAccessToken() {
+    if (!supabase) return null
+    try {
+      const { data } = await supabase.auth.getSession()
+      return data?.session?.access_token || null
+    } catch {
+      return null
+    }
+  }
+
   const value = {
     user, profile, subscription, plan, loading,
     isAdmin, configError, authDebug,
-    signIn, signUp, signOut, refreshUserData,
+    signIn, signUp, signOut, refreshUserData, getAccessToken,
   }
 
   return (

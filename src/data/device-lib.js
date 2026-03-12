@@ -1,5 +1,4 @@
 import { ICONS } from '@/icons';
-import { DEVICE_THUMBNAILS } from './device-thumbnails';
 
 // ====================================================================
 // DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (74 dispositivos)

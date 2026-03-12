@@ -61,6 +61,26 @@ export function saveHiddenFamilies(hidden){
   localStorage.setItem('bim_hidden_families',JSON.stringify(hidden));
 }
 
+// ====================================================================
+// CLOUD PROJECT CACHE (offline fallback for cloud projects)
+// ====================================================================
+export function getCachedCloudProjects(){
+  try{ return JSON.parse(localStorage.getItem('bim_cloud_projects_meta')||'[]'); }catch{ return []; }
+}
+export function setCachedCloudProjects(projects){
+  localStorage.setItem('bim_cloud_projects_meta',JSON.stringify(projects));
+}
+export function getCachedProject(id){
+  try{ return JSON.parse(localStorage.getItem(`bim_cloud_proj_${id}`)||'null'); }catch{ return null; }
+}
+export function setCachedProject(id, data){
+  if(data) localStorage.setItem(`bim_cloud_proj_${id}`,JSON.stringify(data));
+  else localStorage.removeItem(`bim_cloud_proj_${id}`);
+}
+export function removeCachedProject(id){
+  localStorage.removeItem(`bim_cloud_proj_${id}`);
+}
+
 export function getDeviceIconKey(deviceKey){
   if(deviceKey.startsWith('custom_')){
     const custom=getCustomDevices().find(c=>c.key===deviceKey);

@@ -9,7 +9,7 @@ export default function TopoNode({node,devices,level,onSelect}){
   const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===node.device.key));
   const isSwitch=node.device.key.startsWith('sw_');
   const usedPorts=node.children.length;
-  const totalPorts=isSwitch?parseInt(def?.props?.portas?.split('+')[0]||'8'):0;
+  const totalPorts=isSwitch?parseInt(String(def?.props?.portas||'8').split('+')[0]):0;
 
   return (
     <div>

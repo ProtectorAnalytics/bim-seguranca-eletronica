@@ -15,6 +15,7 @@ function EquipmentRepoAddButton({customDevices,onSave}){
 
 export default function EquipmentRepoPage({onBack}){
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
+  const [editingDevice,setEditingDevice]=useState(null);
 
   const handleSave=(device)=>{
     const updated=[...customDevices.filter(d=>d.key!==device.key),device];
@@ -29,17 +30,17 @@ export default function EquipmentRepoPage({onBack}){
   };
 
   return (
-    <div className="dashboard-container" style={{background:'#F0F2F5',minHeight:'100vh'}}>
+    <div className="dashboard-container" style={{background:'var(--cinzaL, #F0F5FA)',minHeight:'100vh'}}>
       <div className="dashboard-content" style={{maxWidth:780,margin:'0 auto',padding:'24px 20px'}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
           <button className="modal-back-btn" onClick={onBack} style={{margin:0}}>← Voltar ao Dashboard</button>
-          <h2 style={{fontSize:20,fontWeight:700,color:'var(--azul)',margin:0}}>📦 Repositório de Equipamentos</h2>
+          <h2 style={{fontSize:20,fontWeight:700,color:'var(--azul2, #046bd2)',margin:0}}>Repositorio de Equipamentos</h2>
         </div>
 
-        <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'var(--sombra)'}}>
+        <div className="anim-fade" style={{background:'#fff',borderRadius:8,padding:20,boxShadow:'var(--shadow-md, 0 4px 12px rgba(0,0,0,.08))'}}>
           <div style={{fontSize:13,color:'var(--cinza)',marginBottom:16}}>
             Gerencie seus equipamentos personalizados para uso em projetos.
-            Equipamentos criados aqui ficam disponíveis na paleta do canvas.
+            Equipamentos criados aqui ficam disponiveis na paleta do canvas.
           </div>
 
           <div style={{maxHeight:400,overflowY:'auto',marginBottom:16,borderTop:'1px solid #e5e8eb',paddingTop:12}}>
@@ -55,8 +56,8 @@ export default function EquipmentRepoPage({onBack}){
                 const categoryLabels={camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores',
                   switch_rede:'Switches',gravador:'Gravador',fonte_energia:'Fonte',nobreak:'Nobreak',infra:'Infraestrutura'};
                 return (
-                <div key={dev.id} style={{padding:14,marginBottom:10,background:'#f8f9fa',borderRadius:8,
-                  borderLeft:'4px solid '+catColor,transition:'.15s'}}>
+                <div key={dev.id} className="anim-slide-up" style={{padding:14,marginBottom:10,background:'#f8f9fa',borderRadius:6,
+                  borderLeft:'4px solid '+catColor,transition:'.15s',boxShadow:'var(--shadow-xs, 0 1px 2px rgba(0,0,0,.05))'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                     <div>
                       <div style={{fontWeight:700,color:'var(--azul)',fontSize:14}}>{dev.name}</div>
@@ -67,7 +68,7 @@ export default function EquipmentRepoPage({onBack}){
                       </div>
                     </div>
                     <div style={{display:'flex',gap:6}}>
-                      <button onClick={()=>{}}
+                      <button onClick={()=>setEditingDevice(dev)}
                         style={{padding:'6px 14px',fontSize:11,background:'var(--azul2)',color:'#fff',border:'none',
                           borderRadius:6,cursor:'pointer',fontWeight:600}}>Editar</button>
                       <button onClick={()=>handleDelete(dev.key)}
@@ -95,6 +96,10 @@ export default function EquipmentRepoPage({onBack}){
           </div>
         </div>
       </div>
+      {editingDevice&&<EquipmentRepoModal customDevices={customDevices}
+        onSave={(dev)=>{handleSave(dev);setEditingDevice(null);}}
+        onDelete={()=>{handleDelete(editingDevice.key);setEditingDevice(null);}}
+        onClose={()=>setEditingDevice(null)} startAtStep={2}/>}
     </div>
   );
 }

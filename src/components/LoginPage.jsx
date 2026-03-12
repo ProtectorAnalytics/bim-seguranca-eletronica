@@ -39,36 +39,43 @@ export default function LoginPage() {
 
   const boxStyle = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    height: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif'
+    height: '100vh', background: 'linear-gradient(160deg, #033d7a 0%, #1e293b 60%, #0f172a 100%)',
+    color: '#e2e8f0', fontFamily: "'Segoe UI', Roboto, system-ui, sans-serif"
   }
   const cardStyle = {
-    background: '#1e293b', borderRadius: 12, padding: '32px 28px', width: 380, maxWidth: '90vw',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+    background: '#1e293b', borderRadius: 8, padding: '32px 28px', width: 380, maxWidth: '90vw',
+    boxShadow: 'var(--shadow-xl, 0 12px 40px rgba(0,0,0,.15), 0 8px 16px rgba(0,0,0,.08))',
+    animation: 'scaleIn .3s ease-out', border: '1px solid rgba(255,255,255,.06)'
   }
   const inputStyle = {
     width: '100%', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155',
-    borderRadius: 8, color: '#e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box'
+    borderRadius: 4, color: '#e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color .15s'
   }
   const btnStyle = {
-    width: '100%', padding: '12px 16px', background: '#3b82f6', color: '#fff', border: 'none',
-    borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8
+    width: '100%', padding: '12px 16px', background: '#046bd2', color: '#fff', border: 'none',
+    borderRadius: 4, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8,
+    transition: 'background .2s', boxShadow: '0 2px 8px rgba(4,107,210,.3)'
   }
   const tabBtnStyle = (active) => ({
     flex: 1, padding: '10px 0', textAlign: 'center', cursor: 'pointer', fontSize: 14, fontWeight: 600,
     background: active ? '#334155' : 'transparent', color: active ? '#e2e8f0' : '#94a3b8',
-    border: 'none', borderRadius: 8, transition: 'all .2s'
+    border: 'none', borderRadius: 6, transition: 'all .2s'
   })
 
   return (
     <div style={boxStyle}>
-      <div style={{ marginBottom: 24, textAlign: 'center' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>PROTECTOR SISTEMAS</h1>
-        <p style={{ fontSize: 13, color: '#94a3b8', margin: '4px 0' }}>BIM Segurança Eletrônica</p>
+      <div style={{ marginBottom: 28, textAlign: 'center', animation: 'fadeIn .4s ease-out' }}>
+        <img src="/logo-proti.png" alt="Protector Sistemas" style={{
+          height: 56, marginBottom: 12, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.3))'
+        }} />
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '0.5px' }}>PROTECTOR SISTEMAS</h1>
+        <p style={{ fontSize: 13, color: '#94a3b8', margin: '4px 0' }}>BIM Seguranca Eletronica</p>
         <div style={{ fontSize: 11, color: '#64748b' }}>{APP_VERSION.label}</div>
       </div>
 
       <div style={cardStyle}>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#0f172a', borderRadius: 8, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#0f172a', borderRadius: 6, padding: 3 }}>
           <button style={tabBtnStyle(tab === 'login')} onClick={() => { setTab('login'); setError(''); setSuccessMsg('') }}>Entrar</button>
           <button style={tabBtnStyle(tab === 'register')} onClick={() => { setTab('register'); setError(''); setSuccessMsg('') }}>Criar Conta</button>
         </div>

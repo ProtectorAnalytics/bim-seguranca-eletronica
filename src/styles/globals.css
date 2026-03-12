@@ -1,17 +1,34 @@
-/* BIM Seguranca Eletronica - Global Styles v3.11.0 */
+/* BIM Seguranca Eletronica - Global Styles v3.37.0 — Protector Identity */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
---azul:#1B4F72;--azul2:#2E86C1;--azulD:#154360;--laranja:#F39C12;--verde:#27AE60;--vermelho:#E74C3C;
---roxo:#8E44AD;--cinza:#5D6D7E;--cinzaL:#F8F9FA;--cinzaM:#E5E8EB;--branco:#FFF;
---sombra:0 2px 12px rgba(0,0,0,.08);--radius:10px;
---surface:#1e2a3a;--surface-light:#ffffff;
+/* Paleta Protector Sistemas (appps.com.br) */
+--azul:#045cb4;--azul2:#046bd2;--azulD:#033d7a;--laranja:#F39C12;--verde:#22c55e;--vermelho:#ef4444;
+--roxo:#8b5cf6;--cinza:#5D6D7E;--cinzaL:#F0F5FA;--cinzaM:#E5E8EB;--branco:#FFF;
+--sombra:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);--radius:6px;
+--surface:#1e293b;--surface-light:#ffffff;
+/* Shadow system */
+--shadow-xs:0 1px 2px rgba(0,0,0,.05);
+--shadow-sm:0 1px 3px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.04);
+--shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+--shadow-lg:0 8px 24px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+--shadow-xl:0 12px 40px rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.08);
+/* Typography */
 --fs-xs:11px;--fs-sm:13px;--fs-base:15px;--fs-md:16px;--fs-lg:18px;--fs-xl:22px;
+/* Spacing */
 --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;
 }
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F5;color:#2C3E50;overflow:hidden;height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:var(--cinzaL);color:#334155;overflow:hidden;height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+/* === Animations === */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.anim-fade{animation:fadeIn .3s ease-out}.anim-slide-up{animation:slideUp .3s ease-out}
+.anim-slide-down{animation:slideDown .25s ease-out}.anim-scale{animation:scaleIn .2s ease-out}
 
 /* ===== LANDING ===== */
-.landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d2137 0%,#1B4F72 40%,#2E86C1 100%);overflow-y:auto;padding:24px 0}
+.landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#021e4a 0%,var(--azul) 40%,var(--azul2) 100%);overflow-y:auto;padding:24px 0}
 .landing-logo{color:rgba(255,255,255,.5);font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
 .landing-title{color:#fff;font-size:38px;font-weight:800;margin-bottom:6px}
 .landing-sub{color:rgba(255,255,255,.5);font-size:15px;margin-bottom:24px}
@@ -56,7 +73,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .tool-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:18px;color:var(--cinza);transition:.15s}
 .tool-btn:hover{background:var(--cinzaL);color:var(--azul)}
 .tool-btn.active{background:#EBF5FB;color:var(--azul2)}
-.tool-sep{width:1px;height:26px;background:var(--cinzaM)}
 .tool-label{font-size:14px;color:var(--cinza);padding:0 4px;font-weight:500}
 
 /* Simulation toggle */
@@ -100,10 +116,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .canvas-viewport{position:absolute;inset:0;overflow:hidden}
 .canvas-transform{transform-origin:0 0;position:absolute;top:0;left:0}
 .canvas-grid{position:absolute;top:0;left:0;pointer-events:none}
-.canvas-bg{position:absolute;top:0;left:0;pointer-events:none;opacity:.3}
-
-/* Floor plan image */
-.floor-image{position:absolute;top:0;left:0;pointer-events:none}
 
 /* Device nodes on canvas */
 .device-on-canvas{position:absolute;cursor:move;user-select:none;z-index:5;display:flex;flex-direction:column;align-items:center;width:58px;overflow:visible}
@@ -201,7 +213,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F0F2F
 .minimap:hover{opacity:1}
 
 /* Toast animation */
-@keyframes fadeIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
 /* Canvas hint */
 .canvas-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#94a3b8;pointer-events:none;z-index:1}
@@ -348,8 +360,8 @@ tr.rack-face-free td{color:#cbd5e1}
 .val-body{font-size:13px;color:var(--cinza);margin-top:4px;line-height:1.5}
 
 /* Export dialog */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
-.modal-card{background:#fff;border-radius:14px;padding:28px;max-width:520px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.25);max-height:80vh;overflow-y:auto}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .15s ease-out}
+.modal-card{background:#fff;border-radius:8px;padding:28px;max-width:520px;width:90%;box-shadow:var(--shadow-xl);max-height:80vh;overflow-y:auto;animation:scaleIn .2s ease-out}
 .modal-card h3{font-size:16px;color:var(--azul);margin-bottom:12px}
 .modal-card .mc-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
 .modal-card .mc-row label{flex:1;cursor:pointer}
@@ -425,6 +437,93 @@ tr.rack-face-free td{color:#cbd5e1}
 .modal-back-btn:hover{border-color:rgba(255,255,255,.4);color:#fff}
 
 /* ===== @media print — planta limpa para impressão ===== */
+/* ===== RESPONSIVE ===== */
+
+/* --- Tablet (≤1024px) --- */
+@media (max-width:1024px){
+  .dashboard-stats{grid-template-columns:repeat(2,1fr)}
+  .dashboard-modules{grid-template-columns:repeat(2,1fr)}
+  .scenario-grid{grid-template-columns:repeat(2,1fr)}
+  .scenario-card{width:auto}
+  /* Canvas: narrower panels */
+  .left-panel{width:220px;margin:6px 0 6px 6px}
+  .right-panel{width:300px;margin:6px 6px 6px 0}
+  .rp-tab,.lp-tab{font-size:10px;padding:6px 2px}
+  .prop-row .pr-label{width:100px;font-size:12px}
+  .toolbar{padding:0 8px;gap:6px}
+  .tool-group{padding:0 4px}
+  .app-topbar{padding:0 12px;gap:10px}
+  .app-topbar .proj-name{font-size:14px}
+}
+
+/* --- Small tablet / large phone (≤768px) — auto-collapse panels --- */
+@media (max-width:768px){
+  /* Panels start collapsed on small screens; JS adds .responsive-collapsed */
+  .left-panel.responsive-collapsed{width:0;margin-left:0;margin-right:0;padding:0;opacity:0;pointer-events:none;overflow:hidden}
+  .right-panel.responsive-collapsed{width:0;margin-left:0;margin-right:0;padding:0;opacity:0;pointer-events:none;overflow:hidden}
+  /* When panels ARE open on small screens, overlay mode */
+  .left-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;left:0;top:0;bottom:0;width:280px;margin:0;border-radius:0 12px 12px 0;z-index:30}
+  .right-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;right:0;top:0;bottom:0;width:320px;margin:0;border-radius:12px 0 0 12px;z-index:30}
+  /* Panel backdrop when overlay */
+  .panel-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:25}
+  .panel-backdrop.visible{display:block}
+  /* Toolbar horizontal scroll */
+  .toolbar{overflow-x:auto;overflow-y:hidden;gap:4px;padding:0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .toolbar::-webkit-scrollbar{display:none}
+  .tool-group{flex-shrink:0}
+  .sim-toggle label{display:none}
+  /* Topbar compact */
+  .app-topbar{height:48px;padding:0 10px;gap:8px}
+  .app-topbar .logo{display:none}
+  .app-topbar .proj-name{font-size:13px}
+  .app-topbar .tb-btn{padding:6px 12px;font-size:12px}
+  /* Floor tabs scroll */
+  .floor-tabs{overflow-x:auto;scrollbar-width:none;gap:2px;padding:0 6px}
+  .floor-tabs::-webkit-scrollbar{display:none}
+  .floor-tab{padding:5px 10px;font-size:12px;flex-shrink:0;white-space:nowrap}
+  /* Status bar compact */
+  .status-bar{height:28px;font-size:11px;padding:0 8px;gap:10px}
+  /* Canvas controls smaller */
+  .canvas-controls button{width:36px;height:36px;font-size:16px}
+  .scale-indicator{font-size:10px;padding:4px 10px}
+  .minimap{display:none}
+  /* Floating panel toggle buttons */
+  .panel-toggle-btn{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:56px;
+    background:rgba(255,255,255,.95);border:1px solid #e2e8f0;cursor:pointer;z-index:22;
+    display:flex;align-items:center;justify-content:center;font-size:14px;color:#475569;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);transition:.15s}
+  .panel-toggle-btn:hover{background:#fff;color:var(--azul2)}
+  .panel-toggle-btn.left{left:0;border-radius:0 8px 8px 0;border-left:none}
+  .panel-toggle-btn.right{right:0;border-radius:8px 0 0 8px;border-right:none}
+}
+
+/* --- Mobile (≤640px) --- */
+@media (max-width:640px){
+  .dashboard-stats{grid-template-columns:1fr}
+  .dashboard-modules{grid-template-columns:1fr}
+  .scenario-grid{grid-template-columns:1fr}
+  .cf-grid{grid-template-columns:1fr}
+  .client-form{padding:16px}
+  .dashboard-container{padding:12px}
+  /* Canvas: further compact */
+  .app-topbar{height:44px}
+  .app-topbar .tb-btn{padding:5px 10px;font-size:11px}
+  .toolbar{height:44px}
+  .tool-btn{width:34px;height:34px;font-size:16px}
+  .tool-label{display:none}
+  .status-bar{height:26px;font-size:10px;gap:8px}
+  .floor-tab{padding:4px 8px;font-size:11px}
+  /* Panels overlay full width on mobile */
+  .left-panel:not(.collapsed):not(.responsive-collapsed){width:100%;border-radius:0}
+  .right-panel:not(.collapsed):not(.responsive-collapsed){width:100%;border-radius:0}
+  /* Landing page compact */
+  .landing-title{font-size:26px}
+  .landing-sub{font-size:13px}
+  .landing{padding:16px 12px}
+  /* Port popup compact */
+  .port-popup{min-width:200px}
+}
+
 @media print {
   /* Ocultar tudo exceto o canvas */
   .toolbar, .left-panel, .right-panel, .floor-tabs, .sim-toggle,
@@ -471,4 +570,4 @@ tr.rack-face-free td{color:#cbd5e1}
 }
 
 /* Pulse animation for valid cable targets in Quadro */
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+@keyframes pulseScale{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}

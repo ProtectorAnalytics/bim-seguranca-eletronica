@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { buildFacePlan, getRackOccupancy, generateDeviceTag } from '@/lib/rack-helpers';
+import { buildFacePlan, getRackOccupancy } from '@/lib/rack-helpers';
 import { canMountInRack, getDeviceUSize } from '@/data/device-interfaces';
 import { MODEL_CATALOG } from '@/data/model-catalog';
 

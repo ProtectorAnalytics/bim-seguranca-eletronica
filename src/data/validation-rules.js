@@ -34,7 +34,7 @@ export const isComunicador = k => k.startsWith('comunicador_');
 export const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
 export const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
 export const isNobreak = k => k === 'nobreak_ac' || k === 'nobreak_dc';
-export const isFonte = k => k === 'fonte';
+export const isFonte = k => k === 'fonte' || k.startsWith('fonte_nb_');
 export const isInfra = k => ['rack','quadro','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla'].includes(k);
 export const needsPoE = k => isCameraIP(k) || isAP(k);
 export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
@@ -217,7 +217,7 @@ export const REGRAS=[
     }},
   {cat:'Rede',regra:'Portas RJ45 ocupadas em switch (por dispositivo)',sev:'CRÍTICA',
     check:(devices,connections)=>{
-      const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+      const dataTypes=new Set(['cat6','cat5e','smf','mmf']);
       const issues=[];
       devices.filter(d=>isSwitch(d.key)||isGravador(d.key)).forEach(nd=>{
         const capacity=getSwitchPorts(nd);

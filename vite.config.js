@@ -30,6 +30,9 @@ export default defineConfig({
         categories: ['productivity', 'utilities', 'business']
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,woff,woff2}'],
         runtimeCaching: [
           {

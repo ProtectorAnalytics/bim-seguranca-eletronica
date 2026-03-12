@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
-import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
-import { ICONS } from '@/icons';
 import { KEY_MIGRATION_MAP, findDevDef } from '@/lib/helpers';
 
 // Suggest modern replacements based on legacy key patterns

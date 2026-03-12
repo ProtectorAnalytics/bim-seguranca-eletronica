@@ -248,23 +248,23 @@ export default function ExportModal({project, bom, allDevices, connections, vali
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 12px',marginBottom:6}}>
                 <div className="mc-row" style={{marginBottom:2}}>
                   <input type="checkbox" checked={checks.summary} onChange={()=>toggle('summary')}/>
-                  <label onClick={()=>toggle('summary')} style={{fontSize:11}}>Resumo Executivo</label>
+                  <label style={{fontSize:11}}>Resumo Executivo</label>
                 </div>
                 <div className="mc-row" style={{marginBottom:2}}>
                   <input type="checkbox" checked={checks.equipment} onChange={()=>toggle('equipment')}/>
-                  <label onClick={()=>toggle('equipment')} style={{fontSize:11}}>Lista de Materiais</label>
+                  <label style={{fontSize:11}}>Lista de Materiais</label>
                 </div>
                 <div className="mc-row" style={{marginBottom:2}}>
                   <input type="checkbox" checked={checks.topology} onChange={()=>toggle('topology')}/>
-                  <label onClick={()=>toggle('topology')} style={{fontSize:11}}>Topologia de Rede</label>
+                  <label style={{fontSize:11}}>Topologia de Rede</label>
                 </div>
                 <div className="mc-row" style={{marginBottom:2}}>
                   <input type="checkbox" checked={checks.floorplan} onChange={()=>toggle('floorplan')}/>
-                  <label onClick={()=>toggle('floorplan')} style={{fontSize:11}}>Planta do Pavimento</label>
+                  <label style={{fontSize:11}}>Planta do Pavimento</label>
                 </div>
                 <div className="mc-row" style={{marginBottom:2}}>
                   <input type="checkbox" checked={checks.validation} onChange={()=>toggle('validation')}/>
-                  <label onClick={()=>toggle('validation')} style={{fontSize:11}}>Alertas de Validação</label>
+                  <label style={{fontSize:11}}>Alertas de Validação</label>
                 </div>
               </div>
               <div style={{display:'flex',gap:8,marginBottom:8}}>
@@ -321,7 +321,7 @@ export default function ExportModal({project, bom, allDevices, connections, vali
                 </div>
                 <div className="mc-row" style={{marginBottom:6}}>
                   <input type="checkbox" checked={pngWhiteBg} onChange={()=>setPngWhiteBg(v=>!v)}/>
-                  <label onClick={()=>setPngWhiteBg(v=>!v)} style={{fontSize:10}}>Fundo branco</label>
+                  <label style={{fontSize:10}}>Fundo branco</label>
                 </div>
                 <button onClick={handleExportPNG}
                   disabled={pngLoading}

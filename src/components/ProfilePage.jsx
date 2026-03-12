@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { User, Lock } from 'lucide-react';
 
-/**
- * ProfilePage — lets the user edit their name, company, and change password.
- * Professional layout with sections, inline saves, and clear feedback.
- */
 export default function ProfilePage({ onBack }) {
   const { profile, user, refreshUserData } = useAuth();
 
-  // Profile fields
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [company, setCompany] = useState(profile?.company_name || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
 
-  // Password fields
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
@@ -48,7 +43,7 @@ export default function ProfilePage({ onBack }) {
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'As senhas não coincidem' });
+      setPasswordMsg({ type: 'error', text: 'As senhas nao coincidem' });
       return;
     }
     setSavingPassword(true);
@@ -69,8 +64,8 @@ export default function ProfilePage({ onBack }) {
   const inputStyle = {
     width: '100%', padding: '12px 14px',
     background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)',
-    borderRadius: 8, color: '#fff', fontSize: 14, fontFamily: 'inherit',
-    outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box',
+    borderRadius: 6, color: '#fff', fontSize: 14, fontFamily: 'inherit',
+    outline: 'none', transition: 'border-color .15s', boxSizing: 'border-box',
   };
 
   const labelStyle = {
@@ -80,7 +75,8 @@ export default function ProfilePage({ onBack }) {
 
   const sectionStyle = {
     background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
-    borderRadius: 14, padding: 24, marginBottom: 20,
+    borderRadius: 8, padding: 24, marginBottom: 20,
+    boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08))',
   };
 
   return (
@@ -88,17 +84,17 @@ export default function ProfilePage({ onBack }) {
       <div className="dashboard-content">
         <button className="modal-back-btn" onClick={onBack}>← Voltar</button>
 
-        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }} className="anim-fade">
           {/* Header with avatar */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32,
           }}>
             <div style={{
               width: 72, height: 72, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              background: 'linear-gradient(135deg, #046bd2, #045cb4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 26, fontWeight: 700, color: '#fff',
-              boxShadow: '0 4px 16px rgba(59,130,246,.3)',
+              boxShadow: '0 4px 16px rgba(4,107,210,.3)',
               flexShrink: 0,
             }}>
               {initials}
@@ -106,7 +102,7 @@ export default function ProfilePage({ onBack }) {
             <div>
               <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Meu Perfil</h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,.5)' }}>
-                Gerencie suas informações pessoais e segurança
+                Gerencie suas informacoes pessoais e seguranca
               </p>
             </div>
           </div>
@@ -114,10 +110,8 @@ export default function ProfilePage({ onBack }) {
           {/* ── Profile Section ── */}
           <div style={sectionStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Informações Pessoais</h3>
+              <User size={20} color="#046bd2" strokeWidth={2} />
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Informacoes Pessoais</h3>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -126,7 +120,7 @@ export default function ProfilePage({ onBack }) {
                 <input
                   type="text" value={fullName} onChange={e => setFullName(e.target.value)}
                   placeholder="Seu nome completo" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                  onFocus={e => e.target.style.borderColor = '#046bd2'}
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
                 />
               </div>
@@ -135,7 +129,7 @@ export default function ProfilePage({ onBack }) {
                 <input
                   type="text" value={company} onChange={e => setCompany(e.target.value)}
                   placeholder="Nome da empresa" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                  onFocus={e => e.target.style.borderColor = '#046bd2'}
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
                 />
               </div>
@@ -146,14 +140,14 @@ export default function ProfilePage({ onBack }) {
                   style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }}
                 />
                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                  O email não pode ser alterado por aqui
+                  O email nao pode ser alterado por aqui
                 </div>
               </div>
             </div>
 
             {profileMsg && (
               <div style={{
-                marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                marginTop: 14, padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500,
                 background: profileMsg.type === 'success' ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
                 color: profileMsg.type === 'success' ? '#86efac' : '#fca5a5',
                 border: `1px solid ${profileMsg.type === 'success' ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)'}`,
@@ -165,22 +159,20 @@ export default function ProfilePage({ onBack }) {
             <button
               onClick={handleSaveProfile} disabled={savingProfile}
               style={{
-                marginTop: 16, padding: '12px 28px', border: 'none', borderRadius: 8,
-                background: '#3b82f6', color: '#fff', fontSize: 14, fontWeight: 600,
+                marginTop: 16, padding: '12px 28px', border: 'none', borderRadius: 6,
+                background: '#046bd2', color: '#fff', fontSize: 14, fontWeight: 600,
                 cursor: savingProfile ? 'wait' : 'pointer', opacity: savingProfile ? 0.6 : 1,
-                transition: 'all .2s',
+                transition: 'all .2s', boxShadow: '0 2px 8px rgba(4,107,210,.25)',
               }}
             >
-              {savingProfile ? 'Salvando...' : 'Salvar Alterações'}
+              {savingProfile ? 'Salvando...' : 'Salvar Alteracoes'}
             </button>
           </div>
 
           {/* ── Password Section ── */}
           <div style={sectionStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
+              <Lock size={20} color="#f59e0b" strokeWidth={2} />
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Alterar Senha</h3>
             </div>
 
@@ -189,7 +181,7 @@ export default function ProfilePage({ onBack }) {
                 <label style={labelStyle}>Nova Senha</label>
                 <input
                   type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres" style={inputStyle}
+                  placeholder="Minimo 6 caracteres" style={inputStyle}
                   onFocus={e => e.target.style.borderColor = '#f59e0b'}
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.15)'}
                 />
@@ -207,7 +199,7 @@ export default function ProfilePage({ onBack }) {
 
             {passwordMsg && (
               <div style={{
-                marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                marginTop: 14, padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500,
                 background: passwordMsg.type === 'success' ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
                 color: passwordMsg.type === 'success' ? '#86efac' : '#fca5a5',
                 border: `1px solid ${passwordMsg.type === 'success' ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)'}`,
@@ -220,7 +212,7 @@ export default function ProfilePage({ onBack }) {
               onClick={handleChangePassword}
               disabled={savingPassword || !newPassword}
               style={{
-                marginTop: 16, padding: '12px 28px', border: 'none', borderRadius: 8,
+                marginTop: 16, padding: '12px 28px', border: 'none', borderRadius: 6,
                 background: '#f59e0b', color: '#000', fontSize: 14, fontWeight: 600,
                 cursor: (savingPassword || !newPassword) ? 'not-allowed' : 'pointer',
                 opacity: (savingPassword || !newPassword) ? 0.5 : 1,
@@ -239,11 +231,11 @@ export default function ProfilePage({ onBack }) {
             <div>
               <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>Conta criada em</div>
               <div style={{ fontSize: 14, fontWeight: 500 }}>
-                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('pt-BR') : '—'}
+                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('pt-BR') : '\u2014'}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>ID do usuário</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>ID do usuario</div>
               <div style={{ fontSize: 12, fontFamily: 'monospace', color: '#64748b' }}>
                 {user?.id?.slice(0, 12)}...
               </div>

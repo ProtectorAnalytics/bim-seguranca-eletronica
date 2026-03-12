@@ -1,7 +1,7 @@
 {
   "name": "bim-seguranca-eletronica",
   "private": true,
-  "version": "3.35.1",
+  "version": "3.37.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "idb-keyval": "^6.2.2",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

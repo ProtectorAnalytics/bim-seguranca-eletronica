@@ -88,7 +88,7 @@ export const DEVICE_INTERFACES = {
                  {type:'signal_in',cables:['pp2v_05'],label:'Entrada alarme/aterramento (sensor porta)',required:false}],
   dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra',required:true}],
   // Borne SAK - emenda/passagem de cabos de automação e sinal no quadro
-  borne_sak:    [{type:'passthrough',cables:['pp2v_10','pp4v_10','pp2v_05','pp2v_10','pp2v_05'],label:'Emenda/passagem automação (trilho DIN)'}],
+  borne_sak:    [{type:'passthrough',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Emenda/passagem automação (trilho DIN)'}],
   tomada_dupla: [{type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC 10A (2 tomadas)',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (circuito)',required:true}],
   quadro_eletrico:[{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada geral AC (QGBT)',required:true},
@@ -176,7 +176,7 @@ export const getPortUsage = (netDevId, devs, conns) => {
   if(!netDev) return {capacity:0,used:0,available:0};
   const capacity=isSwitch(netDev.key)?getSwitchPorts(netDev)
     :isGravador(netDev.key)?getSwitchPorts(netDev):0;
-  const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+  const dataTypes=new Set(['cat6','cat5e','smf','mmf']);
   let used=0;
   conns.filter(c=>(c.from===netDevId||c.to===netDevId)&&dataTypes.has(c.type))
     .forEach(c=>{
@@ -188,7 +188,7 @@ export const getPortUsage = (netDevId, devs, conns) => {
 };
 /* ── Find connected network device(s) for a given device ── */
 export const getConnectedNetDevices = (devId, devs, conns) => {
-  const dataTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
+  const dataTypes=new Set(['cat6','cat5e','smf','mmf']);
   return conns.filter(c=>(c.from===devId||c.to===devId)&&dataTypes.has(c.type))
     .map(c=>{const oid=c.from===devId?c.to:c.from;return devs.find(d=>d.id===oid);})
     .filter(d=>d&&(isSwitch(d.key)||isGravador(d.key)));

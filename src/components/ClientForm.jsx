@@ -3,7 +3,6 @@ import { APP_VERSION } from '@/data/constants';
 
 export default function ClientForm({data,setData,onNext,onBack}){
   const upd=(k,v)=>setData(d=>({...d,[k]:v}));
-  const updMulti=(obj)=>setData(d=>({...d,...obj}));
   const canProceed=data.tipo==='pj'?(data.razaoSocial||data.nome):data.nome;
   const [cnpjLoading,setCnpjLoading]=useState(false);
   const [cnpjStatus,setCnpjStatus]=useState(null); // null | 'success' | 'error' | 'notfound'

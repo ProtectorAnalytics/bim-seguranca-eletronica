@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys } from '@/lib/helpers';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys, setCachedProject } from '@/lib/helpers';
+import { debouncedSaveCloud, cancelPendingSave, loadCloudProject } from '@/lib/projectStorage';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
 import LoginPage from './LoginPage';
@@ -19,9 +20,9 @@ import { useSubscription } from '../hooks/useSubscription';
 import { useProjectHistory } from '../hooks/useProjectHistory';
 
 export default function App(){
-  const { user, loading: authLoading, isAdmin, configError } = useAuth();
+  const { user, loading: authLoading, isAdmin, configError, getAccessToken } = useAuth();
   const limits = useSubscription();
-  const [screen,setScreen]=useState('dashboard'); // dashboard | projects | client | scenario | project | clients | repo | settings | subscription | profile | admin
+  const [screen,setScreen]=useState('dashboard');
   const [project,_setProject]=useState(null);
   const { pushSnapshot, undo, redo, clearHistory, skipNext } = useProjectHistory(_setProject);
   const setProject=(updaterOrVal)=>{
@@ -40,6 +41,8 @@ export default function App(){
     });
   };
   const [editingProjectId,setEditingProjectId]=useState(null);
+  const [storageMode,setStorageMode]=useState('cloud'); // 'cloud' | 'local'
+  const [cloudSaveStatus,setCloudSaveStatus]=useState(null); // null | 'saving' | 'saved' | 'error'
   const [clientData,setClientData]=useState({
     nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
     endereco:'',cidade:'',uf:'',cep:'',
@@ -47,42 +50,103 @@ export default function App(){
     projetoNome:'',projetoRef:'',obs:''
   });
 
-  // Auto-save project to localStorage
+  // ── Auto-save: always localStorage + cloud if storageMode=cloud ──
   useEffect(()=>{
-    if(project && editingProjectId){
-      const projects=getSavedProjects();
-      const idx=projects.findIndex(p=>p.id===editingProjectId);
-      const updated={
-        id:editingProjectId,
-        name:project.name,
-        client:{...project.client},
-        scenario:project.scenario,
-        floors:project.floors,
-        activeFloor:project.activeFloor,
-        settings:project.settings,
-        createdAt:idx>=0?projects[idx].createdAt:new Date().toISOString().split('T')[0],
-        updatedAt:new Date().toISOString().split('T')[0],
-        deviceCount:project.floors.flatMap(f=>f.devices).length,
-        status:'rascunho'
-      };
-      if(idx>=0) projects[idx]=updated;
-      else projects.push(updated);
-      saveProjects(projects);
+    if(!project || !editingProjectId) return;
+
+    // 1. Always save to localStorage (instant cache)
+    const projects=getSavedProjects();
+    const idx=projects.findIndex(p=>p.id===editingProjectId);
+    const updated={
+      id:editingProjectId,
+      name:project.name,
+      client:{...project.client},
+      scenario:project.scenario,
+      floors:project.floors,
+      activeFloor:project.activeFloor,
+      settings:project.settings,
+      storageMode: storageMode,
+      createdAt:idx>=0?projects[idx].createdAt:new Date().toISOString().split('T')[0],
+      updatedAt:new Date().toISOString().split('T')[0],
+      deviceCount:project.floors.flatMap(f=>f.devices).length,
+      status:'rascunho'
+    };
+    if(idx>=0) projects[idx]=updated;
+    else projects.push(updated);
+    saveProjects(projects);
+
+    // 2. If cloud mode + logged in: debounced cloud save
+    if(storageMode === 'cloud' && user){
+      setCloudSaveStatus('saving');
+      getAccessToken().then(token => {
+        if(!token) { setCloudSaveStatus('error'); return; }
+        debouncedSaveCloud(project, editingProjectId, user.id, token, 2000);
+        // Mark saved after debounce + estimated save time
+        setTimeout(() => setCloudSaveStatus('saved'), 3000);
+      });
+      // Also cache locally for offline access
+      setCachedProject(editingProjectId, updated);
     }
   },[project,editingProjectId]);
+
+  // Cancel pending save when leaving project
+  useEffect(() => {
+    return () => cancelPendingSave();
+  }, [editingProjectId]);
 
   const [limitMsg,setLimitMsg]=useState('');
   const onStartNewProject=()=>{
     const projects=getSavedProjects();
-    if(projects.length >= limits.maxProjects){
+    const localCount = projects.filter(p => !p.storageMode || p.storageMode === 'local').length;
+    // For cloud projects, the limit is enforced by the DB trigger
+    // For local projects, enforce client-side
+    if(limits.maxProjects !== -1 && projects.length >= limits.maxProjects){
       setLimitMsg(`Limite de ${limits.maxProjects} projeto(s) no plano ${limits.planName}. Faça upgrade para criar mais projetos.`);
       return;
     }
     setLimitMsg('');
+    setStorageMode('cloud'); // default to cloud for new projects
     setClientData({nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',endereco:'',cidade:'',uf:'',cep:'',contato:'',telefone:'',email:'',projetoNome:'',projetoRef:'',obs:''});
     setScreen('client');
   };
-  const onOpenProject=(proj)=>{ clearHistory(); const p={name:proj.name,scenario:proj.scenario,client:{...proj.client},floors:proj.floors.map(f=>({...f,racks:f.racks||[],quadros:f.quadros||[]})),activeFloor:proj.activeFloor,settings:proj.settings}; migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p); setProject(p); setEditingProjectId(proj.id); setScreen('project'); };
+
+  const onOpenProject = useCallback(async (proj) => {
+    clearHistory();
+
+    // If cloud project without floors loaded, fetch from Supabase
+    if (proj.storageMode === 'cloud' && (!proj.floors || proj.floors.length === 0 || proj._needsCloudLoad)) {
+      const token = await getAccessToken();
+      if (token) {
+        const { project: cloudProj, error } = await loadCloudProject(proj.id, token);
+        if (!error && cloudProj) {
+          const p = {
+            name: cloudProj.name, scenario: cloudProj.scenario, client: { ...cloudProj.client },
+            floors: cloudProj.floors.map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),
+            activeFloor: cloudProj.activeFloor, settings: cloudProj.settings,
+          };
+          migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p);
+          setProject(p);
+          setEditingProjectId(proj.id);
+          setStorageMode('cloud');
+          setScreen('project');
+          return;
+        }
+        console.warn('[App] Cloud load failed, trying local cache:', error?.message);
+      }
+    }
+
+    // Local project or fallback
+    const p = {
+      name: proj.name, scenario: proj.scenario, client: { ...proj.client },
+      floors: (proj.floors || []).map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),
+      activeFloor: proj.activeFloor, settings: proj.settings,
+    };
+    migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p);
+    setProject(p);
+    setEditingProjectId(proj.id);
+    setStorageMode(proj.storageMode || 'local');
+    setScreen('project');
+  }, [clearHistory, getAccessToken]);
 
   // Config error guard
   if(configError) return (
@@ -123,7 +187,7 @@ export default function App(){
 
   if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} onBack={()=>setScreen('dashboard')} />;
 
-  if(screen==='scenario') return <ScenarioSelect clientData={clientData} onBack={()=>setScreen('client')} onStart={(scenario)=>{
+  if(screen==='scenario') return <ScenarioSelect clientData={clientData} storageMode={storageMode} onStorageModeChange={setStorageMode} onBack={()=>setScreen('client')} onStart={(scenario)=>{
     const projId='proj_'+Date.now();
     const newProj={
       name:clientData.projetoNome||'Novo Projeto',
@@ -154,5 +218,5 @@ export default function App(){
 
   if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} onProfile={()=>setScreen('profile')} />;
 
-  return <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} onBack={()=>setScreen('dashboard')}/>;
+  return <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
 }
