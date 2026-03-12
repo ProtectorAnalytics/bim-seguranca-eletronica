@@ -271,11 +271,6 @@ export function canMountInQuadro(key){
     key==='dps_rede'||key==='tomada_dupla'||key==='conversor_midia'||key==='borne_sak'||
     key==='dio'||key==='nobreak_dc'||isFonte(key);
 }
-// Can this device go inside a quadro elétrico?
-export function canMountInQuadroEletrico(key){
-  return key==='nobreak_ac'||key==='nobreak_dc'||isFonte(key)||key==='dps_rede'||
-    key==='tomada_dupla'||key==='borne_sak';
-}
 
 // Rack U size per device type
 export function getDeviceUSize(key){

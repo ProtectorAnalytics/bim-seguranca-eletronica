@@ -1,5 +1,3 @@
-import { ICONS } from '@/icons';
-
 // ====================================================================
 // DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (74 dispositivos)
 // Fabricante: Genérico | v3.19.1

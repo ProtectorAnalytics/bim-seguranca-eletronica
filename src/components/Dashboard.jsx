@@ -6,7 +6,7 @@ import { useSubscription } from '../hooks/useSubscription';
 import UpgradeBanner from './UpgradeBanner';
 import UserMenu from './UserMenu';
 import {
-  FolderOpen, Users, Cpu, Clock, Plus, Folder, Package, Settings, CreditCard, ShieldAlert, CircleAlert, Cloud
+  FolderOpen, Users, Cpu, Clock, Plus, Folder, Package, Settings, CreditCard, ShieldAlert, CircleAlert
 } from 'lucide-react';
 
 export default function Dashboard({ onNewProject, onOpenProject, onClients, onRepo, onSettings, onSubscription, onAdmin, onProfile, limitMsg, onDismissLimit }) {

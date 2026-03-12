@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSubscription } from '../hooks/useSubscription';
 import { DEVICE_LIB } from '@/data/device-lib';
-import { CABLE_TYPES, ROUTE_TYPES } from '@/data/cable-types';
+import { CABLE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
 import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { SCENARIOS, ENV_COLORS, APP_VERSION } from '@/data/constants';
@@ -12,10 +12,10 @@ import {
   isCentralAlarme, isCentralIncendio, isDetectorIncendio, isSirene,
   isPerifericoAlarme, isAutomatizador, isCameraMHD, isNobreak, isFonte,
   isFonteNobreak, isONT, isBateria,
-  isSensorZona, needsPoE, needsACPower, needsDCPower, needsIPConfig,
+  isSensorZona, needsPoE, needsACPower, needsDCPower,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
-  canMountInRack, canMountInQuadro, getDeviceUSize,
+  canMountInQuadro,
   getSwitchPorts
 } from '@/data/device-interfaces';
 import {
