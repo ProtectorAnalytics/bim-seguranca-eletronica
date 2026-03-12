@@ -53,26 +53,15 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
           />
         </div>
 
-        {/* ── Auth Debug ── */}
+        {/* ── Auth Debug (only show if fallback active) ── */}
         {authDebug && (
           <div style={{
-            padding: '10px 16px', marginBottom: 12, borderRadius: 6, fontSize: 12,
-            background: 'rgba(239,68,68,.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,.25)',
+            padding: '10px 16px', marginBottom: 12, borderRadius: 8, fontSize: 12,
+            background: 'rgba(245,158,11,.08)', color: '#92400e', border: '1px solid rgba(245,158,11,.2)',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <CircleAlert size={14} color="#fca5a5" />
-            <span>Auth: {authDebug}</span>
-          </div>
-        )}
-
-        {!profile && !authDebug && (
-          <div style={{
-            padding: '10px 16px', marginBottom: 12, borderRadius: 6, fontSize: 12,
-            background: 'rgba(245,158,11,.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,.2)',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <CircleAlert size={14} color="#fbbf24" />
-            <span>Perfil nao carregado — verifique o console (F12) para logs [auth]</span>
+            <CircleAlert size={14} color="#d97706" />
+            <span>{authDebug}</span>
           </div>
         )}
 

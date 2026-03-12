@@ -10,7 +10,7 @@ export function useAuth() {
 }
 
 // ── Direct REST fetch (bypasses Supabase client + service worker issues) ──
-async function restQuery(table, query, accessToken, timeoutMs = 8000) {
+async function restQuery(table, query, accessToken, timeoutMs = 5000) {
   const url = `${supabaseUrl}/rest/v1/${table}?${query}`
   console.log(`[auth] REST fetch: ${table} ...`)
 
@@ -112,7 +112,7 @@ export function AuthProvider({ children }) {
         'profiles',
         `id=eq.${userId}&select=*`,
         accessToken,
-        8000
+        5000
       )
 
       if (profileResult.error) {
@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
         'subscriptions',
         `user_id=eq.${userId}&select=*,plans(*)&order=created_at.desc&limit=1`,
         accessToken,
-        8000
+        5000
       )
 
       if (subResult.error) {
@@ -202,10 +202,22 @@ export function AuthProvider({ children }) {
       return
     }
 
-    const safetyTimer = setTimeout(() => {
-      console.warn('[auth] Safety timeout 15s')
+    const safetyTimer = setTimeout(async () => {
+      console.warn('[auth] Safety timeout 12s')
+      // If profile still not loaded, build a fallback from the JWT
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user && !profile) {
+          const fallback = buildFallbackProfile(session.user)
+          setProfile(fallback)
+          setAuthDebug('Timeout carregando perfil — dados basicos do JWT')
+          console.warn('[auth] Fallback profile set from JWT')
+        }
+      } catch (e) {
+        console.error('[auth] Safety fallback error:', e)
+      }
       setLoading(false)
-    }, 15000)
+    }, 12000)
 
     let initialFetchDone = false
 
@@ -238,19 +250,20 @@ export function AuthProvider({ children }) {
         setUser(currentUser)
 
         if (currentUser) {
-          // Skip if initial fetch already handled this user
-          if (initialFetchDone && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+          // Skip duplicate events during initial load (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED)
+          if (initialFetchDone && ['INITIAL_SESSION', 'SIGNED_IN', 'TOKEN_REFRESHED'].includes(event)) {
             console.log(`[auth] Skip duplicate ${event}`)
-            return
+            return  // don't touch loading — getSession handler controls it
           }
           initialFetchDone = true
           await fetchUserData(currentUser)
+          setLoading(false)
         } else {
           setProfile(null)
           setSubscription(null)
           setPlan(null)
+          setLoading(false)
         }
-        setLoading(false)
       }
     )
 
