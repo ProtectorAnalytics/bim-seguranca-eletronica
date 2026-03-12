@@ -1,6 +1,5 @@
 import React from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
-import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { ICONS } from '@/icons';
 import { findDevDef, getDeviceIconKey } from '@/lib/helpers';
 
@@ -15,9 +14,7 @@ export default function TopoNode({node,devices,level,onSelect}){
     <div>
       <div className={`topo-node ${node.disconnected?'topo-disconnected':''}`}
         style={{marginLeft:level*16,cursor:'pointer'}} onClick={()=>onSelect(node.device.id)}>
-        <div className="tn-icon">{DEVICE_THUMBNAILS[node.device.key]?(
-          <img src={DEVICE_THUMBNAILS[node.device.key]} alt={node.device.name} style={{width:18,height:18,objectFit:'contain'}}/>
-        ):ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
+        <div className="tn-icon">{ICONS[getDeviceIconKey(node.device.key)]?.(catInfo?.color||'#999')}</div>
         <div className="tn-info">
           <div className="tn-name">{node.device.name}</div>
           <div className="tn-detail">{node.device.model||node.device.key}</div>

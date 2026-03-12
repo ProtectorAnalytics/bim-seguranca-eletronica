@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { ICONS } from '@/icons';
 import { getHiddenDevices, getDeviceOverrides, getHiddenFamilies, saveHiddenFamilies } from '@/lib/helpers';
 
@@ -10,9 +9,7 @@ function DeviceItem({item, cat, overrides, pendingDevice, setPendingDevice, setT
       onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
       onClick={()=>{setPendingDevice(item.key);setTool('device')}}
       style={pendingDevice===item.key?{background:'#EBF5FB',borderColor:cat.color}:{cursor:'grab'}}>
-      <div className="di-icon">{DEVICE_THUMBNAILS[item.key]?(
-        <img src={DEVICE_THUMBNAILS[item.key]} alt={item.name} style={{width:22,height:22,objectFit:'contain'}}/>
-      ):ICONS[item.icon]?.(cat.color)}</div>
+      <div className="di-icon">{ICONS[item.icon]?.(cat.color)}</div>
       <div className="di-info">
         <div className="di-name">{overrides[item.key]?.name||item.name}</div>
         <div className="di-spec">{(overrides[item.key]?.specs||item.props)?.resolucao||(overrides[item.key]?.specs||item.props)?.portas||(overrides[item.key]?.specs||item.props)?.potencia||''}</div>

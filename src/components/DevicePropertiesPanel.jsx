@@ -2,7 +2,6 @@ import React from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
-import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { ENV_COLORS } from '@/data/constants';
 import { ICONS } from '@/icons';
 import {
@@ -64,9 +63,7 @@ export default function DevicePropertiesPanel({
   const header = (
     <div className="prop-header">
       <div className="ph-icon">
-        {DEVICE_THUMBNAILS[dev.key]
-          ? <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:32,height:32,objectFit:'contain'}}/>
-          : ICONS[getDeviceIconKey(dev.key)]?.(color)}
+        {ICONS[getDeviceIconKey(dev.key)]?.(color)}
       </div>
       <div className="ph-info">
         <div className="ph-name">{dev.name}</div>

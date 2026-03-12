@@ -3,7 +3,6 @@ import { useSubscription } from '../hooks/useSubscription';
 import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
-import { DEVICE_THUMBNAILS } from '@/data/device-thumbnails';
 import { SCENARIOS, ENV_COLORS, APP_VERSION } from '@/data/constants';
 import { REGRAS } from '@/data/validation-rules';
 import { ICONS } from '@/icons';
@@ -1840,11 +1839,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     onMouseDown={(e)=>handleDeviceMouseDown(e,dev.id)}
                     onDoubleClick={(e)=>{e.stopPropagation();if(tool==='cable'||cableMode){return}
                       setCableMode({from:dev.id});setTool('cable')}}>
-                    <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color,
-                      ...(DEVICE_THUMBNAILS[dev.key]?{padding:2}:{})}}>
-                      {DEVICE_THUMBNAILS[dev.key]?(
-                        <img src={DEVICE_THUMBNAILS[dev.key]} alt={dev.name} style={{width:devSize==='sm'?24:devSize==='md'?32:40,height:devSize==='sm'?24:devSize==='md'?32:40,objectFit:'contain'}}/>
-                      ):ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
+                    <div className="doc-icon" style={{borderColor:isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color}}>
+                      {ICONS[getDeviceIconKey(dev.key)]?.(isSource?'#f59e0b':targetStatus==='valid'?'#22c55e':color)}
                     </div>
                     {/* Connection button - opens port popup */}
                     {!cableMode&&(()=>{
