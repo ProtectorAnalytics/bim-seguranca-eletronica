@@ -259,6 +259,18 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  async function resetPassword(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}?type=recovery`,
+    })
+    if (error) throw error
+  }
+
+  async function updatePassword(newPassword) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  }
+
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -291,7 +303,7 @@ export function AuthProvider({ children }) {
   const value = {
     user, profile, subscription, plan, loading,
     isAdmin, configError, authDebug,
-    signIn, signUp, signOut, refreshUserData, getAccessToken,
+    signIn, signUp, signOut, resetPassword, updatePassword, refreshUserData, getAccessToken,
   }
 
   return (

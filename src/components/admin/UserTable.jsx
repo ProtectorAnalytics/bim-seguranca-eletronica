@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 import { ErrorFallback } from '../AdminPage'
 
 /* ─── SVG Icons ─── */
@@ -8,8 +9,20 @@ const RefreshIcon = () => (
     <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
   </svg>
 );
+const MailIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+const LinkIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+  </svg>
+);
 
-export default function UserTable() {
+export default function UserTable({ onNavigateInvites }) {
+  const { profile: adminProfile } = useAuth()
   const [users, setUsers] = useState([])
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -135,6 +148,41 @@ export default function UserTable() {
       await fetchUsers()
     } catch (e) {
       setActionError(`Erro: ${e.message}`)
+    }
+  }
+
+  const resendResetEmail = async (email) => {
+    setActionError(null)
+    try {
+      if (!supabase) throw new Error('Supabase nao configurado')
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}?type=recovery`,
+      })
+      setActionError(`✅ Email de redefinição reenviado para ${email}`)
+    } catch (e) {
+      setActionError(`Erro ao reenviar email: ${e.message}`)
+    }
+  }
+
+  const generateInviteForUser = async (email, planId) => {
+    setActionError(null)
+    try {
+      if (!supabase) throw new Error('Supabase nao configurado')
+      const insertData = {
+        type: 'pre_register',
+        email: email.trim().toLowerCase(),
+        plan_id: planId,
+        max_uses: 1,
+        created_by: adminProfile?.id || null,
+        expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+      }
+      const { data, error: insertErr } = await supabase.from('invite_links').insert([insertData]).select('token').single()
+      if (insertErr) throw new Error(insertErr.message)
+      const url = `${window.location.origin}?invite=${data.token}`
+      try { await navigator.clipboard.writeText(url) } catch { /* ignore */ }
+      setActionError(`✅ Convite gerado e copiado para ${email}: ${url}`)
+    } catch (e) {
+      setActionError(`Erro ao gerar convite: ${e.message}`)
     }
   }
 
@@ -337,6 +385,22 @@ export default function UserTable() {
                             <option value="" disabled>+ Assinatura</option>
                             {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
+                        )}
+                        <button onClick={() => resendResetEmail(u.email)} title="Reenviar email de redefinição de senha" style={{
+                          display: 'flex', alignItems: 'center', gap: 3,
+                          background: '#f59e0b', color: '#000', border: 'none', borderRadius: 4,
+                          padding: '3px 8px', fontSize: 10, cursor: 'pointer',
+                        }}>
+                          <MailIcon /> Reenviar
+                        </button>
+                        {sub?.plans?.id && (
+                          <button onClick={() => generateInviteForUser(u.email, sub.plans.id)} title="Gerar convite pré-registro" style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: 4,
+                            padding: '3px 8px', fontSize: 10, cursor: 'pointer',
+                          }}>
+                            <LinkIcon /> Convite
+                          </button>
                         )}
                       </>
                     )}

@@ -14,6 +14,8 @@ import SettingsPage from './SettingsPage';
 import SubscriptionPage from './SubscriptionPage';
 import ProfilePage from './ProfilePage';
 import AdminPage from './AdminPage';
+import InviteRegisterPage from './InviteRegisterPage';
+import ResetPasswordPage from './ResetPasswordPage';
 import UpgradeBanner from './UpgradeBanner';
 import ProjectApp from './ProjectApp';
 import { useSubscription } from '../hooks/useSubscription';
@@ -164,8 +166,20 @@ export default function App(){
     </div>
   );
 
+  // ── URL-based flows (invite / password recovery) ──
+  const urlParams = new URLSearchParams(window.location.search)
+  const inviteToken = urlParams.get('invite')
+  const urlType = urlParams.get('type')
+
   // Auth guard
   if(authLoading) return <LoadingScreen/>;
+
+  // Invite registration (no auth required)
+  if(inviteToken) return <InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+
+  // Password recovery (user arrives authenticated via Supabase recovery link)
+  if(urlType === 'recovery' && user) return <ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+
   if(!user) return <LoginPage/>;
 
   if(screen==='admin' && isAdmin) return <AdminPage onBack={()=>setScreen('dashboard')}/>;

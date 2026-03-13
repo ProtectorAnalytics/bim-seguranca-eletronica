@@ -6,6 +6,7 @@ import UserTable from './admin/UserTable'
 import SubscriptionManager from './admin/SubscriptionManager'
 import PlanEditor from './admin/PlanEditor'
 import LicenseKeyManager from './admin/LicenseKeyManager'
+import InviteLinkManager from './admin/InviteLinkManager'
 
 /* ─── SVG Icons ─── */
 const I = {
@@ -14,6 +15,7 @@ const I = {
   creditCard: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
   sliders: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>,
   key: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
+  link: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
   shield: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   back: (c='currentColor') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
   refresh: (c='currentColor') => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
@@ -26,6 +28,7 @@ const TABS = [
   { id: 'subs', label: 'Assinaturas', icon: I.creditCard, color: '#22c55e' },
   { id: 'plans', label: 'Planos', icon: I.sliders, color: '#f59e0b' },
   { id: 'keys', label: 'Chaves', icon: I.key, color: '#ef4444' },
+  { id: 'invites', label: 'Convites', icon: I.link, color: '#8b5cf6' },
 ];
 
 /* ─── Error Boundary wrapper ─── */
@@ -162,6 +165,7 @@ export default function AdminPage({ onBack }) {
           {activeTab === 'subs' && <SubscriptionManager />}
           {activeTab === 'plans' && <PlanEditor />}
           {activeTab === 'keys' && <LicenseKeyManager />}
+          {activeTab === 'invites' && <InviteLinkManager />}
         </main>
       </div>
     </div>
