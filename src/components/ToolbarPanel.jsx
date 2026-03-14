@@ -125,7 +125,8 @@ export default function ToolbarPanel({
               {key:'environments',label:'Ambientes',icon:'🏠'},
               {key:'grid',label:'Grade',icon:'⊞'},
               {key:'bg',label:'Planta Fundo',icon:'🖼️'},
-              {key:'dimensions',label:'Cotas',icon:'📏'}
+              {key:'dimensions',label:'Cotas',icon:'📏'},
+              {key:'fov',label:'Campo de Visão',icon:'👁️'}
             ].map(l=>(
               <div key={l.key} onClick={()=>toggleLayer(l.key)}
                 style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',cursor:'pointer',

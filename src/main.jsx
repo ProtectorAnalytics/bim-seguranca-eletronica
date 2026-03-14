@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './contexts/AuthContext'
 import App from './components/App'
+import { ToastProvider } from './components/Toast'
 import './styles/globals.css'
 
 // ── Auto-update: força SW a atualizar e limpa caches antigos ──
@@ -34,7 +35,9 @@ if ('serviceWorker' in navigator) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <AuthProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </AuthProvider>
   </ErrorBoundary>
 )
