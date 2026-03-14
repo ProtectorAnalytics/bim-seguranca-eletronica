@@ -99,19 +99,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [calibEnd,setCalibEnd]=useState(null); // {x,y} second calibration point
   const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
   const calibInputRef=useRef(null);
-  // Comments on floor
-  const comments=floor?.comments||[];
-  const addComment=(text,x,y)=>{
-    updateFloor(f=>({...f,comments:[...(f.comments||[]),{
-      id:'cmt_'+Date.now(),x:x||200,y:y||200,text,author:'Você',resolved:false,createdAt:new Date().toISOString()
-    }]}));
-  };
-  const resolveComment=(id)=>{
-    updateFloor(f=>({...f,comments:(f.comments||[]).map(c=>c.id===id?{...c,resolved:true}:c)}));
-  };
-  const deleteComment=(id)=>{
-    updateFloor(f=>({...f,comments:(f.comments||[]).filter(c=>c.id!==id)}));
-  };
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -164,6 +151,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Update floor data helper
   const updateFloor=(updater)=>{
     setProject(p=>({...p,floors:p.floors.map(f=>f.id===p.activeFloor?updater(f):f)}));
+  };
+
+  // Comments on floor
+  const comments=floor?.comments||[];
+  const addComment=(text,x,y)=>{
+    updateFloor(f=>({...f,comments:[...(f.comments||[]),{
+      id:'cmt_'+Date.now(),x:x||200,y:y||200,text,author:'Você',resolved:false,createdAt:new Date().toISOString()
+    }]}));
+  };
+  const resolveComment=(id)=>{
+    updateFloor(f=>({...f,comments:(f.comments||[]).map(c=>c.id===id?{...c,resolved:true}:c)}));
+  };
+  const deleteComment=(id)=>{
+    updateFloor(f=>({...f,comments:(f.comments||[]).filter(c=>c.id!==id)}));
   };
 
   // All devices across all floors
