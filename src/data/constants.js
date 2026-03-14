@@ -2,11 +2,12 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 38, build: 2,
-  date: '2026-03-12',
+  major: 3, minor: 39, build: 0,
+  date: '2026-03-14',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
   get label(){ return `v${this.major}.${this.minor} build ${this.build}`; },
   changelog: [
+    {ver:'3.39.0',date:'2026-03-14',changes:['Campo de Visão (FOV): cones visuais de câmeras no canvas com ângulo por lente e alcance por IR','Comentários/Anotações: sistema de notas por andar com pins no canvas, resolver e excluir','BOM com Preços: lista de materiais agrupada por categoria com preço unitário e export CSV','Toast Notifications: sistema global de notificações (success/error/info) com auto-dismiss','10 bug fixes: debounce por projeto, bgScale em cabos, guard de token, validação de email em convites','Libs compartilhadas: passwordValidation.js e projectValidator.js extraídos para reuso']},
     {ver:'3.38.2',date:'2026-03-12',changes:['Fix auth: corrigido deadlock getSession() dentro de onAuthStateChange no Supabase v2','Auth single-trigger: onAuthStateChange como unico ponto de fetch, eliminando race condition','Token direto do callback: access_token passado do evento em vez de re-buscar via getSession()','Safety timeout 10s com fallback JWT quando REST falha','REST timeout reduzido de 8s para 5s para carregamento mais rapido','Removido banner amarelo Perfil nao carregado — impossivel com novo fluxo']},
     {ver:'3.38.1',date:'2026-03-12',changes:['Migracao completa dark→Lombada: todos os componentes convertidos para fundo branco com identidade Protector','AdminPage: sidebar, topbar, KPIs, cards e tabelas migrados de #0f172a/#1e293b para #ffffff/#F0F5FA','Admin tables (UserTable, SubscriptionManager, PlanEditor, LicenseKeyManager): headers #F0F5FA, borders #E2E8F0','ProfilePage, SubscriptionPage, SettingsPage: inputs e sections com fundo claro e bordas padronizadas','LicenseRedeemForm, LoadingScreen, App.jsx: telas utilitarias migradas para tema claro','ProjectListPage, ClientListPage: textos e bordas ajustados para contraste em fundo branco','ProjectApp canvas: controles de camera, carimbo, minimap, QGBT e topbar alinhados ao Lombada','globals.css: rack table e minimap com cores claras padronizadas']},
     {ver:'3.38.0',date:'2026-03-12',changes:['Identidade visual Protector Lombada: topbar branco com texto azul, dashboard com cards brancos e bordas #E2E8F0','Font Inter carregada via Google Fonts em toda a aplicacao','Fix icones em branco no canvas: getDeviceIconKey() agora resolve campo icon da definicao do dispositivo','Toggle 3 estados para info de dispositivo: Card completo → Label → Oculto (so icone)','Cores e sombras padronizadas: --radius-lg 12px, sombras sutis, border-radius uniformes','Dashboard redesenhado: header branco, stat cards com borda, module cards estilo Lombada']},
