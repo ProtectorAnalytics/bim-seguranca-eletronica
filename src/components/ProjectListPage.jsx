@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSavedProjects, saveProjects, getCachedCloudProjects, setCachedCloudProjects, removeCachedProject } from '@/lib/helpers';
 import { listCloudProjects, deleteCloudProject, saveCloudProject } from '@/lib/projectStorage';
+import { validateProjectData } from '@/lib/projectValidator';
 import { useAuth } from '../contexts/AuthContext';
 import { Cloud, HardDrive, Trash2, Upload, Download, Loader2 } from 'lucide-react';
 
@@ -57,10 +58,9 @@ export default function ProjectListPage({onBack,onOpenProject}){
 
     if(proj.storageMode === 'cloud' || proj._source === 'cloud'){
       const token = await getAccessToken();
-      if(token){
-        const { error } = await deleteCloudProject(proj.id, token);
-        if(error){ alert('Erro ao deletar do cloud: '+error.message); return; }
-      }
+      if(!token){ alert('Erro: sem autenticação. Faça login novamente.'); return; }
+      const { error } = await deleteCloudProject(proj.id, token);
+      if(error){ alert('Erro ao deletar do cloud: '+error.message); return; }
       setCloudProjects(prev => prev.filter(p=>p.id!==proj.id));
       setCachedCloudProjects(cloudProjects.filter(p=>p.id!==proj.id));
       removeCachedProject(proj.id);
@@ -153,14 +153,15 @@ export default function ProjectListPage({onBack,onOpenProject}){
       reader.onload = (ev)=>{
         try{
           const data = JSON.parse(ev.target.result);
-          let proj;
-          if(data._format === 'bim-protector' && data.project){
-            proj = data.project;
-          } else if(data.floors && data.name){
-            proj = data;
-          } else {
-            alert('Formato de arquivo invalido'); return;
+          const { valid, errors, project: validatedProj } = validateProjectData(data, file.size);
+          if(!valid || !validatedProj){
+            alert('Erro na validação:\n' + errors.join('\n'));
+            return;
           }
+          if(errors.length > 0){
+            console.warn('[import] Warnings:', errors);
+          }
+          const proj = validatedProj;
           proj.id = 'proj_' + Date.now();
           proj.storageMode = 'local';
           proj.createdAt = new Date().toISOString().split('T')[0];

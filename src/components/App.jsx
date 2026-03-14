@@ -93,7 +93,7 @@ export default function App(){
 
   // Cancel pending save when leaving project
   useEffect(() => {
-    return () => cancelPendingSave();
+    return () => cancelPendingSave(editingProjectId);
   }, [editingProjectId]);
 
   const [limitMsg,setLimitMsg]=useState('');
@@ -113,14 +113,13 @@ export default function App(){
   };
 
   const onOpenProject = useCallback(async (proj) => {
-    clearHistory();
-
     // If cloud project without floors loaded, fetch from Supabase
     if (proj.storageMode === 'cloud' && (!proj.floors || proj.floors.length === 0 || proj._needsCloudLoad)) {
       const token = await getAccessToken();
       if (token) {
         const { project: cloudProj, error } = await loadCloudProject(proj.id, token);
         if (!error && cloudProj) {
+          clearHistory(); // Clear history only after successful cloud load
           const p = {
             name: cloudProj.name, scenario: cloudProj.scenario, client: { ...cloudProj.client },
             floors: cloudProj.floors.map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),
@@ -138,6 +137,7 @@ export default function App(){
     }
 
     // Local project or fallback
+    clearHistory(); // Clear history for local/fallback load
     const p = {
       name: proj.name, scenario: proj.scenario, client: { ...proj.client },
       floors: (proj.floors || []).map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),

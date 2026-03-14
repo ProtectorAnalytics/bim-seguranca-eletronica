@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { APP_VERSION } from '@/data/constants'
-
-/* ── Password strength rules (same as LoginPage) ── */
-const PASSWORD_RULES = [
-  { id: 'len', label: 'Mínimo 8 caracteres', test: p => p.length >= 8 },
-  { id: 'upper', label: 'Uma letra maiúscula', test: p => /[A-Z]/.test(p) },
-  { id: 'lower', label: 'Uma letra minúscula', test: p => /[a-z]/.test(p) },
-  { id: 'num', label: 'Um número', test: p => /[0-9]/.test(p) },
-  { id: 'special', label: 'Um caractere especial (!@#$%)', test: p => /[^A-Za-z0-9]/.test(p) },
-]
-function validatePassword(p) { return PASSWORD_RULES.every(r => r.test(p)) }
+import { PASSWORD_RULES, validatePassword } from '@/lib/passwordValidation'
 
 function PasswordStrength({ password }) {
   if (!password) return null
@@ -122,13 +113,14 @@ export default function InviteRegisterPage({ token, onDone }) {
       }
 
       // Create subscription with the invite's plan
-      await supabase.from('subscriptions').insert([{
+      const { error: subErr } = await supabase.from('subscriptions').insert([{
         user_id: userId,
         plan_id: invite.plan_id,
         status: 'active',
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 365 * 86400000).toISOString(),
       }])
+      if (subErr) throw new Error('Conta criada, mas erro ao ativar plano: ' + subErr.message)
 
       // Mark invite as used
       const newCount = (invite.used_count || 0) + 1

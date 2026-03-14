@@ -1,19 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { APP_VERSION } from '@/data/constants'
-
-/* ── Password strength rules ── */
-const PASSWORD_RULES = [
-  { id: 'len', label: 'Mínimo 8 caracteres', test: p => p.length >= 8 },
-  { id: 'upper', label: 'Uma letra maiúscula', test: p => /[A-Z]/.test(p) },
-  { id: 'lower', label: 'Uma letra minúscula', test: p => /[a-z]/.test(p) },
-  { id: 'num', label: 'Um número', test: p => /[0-9]/.test(p) },
-  { id: 'special', label: 'Um caractere especial (!@#$%)', test: p => /[^A-Za-z0-9]/.test(p) },
-]
-
-function validatePassword(password) {
-  return PASSWORD_RULES.every(r => r.test(password))
-}
+import { PASSWORD_RULES, validatePassword } from '@/lib/passwordValidation'
 
 function PasswordStrength({ password }) {
   if (!password) return null

@@ -113,12 +113,13 @@ export async function saveCloudProject(project, projectId, userId, token) {
   );
   if (projErr) return { error: projErr };
 
-  // Delete existing floors then insert fresh (simpler than individual upserts)
-  await restFetch(
+  // Upsert floors: delete then insert, but verify delete succeeded before inserting
+  const { error: delErr } = await restFetch(
     `/project_floors?project_id=eq.${encodeURIComponent(projectId)}`,
     token,
     { method: 'DELETE' }
   );
+  if (delErr) return { error: { message: `Erro ao limpar andares: ${delErr.message}` } };
 
   if (floors.length > 0) {
     const { error: floorErr } = await restFetch(
@@ -226,25 +227,30 @@ function dbToApp(proj, floorRows) {
 
 // ====================================================================
 // DEBOUNCED SAVE — call from useEffect, auto-debounces 2s
+// Per-project debounce via Map (prevents cross-project save cancellation)
 // ====================================================================
-let _saveTimer = null;
-let _savePromise = null;
+const _saveTimers = new Map();
 
 export function debouncedSaveCloud(project, projectId, userId, token, delayMs = 2000) {
-  if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(async () => {
-    _savePromise = saveCloudProject(project, projectId, userId, token);
-    const result = await _savePromise;
+  if (_saveTimers.has(projectId)) clearTimeout(_saveTimers.get(projectId));
+  _saveTimers.set(projectId, setTimeout(async () => {
+    _saveTimers.delete(projectId);
+    const result = await saveCloudProject(project, projectId, userId, token);
     if (result.error) {
       console.warn('[projectStorage] Auto-save failed:', result.error.message);
     }
-    _savePromise = null;
-  }, delayMs);
+  }, delayMs));
 }
 
-export function cancelPendingSave() {
-  if (_saveTimer) {
-    clearTimeout(_saveTimer);
-    _saveTimer = null;
+export function cancelPendingSave(projectId) {
+  if (projectId) {
+    if (_saveTimers.has(projectId)) {
+      clearTimeout(_saveTimers.get(projectId));
+      _saveTimers.delete(projectId);
+    }
+  } else {
+    // Cancel all pending saves (cleanup on unmount)
+    _saveTimers.forEach(timer => clearTimeout(timer));
+    _saveTimers.clear();
   }
 }

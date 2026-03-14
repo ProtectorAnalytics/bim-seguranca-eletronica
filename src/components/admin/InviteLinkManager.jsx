@@ -81,6 +81,10 @@ export default function InviteLinkManager() {
       setActionError('Informe o email do convidado para convite pré-registro')
       return
     }
+    if (genType === 'pre_register' && genEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(genEmail.trim())) {
+      setActionError('Formato de email inválido')
+      return
+    }
     setGenerating(true)
     setActionError(null)
     setGeneratedUrl('')

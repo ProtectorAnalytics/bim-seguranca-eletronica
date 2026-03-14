@@ -25,7 +25,7 @@ import {
 } from '@/lib/helpers';
 import {
   SlidersHorizontal, Server, LayoutGrid, GitBranch,
-  ClipboardList, ShieldCheck, Zap, PanelRightClose
+  ClipboardList, ShieldCheck, Zap, PanelRightClose, MessageCircle
 } from 'lucide-react';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
@@ -39,6 +39,8 @@ import TopologyPanel from './TopologyPanel';
 import EquipmentPanel from './EquipmentPanel';
 import MigrationWizard from './MigrationWizard';
 import DevicePropertiesPanel from './DevicePropertiesPanel';
+import CameraFovOverlay from './CameraFovOverlay';
+import CommentsPanel from './CommentsPanel';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 import { autoOrthoRoute, buildOrthoPath } from '@/lib/cable-routing';
 
@@ -88,7 +90,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const panStartRef=useRef({x:0,y:0,panX:0,panY:0});
   const prevToolRef=useRef(null); // for space-held temporary pan
   // Layers: toggle visibility of canvas elements
-  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true});
+  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
@@ -97,6 +99,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [calibEnd,setCalibEnd]=useState(null); // {x,y} second calibration point
   const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
   const calibInputRef=useRef(null);
+  // Comments on floor
+  const comments=floor?.comments||[];
+  const addComment=(text,x,y)=>{
+    updateFloor(f=>({...f,comments:[...(f.comments||[]),{
+      id:'cmt_'+Date.now(),x:x||200,y:y||200,text,author:'Você',resolved:false,createdAt:new Date().toISOString()
+    }]}));
+  };
+  const resolveComment=(id)=>{
+    updateFloor(f=>({...f,comments:(f.comments||[]).map(c=>c.id===id?{...c,resolved:true}:c)}));
+  };
+  const deleteComment=(id)=>{
+    updateFloor(f=>({...f,comments:(f.comments||[]).filter(c=>c.id!==id)}));
+  };
   const canvasRef=useRef(null);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
@@ -208,7 +223,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         if(c.from!==devId&&c.to!==devId) return c;
         const fd=newDevs.find(d=>d.id===c.from),td=newDevs.find(d=>d.id===c.to);
         if(!fd||!td) return c;
-        return {...c,distance:calcCableDistance(fd.x,fd.y,td.x,td.y,c.waypoints)};
+        return {...c,distance:calcCableDistance(fd.x,fd.y,td.x,td.y,c.waypoints,40,f.bgScale)};
       });
       return {...f,devices:newDevs,connections:newConns};
     });
@@ -326,7 +341,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       }
     }
 
-    const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y); // 40px = 1m
+    const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y,[],40,floor?.bgScale);
 
     // Validate connection (use base device keys for custom devices)
     const chosenCable=type||cableType;
@@ -402,7 +417,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       return {...f,connections:f.connections.map(c=>{
         if(c.id!==connId) return c;
         const fd=devs.find(d=>d.id===c.from),td=devs.find(d=>d.id===c.to);
-        const dist=fd&&td?calcCableDistance(fd.x,fd.y,td.x,td.y,waypoints):c.distance;
+        const dist=fd&&td?calcCableDistance(fd.x,fd.y,td.x,td.y,waypoints,40,f.bgScale):c.distance;
         return {...c,waypoints,distance:dist};
       })};
     });
@@ -650,7 +665,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       const cable=getDefaultCable(fromKey,toKey);
       if(!cable) return false;
       const f=devices.find(d=>d.id===fromId),t=devices.find(d=>d.id===toId);
-      const dist=calcCableDistance(f.x,f.y,t.x,t.y);
+      const dist=calcCableDistance(f.x,f.y,t.x,t.y,[],40,floor?.bgScale);
       const validation=validateConnection(fromKey,toKey,cable);
       newConns.push({id:uid(),from:fromId,to:toId,type:cable,distance:dist,purpose:validation.purpose||'dados'});
       return true;
@@ -2060,6 +2075,21 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 </svg>
               )}
 
+              {/* Camera FOV overlay */}
+              <CameraFovOverlay devices={devices} show={layers.fov}/>
+
+              {/* Comment pins on canvas */}
+              {comments.map(c=>!c.resolved&&(
+                <div key={'cpin_'+c.id} style={{position:'absolute',left:c.x-8,top:c.y-8,width:16,height:16,
+                  borderRadius:'50%',background:'#046BD2',border:'2px solid #fff',boxShadow:'0 1px 4px rgba(0,0,0,.3)',
+                  cursor:'pointer',zIndex:7,display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:8,color:'#fff',fontWeight:700}}
+                  title={c.text}
+                  onClick={(e)=>{e.stopPropagation();setRightTab('comments');}}>
+                  💬
+                </div>
+              ))}
+
               {/* Lasso selection rectangle */}
               {selectionRect&&(()=>{
                 const x=Math.min(selectionRect.startX,selectionRect.x);
@@ -2366,6 +2396,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               <Zap size={15} strokeWidth={2}/>
               <span>Unifilar</span>
             </div>
+            <div className={`rp-tab ${rightTab==='comments'?'active':''}`} onClick={()=>setRightTab('comments')}
+              title="Comentários">
+              <MessageCircle size={15} strokeWidth={2}/>
+              <span>Notas</span>
+              {comments.filter(c=>!c.resolved).length>0&&<span className="rp-badge">{comments.filter(c=>!c.resolved).length}</span>}
+            </div>
             <div className="rp-tab rp-tab-close" onClick={toggleRightPanel} title="Esconder painel">
               <PanelRightClose size={15} strokeWidth={2}/>
             </div>
@@ -2587,13 +2623,22 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
             {/* EQUIPMENT LIST */}
             {rightTab==='equipment'&&(
-              <EquipmentPanel bom={bom} allDevices={allDevices} connections={connections}/>
+              <EquipmentPanel bom={bom} allDevices={allDevices} connections={connections} projectName={project.name}/>
             )}
 
             {/* VALIDATION */}
             {rightTab==='validation'&&(
               <ValidationPanel validations={validations} devices={devices}
                 setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}/>
+            )}
+            {/* COMMENTS */}
+            {rightTab==='comments'&&(
+              <CommentsPanel comments={comments} onAdd={addComment}
+                onResolve={resolveComment} onDelete={deleteComment}
+                onFocus={(c)=>{
+                  const el=document.querySelector('.canvas-viewport');
+                  if(el){el.scrollLeft=c.x-el.clientWidth/2;el.scrollTop=c.y-el.clientHeight/2;}
+                }}/>
             )}
             {/* UNIFILAR - Diagrama Unifilar Elétrico */}
             {rightTab==='unifilar'&&(()=>{
