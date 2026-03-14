@@ -57,7 +57,9 @@ export default function SubscriptionManager() {
     const updates = { status: newStatus }
     if (newStatus === 'active') {
       updates.current_period_start = new Date().toISOString()
-      updates.current_period_end = new Date(Date.now() + 30 * 86400000).toISOString()
+      // Use 365 days by default (standard annual subscription)
+      // null means unlimited (no expiry)
+      updates.current_period_end = new Date(Date.now() + 365 * 86400000).toISOString()
     }
     await updateSub(sub.id, updates)
   }

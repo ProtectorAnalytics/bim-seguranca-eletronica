@@ -68,9 +68,11 @@ export default function LicenseRedeemForm({ onSuccess, onCancel }) {
       }
 
       if (existingSub) {
-        await supabase.from('subscriptions').update(subUpdate).eq('id', existingSub.id)
+        const { error: subErr } = await supabase.from('subscriptions').update(subUpdate).eq('id', existingSub.id)
+        if (subErr) throw new Error('Erro ao atualizar assinatura: ' + subErr.message)
       } else {
-        await supabase.from('subscriptions').insert({ user_id: user.id, ...subUpdate })
+        const { error: subErr } = await supabase.from('subscriptions').insert({ user_id: user.id, ...subUpdate })
+        if (subErr) throw new Error('Erro ao criar assinatura: ' + subErr.message)
       }
 
       setSuccess(`🎉 Plano ${keyData.plans?.name || ''} ativado com sucesso!`)

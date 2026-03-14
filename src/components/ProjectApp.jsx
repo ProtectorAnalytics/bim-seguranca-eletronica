@@ -208,7 +208,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         if(c.from!==devId&&c.to!==devId) return c;
         const fd=newDevs.find(d=>d.id===c.from),td=newDevs.find(d=>d.id===c.to);
         if(!fd||!td) return c;
-        return {...c,distance:calcCableDistance(fd.x,fd.y,td.x,td.y,c.waypoints)};
+        return {...c,distance:calcCableDistance(fd.x,fd.y,td.x,td.y,c.waypoints,40,f.bgScale)};
       });
       return {...f,devices:newDevs,connections:newConns};
     });
@@ -326,7 +326,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       }
     }
 
-    const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y); // 40px = 1m
+    const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y,[],40,floor?.bgScale);
 
     // Validate connection (use base device keys for custom devices)
     const chosenCable=type||cableType;
@@ -402,7 +402,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       return {...f,connections:f.connections.map(c=>{
         if(c.id!==connId) return c;
         const fd=devs.find(d=>d.id===c.from),td=devs.find(d=>d.id===c.to);
-        const dist=fd&&td?calcCableDistance(fd.x,fd.y,td.x,td.y,waypoints):c.distance;
+        const dist=fd&&td?calcCableDistance(fd.x,fd.y,td.x,td.y,waypoints,40,f.bgScale):c.distance;
         return {...c,waypoints,distance:dist};
       })};
     });
@@ -650,7 +650,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       const cable=getDefaultCable(fromKey,toKey);
       if(!cable) return false;
       const f=devices.find(d=>d.id===fromId),t=devices.find(d=>d.id===toId);
-      const dist=calcCableDistance(f.x,f.y,t.x,t.y);
+      const dist=calcCableDistance(f.x,f.y,t.x,t.y,[],40,floor?.bgScale);
       const validation=validateConnection(fromKey,toKey,cable);
       newConns.push({id:uid(),from:fromId,to:toId,type:cable,distance:dist,purpose:validation.purpose||'dados'});
       return true;
