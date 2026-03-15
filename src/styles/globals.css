@@ -36,9 +36,11 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-s
 .scenario-card h4{font-size:15px;margin-bottom:6px;font-weight:600;color:#1e293b}
 .scenario-card p{font-size:12px;color:#94a3b8;line-height:1.4}
 /* Client form */
-.client-form{width:100%;max-width:680px;background:var(--branco);border:1px solid var(--cinzaM);border-radius:var(--radius-lg);padding:28px 32px;animation:portPopIn .2s ease-out;box-shadow:var(--sombra)}
+.client-form{width:100%;max-width:1200px;background:var(--branco);border:1px solid var(--cinzaM);border-radius:var(--radius-lg);padding:28px 36px;animation:portPopIn .2s ease-out;box-shadow:var(--sombra)}
 .client-form .cf-title{font-size:20px;font-weight:700;color:#1e293b;margin-bottom:4px}
 .client-form .cf-sub{font-size:13px;color:#94a3b8;margin-bottom:14px}
+.cf-landscape{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+.cf-landscape-col{min-width:0}
 .cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cf-grid.full{grid-template-columns:1fr}
 .cf-field{display:flex;flex-direction:column;gap:4px}
@@ -505,6 +507,7 @@ tr.rack-face-free td{color:#cbd5e1}
   .dashboard-modules{grid-template-columns:1fr}
   .scenario-grid{grid-template-columns:1fr}
   .cf-grid{grid-template-columns:1fr}
+  .cf-landscape{grid-template-columns:1fr}
   .client-form{padding:16px}
   .dashboard-container{padding:12px}
   /* Canvas: further compact */
