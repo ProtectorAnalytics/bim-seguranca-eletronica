@@ -84,10 +84,24 @@ export function removeCachedProject(id){
 export function getDeviceIconKey(deviceKey){
   if(deviceKey.startsWith('custom_')){
     const custom=getCustomDevices().find(c=>c.key===deviceKey);
+    if(custom?.customIcon) return custom.customIcon;
     return custom?custom.deviceType:deviceKey;
   }
+  // Check overrides for customIcon
+  const ov=getDeviceOverrides()[deviceKey];
+  if(ov?.customIcon) return ov.customIcon;
   const def=findDevDef(deviceKey);
   return def?.icon||deviceKey;
+}
+
+export function getDeviceColor(deviceKey){
+  if(deviceKey.startsWith('custom_')){
+    const custom=getCustomDevices().find(c=>c.key===deviceKey);
+    if(custom?.customColor) return custom.customColor;
+  }
+  const ov=getDeviceOverrides()[deviceKey];
+  if(ov?.customColor) return ov.customColor;
+  return null;
 }
 
 // ====================================================================
@@ -356,7 +370,9 @@ export const getPortDotClass = (type) => {
 export const getPortTypeName = (type) => {
   const map = {data_in:'Dados (entrada)',data_io:'Dados (bidirecional)',power_in:'Energia (entrada)',
     power_out:'Energia (saída)',signal_in:'Sinal (entrada)',signal_out:'Sinal (saída)',
-    automation_in:'Automação (entrada)',automation_out:'Automação (saída)',passthrough:'Passagem'};
+    automation_in:'Automação (entrada)',automation_out:'Automação (saída)',passthrough:'Passagem',
+    video_out:'Vídeo (HDMI/VGA)',rs485:'RS-485 (serial)',wiegand:'Wiegand',
+    fiber_in:'Fibra (SFP)',alarm_zone:'Zona de alarme',wifi_client:'WiFi'};
   return map[type]||type;
 };
 
@@ -387,18 +403,33 @@ export const validateConnection = (fromKey, toKey, cableId) => {
     toIfaces.forEach(ti => {
       // Check interface compatibility
       const compatible = (
-        // data_io connects to anything data
-        (fi.type === 'data_io' && (ti.type === 'data_in' || ti.type === 'data_io')) ||
-        (ti.type === 'data_io' && (fi.type === 'data_in' || fi.type === 'data_io')) ||
+        // data_io connects to anything data (including fiber_in)
+        (fi.type === 'data_io' && (ti.type === 'data_in' || ti.type === 'data_io' || ti.type === 'fiber_in')) ||
+        (ti.type === 'data_io' && (fi.type === 'data_in' || fi.type === 'data_io' || fi.type === 'fiber_in')) ||
+        // fiber_in connects to data_io (switch SFP, ONT)
+        (fi.type === 'fiber_in' && ti.type === 'data_io') ||
+        (ti.type === 'fiber_in' && fi.type === 'data_io') ||
         // power_out connects to power_in
         (fi.type === 'power_out' && ti.type === 'power_in') ||
         (ti.type === 'power_out' && fi.type === 'power_in') ||
-        // signal_out connects to signal_in
-        (fi.type === 'signal_out' && ti.type === 'signal_in') ||
-        (ti.type === 'signal_out' && fi.type === 'signal_in') ||
+        // signal_out connects to signal_in or alarm_zone
+        (fi.type === 'signal_out' && (ti.type === 'signal_in' || ti.type === 'alarm_zone')) ||
+        (ti.type === 'signal_out' && (fi.type === 'signal_in' || fi.type === 'alarm_zone')) ||
+        // alarm_zone connects to signal_out
+        (fi.type === 'alarm_zone' && ti.type === 'signal_out') ||
+        (ti.type === 'alarm_zone' && fi.type === 'signal_out') ||
         // automation_out connects to automation_in
         (fi.type === 'automation_out' && ti.type === 'automation_in') ||
         (ti.type === 'automation_out' && fi.type === 'automation_in') ||
+        // video_out connects to video_out (monitor ↔ NVR)
+        (fi.type === 'video_out' && ti.type === 'video_out') ||
+        // rs485 connects to rs485 (bus)
+        (fi.type === 'rs485' && ti.type === 'rs485') ||
+        // wiegand connects to wiegand
+        (fi.type === 'wiegand' && ti.type === 'wiegand') ||
+        // wifi_client connects to data_io (AP)
+        (fi.type === 'wifi_client' && ti.type === 'data_io') ||
+        (ti.type === 'wifi_client' && fi.type === 'data_io') ||
         // passthrough connects to anything
         fi.type === 'passthrough' || ti.type === 'passthrough'
       );
@@ -413,9 +444,12 @@ export const validateConnection = (fromKey, toKey, cableId) => {
       const commonCables = fi.cables.filter(c => ti.cables.includes(c));
       if (commonCables.length === 0) return;
 
-      const purpose = fi.type.includes('power') || ti.type.includes('power') ? 'energia' :
-                      fi.type.includes('automation') || ti.type.includes('automation') ? 'automação' :
-                      fi.type.includes('signal') || ti.type.includes('signal') ? 'sinal' : 'dados';
+      const types = fi.type + '|' + ti.type;
+      const purpose = types.includes('power') ? 'energia' :
+                      types.includes('automation') ? 'automação' :
+                      types.includes('signal') || types.includes('alarm_zone') || types.includes('wiegand') ? 'sinal' :
+                      types.includes('video') ? 'vídeo' :
+                      types.includes('rs485') ? 'serial' : 'dados';
 
       commonCables.forEach(cab => {
         validCombos.push({ cable: cab, purpose, fromIface: fi, toIface: ti });

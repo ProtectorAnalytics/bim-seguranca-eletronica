@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { EQUIPMENT_SCHEMAS } from '@/data/equipment-schemas';
-import { ICONS } from '@/icons';
+import { ICONS, ICON_BANK, COLOR_PALETTE } from '@/icons';
+import { INTERFACE_CARDINALITY } from '@/data/device-interfaces';
 import { getDeviceInterfaces, getDeviceOverrides, saveDeviceOverrides, getHiddenDevices, saveHiddenDevices, getHiddenFamilies, saveHiddenFamilies } from '@/lib/helpers';
 
 export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClose,startAtStep,onRefreshDefaults}){
@@ -27,7 +28,8 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   const [formState,setFormState]=useState({
     category:'camera',baseDeviceType:'cam_dome',brand:'',model:'',descricao:'',
     referencia:'',preco:'',specs:{},datasheetText:'',
-    customIfaces:[] // [{type,cables:[],label,required}]
+    customIcon:'',customColor:'',
+    customIfaces:[] // [{type,cables:[],label,required,cardinality}]
   });
 
   const categoryLabels={
@@ -70,15 +72,21 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   const handleFieldChange=(key,value)=>setFormState(f=>({...f,[key]:value}));
 
   const IFACE_TYPE_OPTIONS=[
-    {value:'data_in',label:'Entrada dados (RJ45/Rede)'},
-    {value:'data_io',label:'Dados bidirecional (switch)'},
-    {value:'power_in',label:'Entrada energia'},
-    {value:'power_out',label:'Saída energia'},
-    {value:'signal_in',label:'Entrada sensor (alarme/NA/NF)'},
-    {value:'signal_out',label:'Saída contato seco (relay)'},
-    {value:'automation_in',label:'Entrada automação'},
-    {value:'automation_out',label:'Saída automação'},
-    {value:'passthrough',label:'Passagem/emenda'},
+    {value:'data_in',label:'Entrada dados RJ45',card:'1:1'},
+    {value:'data_io',label:'Dados bidirecional (switch)',card:'1:1'},
+    {value:'fiber_in',label:'Entrada fibra SFP',card:'1:1'},
+    {value:'power_in',label:'Entrada energia',card:'1:1'},
+    {value:'power_out',label:'Saída energia (fonte)',card:'1:N'},
+    {value:'signal_in',label:'Entrada sensor (NA/NF)',card:'N:1'},
+    {value:'signal_out',label:'Saída contato seco (relay)',card:'1:1'},
+    {value:'alarm_zone',label:'Zona de alarme',card:'N:1'},
+    {value:'automation_in',label:'Entrada automação',card:'N:1'},
+    {value:'automation_out',label:'Saída automação',card:'1:1'},
+    {value:'video_out',label:'Saída vídeo (HDMI/VGA)',card:'1:1'},
+    {value:'rs485',label:'RS-485 (barramento serial)',card:'N:1'},
+    {value:'wiegand',label:'Wiegand (leitor)',card:'1:1'},
+    {value:'wifi_client',label:'WiFi (cliente/AP)',card:'N:1'},
+    {value:'passthrough',label:'Passagem/emenda',card:'N:1'},
   ];
   const CABLE_OPTIONS=CABLE_TYPES.map(c=>({value:c.id,label:c.name}));
 
@@ -118,12 +126,13 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
       ov[key]={name:formState.brand+' '+formState.model,brand:formState.brand,model:formState.model,
         descricao:formState.descricao,referencia:formState.referencia,preco:formState.preco,
         specs:formState.specs,customIfaces:formState.customIfaces.filter(i=>i.label),
-        datasheetText:formState.datasheetText};
+        datasheetText:formState.datasheetText,
+        customIcon:formState.customIcon||'',customColor:formState.customColor||''};
       setDeviceOverrides(ov);
       saveDeviceOverrides(ov);
       onRefreshDefaults?.();
       setStep(0);setEditingDevice(null);
-      setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});
+      setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIcon:'',customColor:'',customIfaces:[]});
       return;
     }
     // Normal custom device save
@@ -133,9 +142,10 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
       brand:formState.brand,model:formState.model,descricao:formState.descricao,
       referencia:formState.referencia,preco:formState.preco,specs:formState.specs,
       customIfaces:formState.customIfaces.filter(i=>i.label),
+      customIcon:formState.customIcon||'',customColor:formState.customColor||'',
       createdAt:new Date().toISOString().split('T')[0],datasheetText:formState.datasheetText};
     onSave(customDev);setStep(0);setEditingDevice(null);
-    setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});
+    setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIcon:'',customColor:'',customIfaces:[]});
   };
 
   // Edit a default device (override in localStorage)
@@ -152,6 +162,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
       preco:override.preco||'',
       specs:override.specs||item.props||{},
       datasheetText:override.datasheetText||'',
+      customIcon:override.customIcon||'',customColor:override.customColor||'',
       customIfaces:override.customIfaces||[]
     });
     setStep(3);
@@ -202,7 +213,8 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
     setEditingDevice(dev);
     setFormState({category:dev.category,baseDeviceType:dev.deviceType,brand:dev.brand,model:dev.model,
       descricao:dev.descricao,referencia:dev.referencia,preco:dev.preco,specs:dev.specs||{},
-      datasheetText:dev.datasheetText||'',customIfaces:dev.customIfaces||[]});
+      datasheetText:dev.datasheetText||'',customIcon:dev.customIcon||'',customColor:dev.customColor||'',
+      customIfaces:dev.customIfaces||[]});
     setStep(3);
   };
 
@@ -396,7 +408,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         <div style={{display:'flex',gap:8}}>
           <button className="mc-btn mc-btn-secondary" onClick={onClose} style={{fontSize:12}}>Fechar</button>
           <button className="mc-btn mc-btn-primary" onClick={()=>{setStep(1);setEditingDevice(null);
-            setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIfaces:[]});}}
+            setFormState({category:'camera',baseDeviceType:'',brand:'',model:'',descricao:'',referencia:'',preco:'',specs:{},datasheetText:'',customIcon:'',customColor:'',customIfaces:[]});}}
             style={{fontSize:12}}>+ Novo equipamento</button>
         </div>
       </div>
@@ -452,10 +464,10 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         <NavButtons canNext={!!formState.baseDeviceType}/>
       </>}
 
-      {/* STEP 3: GENERAL DATA */}
+      {/* STEP 3: GENERAL DATA + ICON/COLOR */}
       {step===3&&<>
         <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Dados do equipamento</h3>
-        <div style={{maxHeight:340,overflowY:'auto'}}>
+        <div style={{maxHeight:400,overflowY:'auto'}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
             <div style={{display:'flex',flexDirection:'column',gap:4}}>
               <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Marca *</label>
@@ -468,6 +480,53 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
                 style={{fontSize:12,padding:'6px 8px',borderRadius:5,border:'1px solid #d1d5db',color:'#1f2937',background:'#fff'}}/>
             </div>
           </div>
+
+          {/* Icon & Color selection */}
+          <div style={{marginBottom:12,padding:10,background:'#f8fafc',borderRadius:8,border:'1px solid #e2e8f0'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+              <div style={{width:44,height:44,borderRadius:10,
+                background:(formState.customColor||categoryColors[formState.category])+'15',
+                border:`2px solid ${formState.customColor||categoryColors[formState.category]}`,
+                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                {ICONS[formState.customIcon||formState.baseDeviceType]?.(formState.customColor||categoryColors[formState.category])}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#374151',marginBottom:4}}>Ícone e Cor</div>
+                <div style={{fontSize:9,color:'#6b7280'}}>Personalize a aparência do equipamento no canvas</div>
+              </div>
+            </div>
+            {/* Color palette */}
+            <div style={{marginBottom:6}}>
+              <label style={{fontSize:9,fontWeight:600,color:'#64748b',marginBottom:3,display:'block'}}>Cor</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                {COLOR_PALETTE.map(c=>(
+                  <div key={c} onClick={()=>handleFieldChange('customColor',formState.customColor===c?'':c)}
+                    style={{width:20,height:20,borderRadius:4,background:c,cursor:'pointer',
+                      border:formState.customColor===c?'2px solid #1e293b':'2px solid transparent',
+                      boxShadow:formState.customColor===c?'0 0 0 2px #fff, 0 0 0 4px '+c:'none',
+                      transition:'.1s'}}/>
+                ))}
+              </div>
+            </div>
+            {/* Icon bank */}
+            <div>
+              <label style={{fontSize:9,fontWeight:600,color:'#64748b',marginBottom:3,display:'block'}}>Ícone</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:3,maxHeight:100,overflowY:'auto'}}>
+                {ICON_BANK.map(ib=>{
+                  const sel=formState.customIcon===ib.id;
+                  const cc=formState.customColor||categoryColors[formState.category];
+                  return <div key={ib.id} title={ib.label}
+                    onClick={()=>handleFieldChange('customIcon',sel?'':ib.id)}
+                    style={{width:32,height:32,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',
+                      cursor:'pointer',background:sel?cc+'20':'#fff',border:sel?`2px solid ${cc}`:'1px solid #e2e8f0',
+                      transition:'.1s'}}>
+                    <div style={{transform:'scale(0.65)'}}>{ICONS[ib.id]?.(sel?cc:'#94a3b8')}</div>
+                  </div>;
+                })}
+              </div>
+            </div>
+          </div>
+
           <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
             <label style={{fontSize:11,fontWeight:600,color:'#374151'}}>Descrição</label>
             <textarea value={formState.descricao} onChange={e=>handleFieldChange('descricao',e.target.value)}
@@ -497,24 +556,32 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         <NavButtons canNext={!!(formState.brand&&formState.model)}/>
       </>}
 
-      {/* STEP 4: INTERFACES */}
+      {/* STEP 4: INTERFACES (Painel de Recursos) */}
       {step===4&&<>
-        <h3 style={{fontSize:14,marginBottom:4}}>Interfaces de conexão</h3>
+        <h3 style={{fontSize:14,marginBottom:4}}>Painel de Recursos — Conexões</h3>
         <p style={{fontSize:10,color:'var(--cinza)',margin:'0 0 10px'}}>
-          Interfaces herdadas do tipo base + interfaces adicionais que você pode personalizar.
+          Defina as interfaces de conexão. Cada tipo tem cardinalidade: <b>1:1</b> (uma conexão por porta), <b>N:1</b> (várias entradas na mesma porta), <b>1:N</b> (uma saída alimenta vários).
         </p>
 
-        {/* Inherited interfaces */}
+        {/* Inherited interfaces table */}
         <div style={{marginBottom:12}}>
           <div style={{fontSize:10,fontWeight:700,color:'var(--azul)',marginBottom:6}}>Interfaces do tipo base ({formState.baseDeviceType})</div>
-          {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>(
-            <div key={i} style={{padding:6,marginBottom:4,background:'#f0fdf4',borderRadius:5,fontSize:10,display:'flex',alignItems:'center',gap:6,
-              borderLeft:'3px solid #22c55e'}}>
-              <span style={{fontWeight:600,color:'#16a34a',minWidth:100}}>{iface.type}</span>
-              <span style={{flex:1,color:'#374151'}}>{iface.label}</span>
-              <span style={{fontSize:8,color:'#9ca3af'}}>{iface.required?'obrigatória':'opcional'}</span>
+          <div style={{border:'1px solid #e2e8f0',borderRadius:6,overflow:'hidden'}}>
+            <div style={{display:'grid',gridTemplateColumns:'110px 1fr 50px 50px',background:'#f1f5f9',padding:'4px 8px',fontSize:8,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.5px'}}>
+              <span>Tipo</span><span>Descrição</span><span>Card.</span><span>Status</span>
             </div>
-          ))}
+            {(getDeviceInterfaces(formState.baseDeviceType)||[]).map((iface,i)=>{
+              const card=INTERFACE_CARDINALITY[iface.type]||'1:1';
+              const cardColor=card==='N:1'?'#059669':card==='1:N'?'#d97706':'#6b7280';
+              return <div key={i} style={{display:'grid',gridTemplateColumns:'110px 1fr 50px 50px',padding:'5px 8px',fontSize:10,
+                borderTop:'1px solid #f1f5f9',alignItems:'center',background:i%2===0?'#fff':'#fafbfc'}}>
+                <span style={{fontWeight:600,color:'#16a34a',fontSize:9}}>{iface.type}</span>
+                <span style={{color:'#374151',fontSize:9,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{iface.label}</span>
+                <span style={{fontSize:8,fontWeight:700,color:cardColor,background:cardColor+'15',padding:'1px 4px',borderRadius:3,textAlign:'center'}}>{card}</span>
+                <span style={{fontSize:8,color:iface.required?'#dc2626':'#9ca3af'}}>{iface.required?'obrig.':'opc.'}</span>
+              </div>;
+            })}
+          </div>
         </div>
 
         {/* Custom interfaces */}
@@ -523,29 +590,42 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
             <span>Interfaces adicionais</span>
             <button onClick={addCustomIface} style={{padding:'3px 10px',fontSize:9,background:'var(--laranja)',color:'#000',border:'none',borderRadius:4,cursor:'pointer',fontWeight:700}}>+ Adicionar</button>
           </div>
-          {formState.customIfaces.length===0&&<div style={{fontSize:10,color:'#9ca3af',padding:8,textAlign:'center'}}>
-            Nenhuma interface adicional. Adicione entradas de sensor, saídas de contato seco, PoE/12V, etc.
+          {formState.customIfaces.length===0&&<div style={{fontSize:10,color:'#9ca3af',padding:8,textAlign:'center',background:'#fafafa',borderRadius:6,border:'1px dashed #d1d5db'}}>
+            Nenhuma interface adicional. Adicione RS-485, Wiegand, zonas de alarme, saída vídeo, etc.
           </div>}
-          {formState.customIfaces.map((iface,idx)=>(
-            <div key={idx} style={{padding:8,marginBottom:6,background:'#fffbeb',borderRadius:6,border:'1px solid #fde68a'}}>
+          {formState.customIfaces.map((iface,idx)=>{
+            const opt=IFACE_TYPE_OPTIONS.find(o=>o.value===iface.type);
+            const card=opt?.card||INTERFACE_CARDINALITY[iface.type]||'1:1';
+            const cardColor=card==='N:1'?'#059669':card==='1:N'?'#d97706':'#6b7280';
+            return <div key={idx} style={{padding:8,marginBottom:6,background:'#fffbeb',borderRadius:6,border:'1px solid #fde68a'}}>
               <div style={{display:'flex',gap:6,marginBottom:4,alignItems:'center'}}>
                 <select value={iface.type} onChange={e=>updateCustomIface(idx,'type',e.target.value)}
                   style={{flex:1,fontSize:10,padding:'3px 4px',borderRadius:4,border:'1px solid #d1d5db'}}>
-                  {IFACE_TYPE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+                  {IFACE_TYPE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label} ({o.card})</option>)}
                 </select>
-                <label style={{fontSize:9,display:'flex',alignItems:'center',gap:3}}>
+                <span style={{fontSize:8,fontWeight:700,color:cardColor,background:cardColor+'15',padding:'2px 6px',borderRadius:3,whiteSpace:'nowrap'}}>{card}</span>
+                <label style={{fontSize:9,display:'flex',alignItems:'center',gap:3,whiteSpace:'nowrap'}}>
                   <input type="checkbox" checked={iface.required} onChange={e=>updateCustomIface(idx,'required',e.target.checked)}/>Obrig.
                 </label>
                 <button onClick={()=>removeCustomIface(idx)} style={{fontSize:12,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>×</button>
               </div>
               <input value={iface.label} onChange={e=>updateCustomIface(idx,'label',e.target.value)}
-                placeholder="Descrição (ex: Entrada sensor 1 NA/NF)" style={{width:'100%',fontSize:10,padding:'3px 6px',borderRadius:4,border:'1px solid #d1d5db',marginBottom:4}}/>
-              <select multiple value={iface.cables} onChange={e=>updateCustomIface(idx,'cables',[...e.target.selectedOptions].map(o=>o.value))}
-                style={{width:'100%',fontSize:9,height:50,borderRadius:4,border:'1px solid #d1d5db'}}>
-                {CABLE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-          ))}
+                placeholder="Descrição (ex: Entrada botoeira NA/NF, Saída HDMI)" style={{width:'100%',fontSize:10,padding:'3px 6px',borderRadius:4,border:'1px solid #d1d5db',marginBottom:4}}/>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                {CABLE_OPTIONS.map(o=>{
+                  const sel=(iface.cables||[]).includes(o.value);
+                  return <div key={o.value} onClick={()=>{
+                    const cables=sel?(iface.cables||[]).filter(c=>c!==o.value):[...(iface.cables||[]),o.value];
+                    updateCustomIface(idx,'cables',cables);
+                  }} style={{fontSize:8,padding:'2px 6px',borderRadius:3,cursor:'pointer',fontWeight:sel?700:400,
+                    background:sel?'#dbeafe':'#f3f4f6',color:sel?'#1d4ed8':'#6b7280',
+                    border:sel?'1px solid #93c5fd':'1px solid #e5e7eb',transition:'.1s'}}>
+                    {o.label}
+                  </div>;
+                })}
+              </div>
+            </div>;
+          })}
         </div>
         <NavButtons/>
       </>}
@@ -578,8 +658,11 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
         <h3 style={{fontSize:14,marginBottom:12,color:'#1f2937'}}>Revisão final</h3>
         <div style={{background:'#f8f9fa',borderRadius:10,padding:14,marginBottom:10}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-            <div style={{width:44,height:44,borderRadius:10,background:categoryColors[formState.category]+'15',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              {ICONS[formState.baseDeviceType]?.(categoryColors[formState.category])}
+            <div style={{width:44,height:44,borderRadius:10,
+              background:(formState.customColor||categoryColors[formState.category])+'15',
+              border:`2px solid ${formState.customColor||categoryColors[formState.category]}`,
+              display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {ICONS[formState.customIcon||formState.baseDeviceType]?.(formState.customColor||categoryColors[formState.category])}
             </div>
             <div>
               <div style={{fontWeight:700,fontSize:14,color:'#1e40af'}}>{formState.brand} {formState.model}</div>

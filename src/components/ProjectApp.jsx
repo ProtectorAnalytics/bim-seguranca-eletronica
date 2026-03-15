@@ -18,7 +18,7 @@ import {
   getSwitchPorts
 } from '@/data/device-interfaces';
 import {
-  findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getCustomDevices, saveCustomDevices,
+  findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getDeviceColor, getCustomDevices, saveCustomDevices,
   getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
   calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings,
   isValidIPv4, isValidVLAN
@@ -1958,7 +1958,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               {layers.devices&&devices.filter(d=>!d.quadroId).map(dev=>{
                 const def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
-                const color=catInfo?.color||'#6b7280';
+                const color=getDeviceColor(dev.key)||catInfo?.color||'#6b7280';
                 const targetStatus=cableMode?validTargets[dev.id]:null;
                 const isSource=cableMode?.from===dev.id;
                 const inRack=dev.parentRack?racks.find(r=>r.id===dev.parentRack):null;
