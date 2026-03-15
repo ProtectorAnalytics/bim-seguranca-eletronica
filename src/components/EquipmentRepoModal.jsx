@@ -35,17 +35,17 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   const categoryLabels={
     camera:'Câmeras',acesso:'Acesso',fechadura:'Fechadura',alarme:'Alarme',sensor:'Sensores / Barreiras',
     switch_rede:'Switches / Rede',gravador:'Gravador NVR',fonte_energia:'Fonte',nobreak:'Nobreak',
-    infra:'Infraestrutura',wifi:'Wi-Fi',automatizador:'Automatizadores'
+    infra:'Infraestrutura',wifi:'Wi-Fi',automatizador:'Automatizadores',periferico:'Periféricos'
   };
   const categoryIcons={
     camera:'📷',acesso:'🔐',fechadura:'🔒',alarme:'🚨',sensor:'📡',
     switch_rede:'🌐',gravador:'💾',fonte_energia:'⚡',nobreak:'🔋',infra:'🏗️',
-    wifi:'📶',automatizador:'🚪'
+    wifi:'📶',automatizador:'🚪',periferico:'🖥️'
   };
   const categoryColors={
     camera:'#f59e0b',acesso:'#3b82f6',fechadura:'#8b5cf6',alarme:'#ef4444',sensor:'#84cc16',
     switch_rede:'#06b6d4',gravador:'#059669',fonte_energia:'#eab308',nobreak:'#dc2626',infra:'#6b7280',
-    wifi:'#0ea5e9',automatizador:'#a855f7'
+    wifi:'#0ea5e9',automatizador:'#a855f7',periferico:'#374151'
   };
 
   const getCategoryDevices=(category)=>{
@@ -172,7 +172,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
     const map={'CFTV IP':'camera','CFTV IP — NVR':'gravador',
       'Controle de Acesso':'acesso','Intrusão — Barreiras':'sensor',
       'Automatizadores':'automatizador','Rede':'switch_rede','Wi-Fi':'wifi',
-      'Infraestrutura':'infra',
+      'Infraestrutura':'infra','Periféricos':'periferico',
       // Legacy category names (backward compat)
       'CFTV Analógico':'camera','Fechaduras':'fechadura',
       'Alarme':'alarme','Sensores':'sensor','Switches e Rede':'switch_rede',

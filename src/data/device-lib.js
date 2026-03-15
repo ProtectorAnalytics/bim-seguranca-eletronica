@@ -1,5 +1,5 @@
 // ====================================================================
-// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (77 dispositivos)
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (96 dispositivos)
 // Fabricante: Genérico | v3.19.1
 // ====================================================================
 export const DEVICE_LIB = [
@@ -32,15 +32,15 @@ export const DEVICE_LIB = [
   // CFTV IP - GRAVADORES NVR (6 tipos)
   // ================================================================
   {cat:'CFTV IP - NVR',color:'#059669',items:[
-    {key:'nvr_4ch',name:'NVR IP 4 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'4 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_8ch',name:'NVR IP 8 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_8ch_poe',name:'NVR IP 8 Canais PoE',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K',hd:'1 SATA',poePorts:'8 PoE'},ref:''},
-    {key:'nvr_16ch',name:'NVR IP 16 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA (até 20TB)',saida:'1 HDMI + 1 VGA'},ref:''},
-    {key:'nvr_16ch_poe',name:'NVR IP 16 Canais PoE',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA',poePorts:'16 PoE'},ref:''},
-    {key:'nvr_32ch',name:'NVR IP 32 Canais',icon:'nvr',poe:false,ports:1,manufacturer:'Genérico',props:{canais:'32 IP',resolMax:'4K',hd:'2 SATA',saida:'2 HDMI + 1 VGA',ia:'Sim'},ref:''},
+    {key:'nvr_4ch',name:'NVR IP 4 Canais',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'4 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_8ch',name:'NVR IP 8 Canais',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K (8MP)',hd:'1 SATA (até 10TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_8ch_poe',name:'NVR IP 8 Canais PoE',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'8 IP',resolMax:'4K',hd:'1 SATA',poePorts:'8 PoE'},ref:''},
+    {key:'nvr_16ch',name:'NVR IP 16 Canais',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA (até 20TB)',saida:'1 HDMI + 1 VGA'},ref:''},
+    {key:'nvr_16ch_poe',name:'NVR IP 16 Canais PoE',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'16 IP',resolMax:'4K',hd:'2 SATA',poePorts:'16 PoE'},ref:''},
+    {key:'nvr_32ch',name:'NVR IP 32 Canais',icon:'nvr',poe:false,ports:1,configurable:true,configFields:['hdCapacityTB'],manufacturer:'Genérico',props:{canais:'32 IP',resolMax:'4K',hd:'2 SATA',saida:'2 HDMI + 1 VGA',ia:'Sim'},ref:''},
   ]},
   // ================================================================
-  // CONTROLE DE ACESSO (9 tipos)
+  // CONTROLE DE ACESSO (20 tipos)
   // ================================================================
   {cat:'Controle de Acesso',color:'#8b5cf6',items:[
     {key:'leitor_facial',name:'Leitor Facial',icon:'leitor_facial',poe:false,ports:1,ampDC:0.5,manufacturer:'Genérico',props:{faces:'50.000',tela:'4.3"',temp:'Sim',ip:'IP65'},ref:''},
@@ -52,8 +52,16 @@ export const DEVICE_LIB = [
     {key:'motor',name:'Motor Portão/Acesso',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Deslizante',peso:'até 600kg'},ref:''},
     {key:'cam_lpr',name:'Câmera LPR',icon:'cam_lpr',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP',ir:'12m',lente:'2.8-12mm',funcao:'Reconhecimento Placa'},ref:''},
     {key:'leitor_tag',name:'Leitor Tag UHF',icon:'leitor_tag',poe:false,ports:1,ampDC:0.3,manufacturer:'Genérico',props:{frequencia:'915MHz',alcance:'até 8m',protocolo:'Wiegand/RS485'},ref:''},
+    {key:'fechadura_eletromecanica',name:'Fechadura Eletromecânica',icon:'fechadura_mec',poe:false,ampDC:0.8,ports:1,manufacturer:'Genérico',props:{tipo:'Eletromecânica',acionamento:'Fail-secure',tensao:'12VDC',uso:'Porta madeira/metal'},ref:''},
+    {key:'fechadura_solenoide_embutir',name:'Fechadura Solenoide de Embutir',icon:'fechadura_sol',poe:false,ampDC:0.35,ports:1,manufacturer:'Genérico',props:{tipo:'Solenoide embutir',acionamento:'Fail-safe',tensao:'12VDC',uso:'Porta madeira/vidro'},ref:''},
+    {key:'fechadura_solenoide_sobrepor',name:'Fechadura Solenoide de Sobrepor',icon:'fechadura_sol',poe:false,ampDC:0.35,ports:1,manufacturer:'Genérico',props:{tipo:'Solenoide sobrepor',acionamento:'Fail-safe',tensao:'12VDC',uso:'Porta metal/madeira'},ref:''},
     {key:'botoeira_nt',name:'Botoeira No-Touch',icon:'fechadura',poe:false,ports:1,ampDC:0.05,manufacturer:'Genérico',props:{tipo:'Infravermelho',saida:'NA/NF',tensao:'12VDC',ip:'IP55'},ref:''},
     {key:'botoeira_emergencia',name:'Botoeira de Emergência',icon:'fechadura',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Pressão (break glass)',saida:'NA/NF',cor:'Vermelho'},ref:''},
+    {key:'botoeira_painel_1',name:'Painel de Botoeira 22mm — 1 Posição',icon:'botoeira_painel',poe:false,ports:1,manufacturer:'Genérico',props:{posicoes:'1',furo:'22mm',material:'Plástico/Metal',saida:'NA/NF'},ref:''},
+    {key:'botoeira_painel_2',name:'Painel de Botoeira 22mm — 2 Posições',icon:'botoeira_painel',poe:false,ports:1,manufacturer:'Genérico',props:{posicoes:'2',furo:'22mm',material:'Plástico/Metal',saida:'NA/NF'},ref:''},
+    {key:'botoeira_painel_3',name:'Painel de Botoeira 22mm — 3 Posições',icon:'botoeira_painel',poe:false,ports:1,manufacturer:'Genérico',props:{posicoes:'3',furo:'22mm',material:'Plástico/Metal',saida:'NA/NF'},ref:''},
+    {key:'botoeira_painel_4',name:'Painel de Botoeira 22mm — 4 Posições',icon:'botoeira_painel',poe:false,ports:1,manufacturer:'Genérico',props:{posicoes:'4',furo:'22mm',material:'Plástico/Metal',saida:'NA/NF'},ref:''},
+    {key:'botoeira_painel_6',name:'Painel de Botoeira 22mm — 6 Posições',icon:'botoeira_painel',poe:false,ports:1,manufacturer:'Genérico',props:{posicoes:'6',furo:'22mm',material:'Plástico/Metal',saida:'NA/NF'},ref:''},
     {key:'sensor_abertura',name:'Sensor de Abertura Magnético',icon:'sensor_barreira',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Magnético',saida:'NA/NF',gap:'até 20mm',uso:'Porta/Janela'},ref:''},
   ]},
   // ================================================================
@@ -99,6 +107,20 @@ export const DEVICE_LIB = [
     {key:'wifi_router_5g',name:'Roteador 5G',icon:'router',poe:false,ports:1,manufacturer:'Genérico',props:{padrao:'5G Sub-6GHz',wifi:'Wi-Fi 6'},ref:''},
     {key:'wifi_ap_interno',name:'Access Point Interno',icon:'ap_wifi',poe:true,poeW:15,ports:1,manufacturer:'Genérico',props:{velocidade:'1200-1800Mbps',gerenciavel:'Sim'},ref:''},
     {key:'wifi_ap_externo',name:'Access Point Externo',icon:'ap_wifi',poe:true,poeW:15,ports:1,manufacturer:'Genérico',props:{ip:'IP65',velocidade:'1200Mbps'},ref:''},
+  ]},
+  // ================================================================
+  // PERIFÉRICOS / ACESSÓRIOS
+  // ================================================================
+  {cat:'Periféricos',color:'#374151',items:[
+    {key:'monitor_led_24',name:'Monitor LED 24"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'24"',resolucao:'1920x1080 (Full HD)',entrada:'HDMI + VGA'},ref:''},
+    {key:'monitor_led_27',name:'Monitor LED 27"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'27"',resolucao:'1920x1080 (Full HD)',entrada:'HDMI + VGA'},ref:''},
+    {key:'monitor_led_29',name:'Monitor LED 29"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'29"',resolucao:'2560x1080 (UltraWide)',entrada:'HDMI + DP'},ref:''},
+    {key:'monitor_led_32',name:'Monitor LED 32"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'32"',resolucao:'1920x1080 / 4K',entrada:'HDMI + DP'},ref:''},
+    {key:'monitor_led_40',name:'Monitor LED 40"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'40"',resolucao:'1920x1080 / 4K',entrada:'HDMI'},ref:''},
+    {key:'monitor_led_60',name:'Monitor LED 60"',icon:'monitor_led',poe:false,ports:1,manufacturer:'Genérico',props:{tamanho:'60"',resolucao:'4K (3840x2160)',entrada:'HDMI × 3'},ref:''},
+    {key:'cabo_hdmi',name:'Cabo HDMI',icon:'cabo_hdmi',poe:false,ports:1,manufacturer:'Genérico',props:{versao:'2.0',resolMax:'4K 60Hz',comprimento:'1.5-15m'},ref:''},
+    {key:'mouse_usb',name:'Mouse USB',icon:'mouse',poe:false,ports:1,manufacturer:'Genérico',props:{interface:'USB-A',tipo:'Óptico'},ref:''},
+    {key:'cabo_extensor_usb',name:'Cabo Extensor USB',icon:'cabo_usb',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'USB 2.0 A-Macho/A-Fêmea',comprimento:'1.5-5m',uso:'Extensão mouse/teclado'},ref:''},
   ]},
   // ================================================================
   // INFRAESTRUTURA (15 tipos)

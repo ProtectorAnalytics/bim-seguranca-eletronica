@@ -13,7 +13,8 @@ import {
   Key, Smartphone, Truck, MapPin, Thermometer, Droplets,
   Wind, Volume2, AlertTriangle, Move, SquareStack, Box,
   Hash, ToggleLeft, Compass, Aperture, Focus, Target,
-  Megaphone, Waypoints, AudioLines
+  Megaphone, Waypoints, AudioLines,
+  Mouse, Usb, Grid2x2, MonitorSpeaker
 } from 'lucide-react'
 
 const ic = (Icon, defaultColor) => (c) => (
@@ -72,6 +73,14 @@ export const ICONS = {
   controle_remoto: ic(Radio, '#ef4444'),
   comunicador:     ic(Radio, '#ef4444'),
   receptor_rf:     ic(Signal, '#ef4444'),
+  // Acessórios / Periféricos
+  monitor_led:   ic(Monitor, '#2563eb'),
+  botoeira_painel: ic(Grid2x2, '#8b5cf6'),
+  mouse:         ic(Mouse, '#6b7280'),
+  cabo_hdmi:     ic(Cable, '#374151'),
+  cabo_usb:      ic(Usb, '#6b7280'),
+  fechadura_mec: ic(Lock, '#ea580c'),
+  fechadura_sol: ic(Lock, '#dc2626'),
   // Extra — banco de ícones para equipamentos custom
   monitor:     ic(Monitor, '#6b7280'),
   cpu:         ic(Cpu, '#6b7280'),
@@ -141,6 +150,13 @@ export const ICON_BANK = [
   { id: 'detector_fumaca', label: 'Detector' },
   { id: 'eletrificador', label: 'Eletrificador' },
   { id: 'controle_remoto', label: 'Controle' },
+  { id: 'monitor_led', label: 'Monitor LED' },
+  { id: 'botoeira_painel', label: 'Painel Botoeira' },
+  { id: 'mouse', label: 'Mouse' },
+  { id: 'cabo_hdmi', label: 'Cabo HDMI' },
+  { id: 'cabo_usb', label: 'Cabo USB' },
+  { id: 'fechadura_mec', label: 'Fechadura Mec.' },
+  { id: 'fechadura_sol', label: 'Fechadura Sol.' },
   // Extra icons
   { id: 'monitor', label: 'Monitor' },
   { id: 'cpu', label: 'CPU/Processador' },
