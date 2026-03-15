@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { APP_VERSION } from '@/data/constants';
+import { APP_VERSION, SCENARIOS } from '@/data/constants';
+import { Cloud, HardDrive } from 'lucide-react';
 
-export default function ClientForm({data,setData,onNext,onBack}){
+export default function ClientForm({data,setData,onStart,onBack,storageMode,onStorageModeChange}){
   const upd=(k,v)=>setData(d=>({...d,[k]:v}));
   const canProceed=data.tipo==='pj'?(data.razaoSocial||data.nome):data.nome;
   const [cnpjLoading,setCnpjLoading]=useState(false);
-  const [cnpjStatus,setCnpjStatus]=useState(null); // null | 'success' | 'error' | 'notfound'
+  const [cnpjStatus,setCnpjStatus]=useState(null);
   const [cepLoading,setCepLoading]=useState(false);
   const [cepStatus,setCepStatus]=useState(null);
+  const [selectedScenario,setSelectedScenario]=useState(null);
 
-  // Busca CNPJ via BrasilAPI (gratuita)
   const fetchCNPJ=async(cnpjRaw)=>{
     const digits=cnpjRaw.replace(/\D/g,'');
     if(digits.length!==14){setCnpjStatus(null);return}
@@ -18,7 +19,6 @@ export default function ClientForm({data,setData,onNext,onBack}){
       const res=await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
       if(!res.ok) throw new Error(res.status===404?'notfound':'error');
       const d=await res.json();
-      // Build update object — only overwrite if API returns real data
       const updates={};
       if(d.razao_social) updates.razaoSocial=d.razao_social;
       if(d.nome_fantasia) updates.nome=d.nome_fantasia;
@@ -28,7 +28,6 @@ export default function ClientForm({data,setData,onNext,onBack}){
       if(d.uf) updates.uf=d.uf;
       if(d.cep) updates.cep=d.cep.replace(/(\d{5})(\d{3})/,'$1-$2');
       if(d.email && d.email!=='null' && d.email.includes('@')) updates.email=d.email;
-      // Telefone: ddd_telefone_1 vem como "7133xxx" (DDD+numero junto) ou vazio
       if(d.ddd_telefone_1 && d.ddd_telefone_1.length>=10){
         const t=d.ddd_telefone_1.replace(/\D/g,'');
         if(t.length>=10) updates.telefone=`(${t.slice(0,2)}) ${t.length>10?t.slice(2,7)+'-'+t.slice(7):t.slice(2,6)+'-'+t.slice(6)}`;
@@ -40,9 +39,8 @@ export default function ClientForm({data,setData,onNext,onBack}){
     }finally{setCnpjLoading(false)}
   };
 
-  // Busca CEP via BrasilAPI (gratuita)
   const fetchCEP=async(cepRaw)=>{
-    const digits=cepRaw.replace(/\D/g,'');
+    const digits=cepRaw.replace(/\D/g,'').slice(0,8);
     if(digits.length!==8){setCepStatus(null);return}
     setCepLoading(true);setCepStatus(null);
     try{
@@ -61,7 +59,6 @@ export default function ClientForm({data,setData,onNext,onBack}){
     }finally{setCepLoading(false)}
   };
 
-  // CNPJ mask
   const maskCNPJ=(v)=>{
     const d=v.replace(/\D/g,'').slice(0,14);
     if(d.length<=2) return d;
@@ -70,7 +67,6 @@ export default function ClientForm({data,setData,onNext,onBack}){
     if(d.length<=12) return d.replace(/(\d{2})(\d{3})(\d{3})(\d)/,'$1.$2.$3/$4');
     return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/,'$1.$2.$3/$4-$5');
   };
-  // CPF mask
   const maskCPF=(v)=>{
     const d=v.replace(/\D/g,'').slice(0,11);
     if(d.length<=3) return d;
@@ -78,13 +74,11 @@ export default function ClientForm({data,setData,onNext,onBack}){
     if(d.length<=9) return d.replace(/(\d{3})(\d{3})(\d)/,'$1.$2.$3');
     return d.replace(/(\d{3})(\d{3})(\d{3})(\d)/,'$1.$2.$3-$4');
   };
-  // CEP mask
   const maskCEP=(v)=>{
     const d=v.replace(/\D/g,'').slice(0,8);
     if(d.length<=5) return d;
     return d.replace(/(\d{5})(\d)/,'$1-$2');
   };
-  // Phone mask
   const maskPhone=(v)=>{
     const d=v.replace(/\D/g,'').slice(0,11);
     if(d.length<=2) return d.length?`(${d}`:d;
@@ -93,24 +87,26 @@ export default function ClientForm({data,setData,onNext,onBack}){
     return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
   };
 
+  const canCreate = canProceed && selectedScenario;
+
   return (
     <div className="landing">
       <img src="/logo-proti.png" alt="Protector" style={{height:48,marginBottom:8,filter:'drop-shadow(0 2px 8px rgba(0,0,0,.15))'}}/>
-      <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
+      <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>{APP_VERSION.label} · {APP_VERSION.date}</div>
 
       <div className="client-form">
-        <div className="cf-title">📋 Dados do Cliente</div>
-        <div className="cf-sub">Preencha as informações do cliente para o projeto</div>
+        <div className="cf-title">Novo Projeto</div>
+        <div className="cf-sub">Preencha os dados do cliente e selecione o cenário</div>
 
         {/* Tipo de pessoa */}
         <div style={{display:'flex',gap:8,marginBottom:16}}>
-          {[{id:'pj',label:'Pessoa Jurídica'},{id:'pf',label:'Pessoa Física'}].map(t=>(
+          {[{id:'pj',label:'Pessoa Jurídica',icon:'🏢'},{id:'pf',label:'Pessoa Física',icon:'👤'}].map(t=>(
             <button key={t.id} onClick={()=>upd('tipo',t.id)}
               style={{flex:1,padding:'8px',borderRadius:8,border:`2px solid ${data.tipo===t.id?'var(--azul)':'var(--cinzaM)'}`,
                 background:data.tipo===t.id?'rgba(4,107,210,.08)':'var(--branco)',
                 color:data.tipo===t.id?'var(--azul)':'#64748b',
                 fontSize:11,fontWeight:700,cursor:'pointer',transition:'.2s'}}>
-              {t.id==='pj'?'🏢':'👤'} {t.label}
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
@@ -232,11 +228,51 @@ export default function ClientForm({data,setData,onNext,onBack}){
           </div>
         </div>
 
+        {/* Cenário do projeto */}
+        <div className="cf-section">Cenário do Projeto</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:12}}>
+          {SCENARIOS.map(s=>(
+            <button key={s.id} onClick={()=>setSelectedScenario(s.id)}
+              style={{
+                padding:'12px 6px',borderRadius:10,cursor:'pointer',transition:'.2s',textAlign:'center',
+                border: selectedScenario===s.id ? '2px solid var(--azul)' : '1px solid var(--cinzaM)',
+                background: selectedScenario===s.id ? 'rgba(4,107,210,.06)' : 'var(--branco)',
+                boxShadow: selectedScenario===s.id ? '0 2px 8px rgba(4,107,210,.15)' : 'var(--sombra)',
+              }}>
+              <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
+              <div style={{fontSize:11,fontWeight:700,color: selectedScenario===s.id ? 'var(--azul)' : '#1e293b',lineHeight:1.2}}>{s.name}</div>
+              <div style={{fontSize:9,color:'#94a3b8',marginTop:2}}>{s.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Salvar em */}
+        {onStorageModeChange && (
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,marginTop:8}}>
+            <span style={{fontSize:11,color:'#64748b',fontWeight:600}}>Salvar em:</span>
+            <button onClick={()=>onStorageModeChange('cloud')}
+              style={{display:'flex',alignItems:'center',gap:5,padding:'5px 12px',borderRadius:6,fontSize:11,cursor:'pointer',
+                border: storageMode==='cloud' ? '2px solid var(--azul)' : '1px solid var(--cinzaM)',
+                background: storageMode==='cloud' ? 'rgba(4,107,210,.08)' : 'var(--branco)',
+                color: storageMode==='cloud' ? 'var(--azul)' : '#64748b',transition:'.2s',fontWeight:600}}>
+              <Cloud size={13}/> Nuvem
+            </button>
+            <button onClick={()=>onStorageModeChange('local')}
+              style={{display:'flex',alignItems:'center',gap:5,padding:'5px 12px',borderRadius:6,fontSize:11,cursor:'pointer',
+                border: storageMode==='local' ? '2px solid #64748b' : '1px solid var(--cinzaM)',
+                background: storageMode==='local' ? 'rgba(100,116,139,.08)' : 'var(--branco)',
+                color: storageMode==='local' ? '#1e293b' : '#94a3b8',transition:'.2s',fontWeight:600}}>
+              <HardDrive size={13}/> Local
+            </button>
+          </div>
+        )}
+
         <div className="cf-actions">
           {onBack&&<button className="cf-btn secondary" onClick={onBack}>← Voltar</button>}
-          <button className="cf-btn primary" onClick={onNext} disabled={!canProceed}
-            style={{opacity:canProceed?1:.4,cursor:canProceed?'pointer':'not-allowed'}}>
-            Avançar →
+          <button className="cf-btn primary" onClick={()=>canCreate && onStart(selectedScenario)}
+            disabled={!canCreate}
+            style={{opacity:canCreate?1:.4,cursor:canCreate?'pointer':'not-allowed'}}>
+            Criar Projeto →
           </button>
         </div>
       </div>

@@ -27,7 +27,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-s
 .anim-scale{animation:scaleIn .2s ease-out}
 
 /* ===== LANDING (Lombada style) ===== */
-.landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;background:var(--cinzaL);overflow-y:auto;padding:40px 24px}
+.landing{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;background:var(--cinzaL);overflow-y:auto;padding:40px 24px 80px}
 .landing-sub{color:#64748b;font-size:15px;margin-bottom:24px}
 .scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:720px}
 .scenario-card{width:160px;background:var(--branco);border:1px solid var(--cinzaM);border-radius:12px;padding:20px 16px;cursor:pointer;transition:.25s;text-align:center;color:#1e293b;box-shadow:var(--sombra)}

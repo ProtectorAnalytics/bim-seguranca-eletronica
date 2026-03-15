@@ -7,7 +7,7 @@ import LoginPage from './LoginPage';
 import Dashboard from './Dashboard';
 import ProjectListPage from './ProjectListPage';
 import ClientForm from './ClientForm';
-import ScenarioSelect from './ScenarioSelect';
+// ScenarioSelect merged into ClientForm
 import ClientListPage from './ClientListPage';
 import EquipmentRepoPage from './EquipmentRepoPage';
 import SettingsPage from './SettingsPage';
@@ -17,6 +17,7 @@ import AdminPage from './AdminPage';
 import InviteRegisterPage from './InviteRegisterPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import UpgradeBanner from './UpgradeBanner';
+import VersionBadge from './VersionBadge';
 import ProjectApp from './ProjectApp';
 import { useSubscription } from '../hooks/useSubscription';
 import { useProjectHistory } from '../hooks/useProjectHistory';
@@ -172,19 +173,21 @@ export default function App(){
   const urlType = urlParams.get('type')
 
   // Auth guard
-  if(authLoading) return <LoadingScreen/>;
+  if(authLoading) return <><LoadingScreen/><VersionBadge/></>;
 
   // Invite registration (no auth required)
-  if(inviteToken) return <InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+  if(inviteToken) return <><InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /><VersionBadge/></>;
 
   // Password recovery (user arrives authenticated via Supabase recovery link)
-  if(urlType === 'recovery' && user) return <ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+  if(urlType === 'recovery' && user) return <><ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /><VersionBadge/></>;
 
-  if(!user) return <LoginPage/>;
+  if(!user) return <><LoginPage/><VersionBadge/></>;
 
-  if(screen==='admin' && isAdmin) return <AdminPage onBack={()=>setScreen('dashboard')}/>;
+  let content;
 
-  if(screen==='dashboard') return <Dashboard
+  if(screen==='admin' && isAdmin) content = <AdminPage onBack={()=>setScreen('dashboard')}/>;
+
+  else if(screen==='dashboard') content = <Dashboard
     onNewProject={onStartNewProject}
     onOpenProject={()=>setScreen('projects')}
     onClients={()=>setScreen('clients')}
@@ -197,11 +200,9 @@ export default function App(){
     onDismissLimit={()=>setLimitMsg('')}
   />;
 
-  if(screen==='projects') return <ProjectListPage onBack={()=>setScreen('dashboard')} onOpenProject={onOpenProject}/>;
+  else if(screen==='projects') content = <ProjectListPage onBack={()=>setScreen('dashboard')} onOpenProject={onOpenProject}/>;
 
-  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} onBack={()=>setScreen('dashboard')} />;
-
-  if(screen==='scenario') return <ScenarioSelect clientData={clientData} storageMode={storageMode} onStorageModeChange={setStorageMode} onBack={()=>setScreen('client')} onStart={(scenario)=>{
+  else if(screen==='client') content = <ClientForm data={clientData} setData={setClientData} storageMode={storageMode} onStorageModeChange={setStorageMode} onBack={()=>setScreen('dashboard')} onStart={(scenario)=>{
     const projId='proj_'+Date.now();
     const newProj={
       name:clientData.projetoNome||'Novo Projeto',
@@ -213,7 +214,6 @@ export default function App(){
     };
     setProject(newProj);
     setEditingProjectId(projId);
-    // Save client
     const clients=getSavedClients();
     const existing=clients.findIndex(c=>c.id===clientData.id);
     if(existing>=0) clients[existing]={...clientData,id:clientData.id||'cli_'+Date.now()};
@@ -222,15 +222,17 @@ export default function App(){
     setScreen('project');
   }}/>;
 
-  if(screen==='clients') return <ClientListPage onBack={()=>setScreen('dashboard')} onSelectClient={(client)=>{ setClientData(client); setScreen('client'); }}/>;
+  else if(screen==='clients') content = <ClientListPage onBack={()=>setScreen('dashboard')} onSelectClient={(client)=>{ setClientData(client); setScreen('client'); }}/>;
 
-  if(screen==='repo') return <EquipmentRepoPage onBack={()=>setScreen('dashboard')} />;
+  else if(screen==='repo') content = <EquipmentRepoPage onBack={()=>setScreen('dashboard')} />;
 
-  if(screen==='settings') return <SettingsPage onBack={()=>setScreen('dashboard')} />;
+  else if(screen==='settings') content = <SettingsPage onBack={()=>setScreen('dashboard')} />;
 
-  if(screen==='profile') return <ProfilePage onBack={()=>setScreen('dashboard')} />;
+  else if(screen==='profile') content = <ProfilePage onBack={()=>setScreen('dashboard')} />;
 
-  if(screen==='subscription') return <SubscriptionPage onBack={()=>setScreen('dashboard')} onProfile={()=>setScreen('profile')} />;
+  else if(screen==='subscription') content = <SubscriptionPage onBack={()=>setScreen('dashboard')} onProfile={()=>setScreen('profile')} />;
 
-  return <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
+  else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
+
+  return <>{content}<VersionBadge/></>;
 }

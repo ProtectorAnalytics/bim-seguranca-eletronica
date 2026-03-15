@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { execSync } from 'child_process'
+
+const commitHash = (() => { try { return execSync('git rev-parse --short HEAD').toString().trim(); } catch { return 'dev'; } })();
+const buildNumber = (() => { try { return execSync('git rev-list --count HEAD').toString().trim(); } catch { return '0'; } })();
 
 export default defineConfig({
   plugins: [
@@ -53,6 +57,10 @@ export default defineConfig({
       }
     })
   ],
+  define: {
+    __COMMIT_HASH__: JSON.stringify(commitHash),
+    __BUILD_NUMBER__: JSON.stringify(buildNumber),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
