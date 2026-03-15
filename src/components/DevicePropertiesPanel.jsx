@@ -51,7 +51,8 @@ export default function DevicePropertiesPanel({
   updateDevice, deleteConnection, copyDevice, deleteDevice,
   setSelectedDevice, setRightTab, setCableMode, setTool,
   showConnToast, assignDeviceToRackAction, unassignDeviceFromRack,
-  assignDeviceToQuadro, unassignDeviceFromQuadro
+  assignDeviceToQuadro, unassignDeviceFromQuadro,
+  crossFloorConnections, project, setCrossFloorModal
 }){
   if (!dev) return null;
 
@@ -527,10 +528,35 @@ export default function DevicePropertiesPanel({
           </div>
         );
       })}
+      {/* Cross-floor connections */}
+      {(crossFloorConnections||[]).filter(xc=>xc.fromDeviceId===dev.id||xc.toDeviceId===dev.id).map(xc=>{
+        const isFrom=xc.fromDeviceId===dev.id;
+        const remoteDevId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+        const remoteFloorId=isFrom?xc.toFloorId:xc.fromFloorId;
+        const remoteFloor=project?.floors?.find(f=>f.id===remoteFloorId);
+        const remoteDev=remoteFloor?.devices?.find(d=>d.id===remoteDevId);
+        const ct=CABLE_TYPES.find(c=>c.id===xc.type);
+        return (
+          <div key={xc.id} className="dp-conn-item" style={{background:'#f5f3ff',borderLeft:'3px solid #8b5cf6'}}>
+            <span className="dp-dot" style={{background:'#8b5cf6'}}/>
+            <span className="dp-conn-info">
+              <div className="dp-conn-name" style={{color:'#6d28d9'}}>↕ {remoteDev?.name||'?'} <span style={{fontSize:9,color:'#8b5cf6',fontWeight:400}}>({remoteFloor?.name})</span></div>
+              <div className="dp-conn-detail">{ct?.name} · {xc.distance}m · Cross-floor</div>
+            </span>
+            <span className="dp-conn-del" onClick={()=>deleteConnection(xc.id)}>✕</span>
+          </div>
+        );
+      })}
       <button className="dp-add-conn-btn"
         onClick={() => {setCableMode({from: dev.id}); setTool('cable')}}>
         + Adicionar Conexão
       </button>
+      {project?.floors?.length>1&&(
+        <button className="dp-add-conn-btn" style={{color:'#8b5cf6',borderColor:'#ddd6fe',background:'#f5f3ff',marginTop:4}}
+          onClick={()=>setCrossFloorModal&&setCrossFloorModal({deviceId:dev.id})}>
+          ↕ Conectar a outro Pavimento
+        </button>
+      )}
     </>
   );
 
