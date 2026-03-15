@@ -1,5 +1,5 @@
 // ====================================================================
-// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (74 dispositivos)
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (77 dispositivos)
 // Fabricante: Genérico | v3.19.1
 // ====================================================================
 export const DEVICE_LIB = [
@@ -52,6 +52,9 @@ export const DEVICE_LIB = [
     {key:'motor',name:'Motor Portão/Acesso',icon:'motor',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Deslizante',peso:'até 600kg'},ref:''},
     {key:'cam_lpr',name:'Câmera LPR',icon:'cam_lpr',poe:true,poeW:15,ports:1,nvrCh:1,manufacturer:'Genérico',props:{resolucao:'2MP',ir:'12m',lente:'2.8-12mm',funcao:'Reconhecimento Placa'},ref:''},
     {key:'leitor_tag',name:'Leitor Tag UHF',icon:'leitor_tag',poe:false,ports:1,ampDC:0.3,manufacturer:'Genérico',props:{frequencia:'915MHz',alcance:'até 8m',protocolo:'Wiegand/RS485'},ref:''},
+    {key:'botoeira_nt',name:'Botoeira No-Touch',icon:'fechadura',poe:false,ports:1,ampDC:0.05,manufacturer:'Genérico',props:{tipo:'Infravermelho',saida:'NA/NF',tensao:'12VDC',ip:'IP55'},ref:''},
+    {key:'botoeira_emergencia',name:'Botoeira de Emergência',icon:'fechadura',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Pressão (break glass)',saida:'NA/NF',cor:'Vermelho'},ref:''},
+    {key:'sensor_abertura',name:'Sensor de Abertura Magnético',icon:'sensor_barreira',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Magnético',saida:'NA/NF',gap:'até 20mm',uso:'Porta/Janela'},ref:''},
   ]},
   // ================================================================
   // INTRUSÃO - BARREIRAS (5 tipos)

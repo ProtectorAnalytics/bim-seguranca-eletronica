@@ -505,10 +505,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
     // Valid — create connection with ifaceType metadata + route
     const purpose=validation.purpose||'dados';
-    updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'
-    }]}));
+    const newConn={id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'};
+    updateFloor(f=>{
+      const updated={...f,connections:[...f.connections,newConn]};
+      // Auto-assign câmeras a NVRs quando conectados (diretamente ou via switch)
+      const assigns=autoAssignCameras(updated.devices,updated.connections);
+      if(assigns.length>0){
+        updated.devices=updated.devices.map(d=>{
+          const a=assigns.find(u=>u.id===d.id);
+          return a?{...d,nvrAssignments:a.nvrAssignments}:d;
+        });
+      }
+      return updated;
+    });
     const portInfo=ifaceLabel?` [${ifaceLabel}]`:'';
     const fcName=CABLE_TYPES.find(c=>c.id===finalCable)?.name||finalCable;
     showConnToast(`✓ ${fcName} · ${dist}m · ${purpose}${portInfo}`,'success');
