@@ -8,7 +8,7 @@ export default function ModelSelectorModal({deviceKey,onSelect,onCancel}){
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(600px, calc(100vw - 24px))'}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:480,width:'min(480px, calc(100vw - 24px))'}}>
         <h3>Selecionar Modelo</h3>
         <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
           Escolha um modelo do catálogo ou configure manualmente.
@@ -28,14 +28,14 @@ export default function ModelSelectorModal({deviceKey,onSelect,onCancel}){
             </button>
           ))}
         </div>
-        <div className="modal-card" style={{border:'1px solid var(--cinzaM)',padding:10,marginBottom:12,background:'#f8f9fa',borderRadius:6}}>
+        <div style={{border:'1px dashed var(--azul2)',padding:10,marginBottom:12,background:'#f8f9fa',borderRadius:6}}>
           <button onClick={()=>onSelect({id:'custom',custom:true})}
-            style={{display:'block',width:'100%',padding:10,border:'1px dashed var(--azul2)',
+            style={{display:'block',width:'100%',padding:10,border:'none',
               background:'transparent',borderRadius:4,cursor:'pointer',color:'var(--azul2)',fontSize:11,fontWeight:600}}>
             ⚙️ Configuração Personalizada
           </button>
         </div>
-        <div className="modal-card" style={{display:'flex',gap:8}}>
+        <div style={{display:'flex',gap:8}}>
           <button className="mc-btn mc-btn-secondary" onClick={onCancel} style={{flex:1}}>Cancelar</button>
         </div>
       </div>

@@ -2,8 +2,8 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 42, build: 5,
-  date: '2026-03-15 14:10',
+  major: 3, minor: 42, build: 6,
+  date: '2026-03-15 14:15',
   commitHash: typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev',
   buildNumber: typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '0',
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
