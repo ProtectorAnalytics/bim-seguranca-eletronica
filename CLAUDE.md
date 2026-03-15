@@ -75,6 +75,12 @@ Tabelas principais:
 - Commit messages em português com prefixo convencional (feat, fix, chore, etc.)
 - Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com> no final de cada commit
 - **OBRIGATÓRIO em TODA alteração**: atualizar a versão (`APP_VERSION` em `src/data/constants.js` e `version` em `package.json`) incrementando o build. Também atualizar `date` com a data atual e incluir o horário (formato `YYYY-MM-DD HH:MM`). Exemplo: `date: '2026-03-15 14:30'`. Se o campo `date` não tiver horário, adicionar.
+- **OBRIGATÓRIO ao finalizar qualquer tarefa** — seguir o fluxo completo sem pular etapas:
+  1. Atualizar versão (build + data/hora)
+  2. Commitar e push na branch
+  3. Criar PR e fazer merge em `main`
+  4. Aguardar deploy Vercel e verificar que o site está online e funcionando (`https://bim-seguranca-eletronica.vercel.app`)
+  5. Avisar o usuário que está tudo ok, com a versão publicada
 
 ## Sistema de Convites
 - Tipo `pre_register`: vinculado a email específico, uso único
