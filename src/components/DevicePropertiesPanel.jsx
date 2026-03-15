@@ -452,8 +452,19 @@ export default function DevicePropertiesPanel({
     const totalPorts = getSwitchPorts(dev);
     const connected = connections.filter(c => c.from === dev.id || c.to === dev.id)
       .map(c => { const oid = c.from === dev.id ? c.to : c.from; return devices.find(d => d.id === oid) }).filter(Boolean);
-    const poeDevs = connected.filter(d => needsPoE(d.key));
-    const uplinkDevs = connected.filter(d => !needsPoE(d.key));
+    // Cross-floor devices connected to this switch
+    const xfConns = (crossFloorConnections||[]).filter(xc => xc.fromDeviceId === dev.id || xc.toDeviceId === dev.id);
+    const xfDevices = xfConns.map(xc => {
+      const isFrom = xc.fromDeviceId === dev.id;
+      const remFloorId = isFrom ? xc.toFloorId : xc.fromFloorId;
+      const remDevId = isFrom ? xc.toDeviceId : xc.fromDeviceId;
+      const remFloor = project?.floors?.find(f => f.id === remFloorId);
+      const remDev = remFloor?.devices?.find(d => d.id === remDevId);
+      return remDev ? { ...remDev, _floorName: remFloor?.name || '?' } : null;
+    }).filter(Boolean);
+    const allConnected = [...connected, ...xfDevices];
+    const poeDevs = allConnected.filter(d => needsPoE(d.key));
+    const uplinkDevs = allConnected.filter(d => !needsPoE(d.key));
     const usedPoePorts = poeDevs.reduce((s, d) => s + (d.qty || 1), 0);
     const usedUplinks = uplinkDevs.length;
     const isOver = usedPoePorts > totalPorts;
@@ -473,15 +484,15 @@ export default function DevicePropertiesPanel({
         </div>
         {poeDevs.length > 0 && <div className="dp-sub-header">DISPOSITIVOS PoE</div>}
         {poeDevs.map(d => (
-          <DeviceListItem key={d.id} name={d.name} qty={d.qty || 1}
-            dotColor="#3b82f6" suffix={`${d.qty || 1}p`}
-            onClick={() => {setSelectedDevice(d.id); setRightTab('props')}}/>
+          <DeviceListItem key={d.id} name={d.name + (d._floorName ? ` (${d._floorName})` : '')} qty={d.qty || 1}
+            dotColor={d._floorName ? '#8b5cf6' : '#3b82f6'} suffix={`${d.qty || 1}p`}
+            onClick={() => {if(!d._floorName){setSelectedDevice(d.id); setRightTab('props')}}}/>
         ))}
         {uplinkDevs.length > 0 && <div className="dp-sub-header">UPLINKS ({usedUplinks})</div>}
         {uplinkDevs.map(d => (
-          <DeviceListItem key={d.id} name={d.name} qty={1}
-            dotColor="#f59e0b" suffix="1p"
-            onClick={() => {setSelectedDevice(d.id); setRightTab('props')}}/>
+          <DeviceListItem key={d.id} name={d.name + (d._floorName ? ` (${d._floorName})` : '')} qty={1}
+            dotColor={d._floorName ? '#8b5cf6' : '#f59e0b'} suffix="1p"
+            onClick={() => {if(!d._floorName){setSelectedDevice(d.id); setRightTab('props')}}}/>
         ))}
       </>
     );
