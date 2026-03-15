@@ -47,7 +47,7 @@ import CanvasSearch from './CanvasSearch';
 import DeviceListPanel from './DeviceListPanel';
 import CrossFloorConnectionModal from './CrossFloorConnectionModal';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
-import { autoOrthoRoute, buildOrthoPath } from '@/lib/cable-routing';
+import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor } from '@/lib/cable-routing';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const limits = useSubscription();
@@ -509,10 +509,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       }
     }
 
-    // Valid — create connection with ifaceType metadata + route
+    // Valid — create connection with ifaceType metadata + route + anchors
     const purpose=validation.purpose||'dados';
+    const fromR=getDevR(fromDev),toR=getDevR(toDev);
+    const [aF,aT]=bestAnchorPair(fromDev,fromR,toDev,toR);
     const newConn={id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'};
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight',
+      anchorFrom:aF,anchorTo:aT};
     updateFloor(f=>{
       const updated={...f,connections:[...f.connections,newConn]};
       // Auto-assign câmeras a NVRs quando conectados (diretamente ou via switch)
@@ -543,9 +546,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     let pickCable=cableId;
     const pickCT=CABLE_TYPES.find(c=>c.id===cableId);
     if(pickCT?.vias&&pickCT?.secao){const rec=calcPPSection(dist,pickCT.vias);if(rec.secao!==pickCT.secao) pickCable=rec.id;}
+    const fR=getDevR(fromDev),tR=getDevR(toDev);
+    const [paF,paT]=bestAnchorPair(fromDev,fR,toDev,tR);
     updateFloor(f=>({...f,connections:[...f.connections,{
       id:uid(),from:fromId,to:toId,type:pickCable,distance:dist,purpose:validation.purpose||'dados',
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight',
+      anchorFrom:paF,anchorTo:paT
     }]}));
     showConnToast(`✓ ${CABLE_TYPES.find(c=>c.id===cableId)?.name} · ${dist}m`,'success');
     setCablePicker(null);
@@ -613,73 +619,77 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     updateConnWaypoints(connId,wps.length?wps:undefined);
   };
 
-  // Drag waypoint or segment — draw.io style
+  // Drag waypoint or segment — smoother, free-form style
   useEffect(()=>{
     if(!draggingWp) return;
+    let rafId=null;
+    let lastMx=0,lastMy=0;
     const onMove=(e)=>{
       const rect=canvasRef.current?.getBoundingClientRect();
       if(!rect) return;
-      const mx=(e.clientX-rect.left)/zoom-pan.x/zoom;
-      const my=(e.clientY-rect.top)/zoom-pan.y/zoom;
-      const conn=connections.find(c=>c.id===draggingWp.connId);
-      if(!conn) return;
-      const wps=[...(conn.waypoints||[])];
-      if(draggingWp.type==='point'){
-        // Drag single waypoint (draw.io blue square)
-        wps[draggingWp.wpIdx]={x:mx,y:my};
-        updateConnWaypoints(draggingWp.connId,wps);
-      } else if(draggingWp.type==='seg'){
-        // Drag entire segment — move two endpoints of the segment
-        // Determine if segment is horizontal or vertical, then constrain
-        const si=draggingWp.segIdx;
-        const p1=wps[si],p2=wps[si+1];
-        if(!p1||!p2) return;
-        const isHoriz=Math.abs(p1.y-p2.y)<Math.abs(p1.x-p2.x);
-        if(!isHoriz){
-          // Vertical segment — move horizontally
-          const dx=mx-draggingWp.lastX;
-          wps[si]={x:p1.x+dx,y:p1.y};
-          wps[si+1]={x:p2.x+dx,y:p2.y};
-        } else {
-          // Horizontal segment — move vertically
-          const dy=my-draggingWp.lastY;
-          wps[si]={x:p1.x,y:p1.y+dy};
-          wps[si+1]={x:p2.x,y:p2.y+dy};
+      lastMx=(e.clientX-rect.left)/zoom-pan.x/zoom;
+      lastMy=(e.clientY-rect.top)/zoom-pan.y/zoom;
+      // Throttle updates to rAF for smooth 60fps
+      if(!rafId) rafId=requestAnimationFrame(()=>{
+        rafId=null;
+        const mx=lastMx,my=lastMy;
+        const conn=connections.find(c=>c.id===draggingWp.connId);
+        if(!conn) return;
+        const wps=[...(conn.waypoints||[])];
+        if(draggingWp.type==='point'){
+          // Free drag — snap to grid if snap enabled
+          const sx=snapToGrid?Math.round(mx/20)*20:mx;
+          const sy=snapToGrid?Math.round(my/20)*20:my;
+          wps[draggingWp.wpIdx]={x:sx,y:sy};
+          updateConnWaypoints(draggingWp.connId,wps);
+        } else if(draggingWp.type==='seg'){
+          // Drag segment — move both endpoints proportionally
+          const si=draggingWp.segIdx;
+          const p1=wps[si],p2=wps[si+1];
+          if(!p1||!p2) return;
+          const ddx=mx-draggingWp.lastX;
+          const ddy=my-draggingWp.lastY;
+          const isHoriz=Math.abs(p1.y-p2.y)<Math.abs(p1.x-p2.x);
+          if(!isHoriz){
+            wps[si]={x:p1.x+ddx,y:p1.y};
+            wps[si+1]={x:p2.x+ddx,y:p2.y};
+          } else {
+            wps[si]={x:p1.x,y:p1.y+ddy};
+            wps[si+1]={x:p2.x,y:p2.y+ddy};
+          }
+          draggingWp.lastX=mx;
+          draggingWp.lastY=my;
+          updateConnWaypoints(draggingWp.connId,wps);
+        } else if(draggingWp.type==='newSeg'){
+          // Insert 2 waypoints to create a bend from a straight segment
+          const si=draggingWp.segIdx;
+          const allPts=draggingWp.allPts;
+          const p1=allPts[si],p2=allPts[si+1];
+          if(!p1||!p2) return;
+          const isHoriz=Math.abs(p1.y-p2.y)<Math.abs(p1.x-p2.x);
+          const midX=(p1.x+p2.x)/2,midY=(p1.y+p2.y)/2;
+          const newWps=isHoriz
+            ?[{x:midX,y:p1.y},{x:midX,y:my}]
+            :[{x:p1.x,y:midY},{x:mx,y:midY}];
+          const updWps=[...(conn.waypoints||[])];
+          updWps.splice(si,0,...newWps);
+          updateConnWaypoints(draggingWp.connId,updWps);
+          setDraggingWp({...draggingWp,type:'seg',segIdx:si,lastX:mx,lastY:my});
         }
-        draggingWp.lastX=mx;
-        draggingWp.lastY=my;
-        updateConnWaypoints(draggingWp.connId,wps);
-      } else if(draggingWp.type==='newSeg'){
-        // Creating a new bend by dragging a straight segment
-        // Insert two waypoints to create the bend
-        const si=draggingWp.segIdx;
-        const allPts=draggingWp.allPts;
-        const p1=allPts[si],p2=allPts[si+1];
-        if(!p1||!p2) return;
-        const isHoriz=Math.abs(p1.y-p2.y)<Math.abs(p1.x-p2.x);
-        // Convert to two new waypoints forming a Z-bend
-        const midX=(p1.x+p2.x)/2;
-        const midY=(p1.y+p2.y)/2;
-        let newWps;
-        if(isHoriz){
-          newWps=[{x:midX,y:p1.y},{x:midX,y:my}];
-          // Replace: insert 2 waypoints at the segment break
-        } else {
-          newWps=[{x:p1.x,y:midY},{x:mx,y:midY}];
-        }
-        const wpInsertIdx=si; // index in waypoints array
-        const updWps=[...(conn.waypoints||[])];
-        updWps.splice(wpInsertIdx,0,...newWps);
-        updateConnWaypoints(draggingWp.connId,updWps);
-        // Switch to segment drag mode for the newly created middle segment
-        setDraggingWp({...draggingWp,type:'seg',segIdx:wpInsertIdx,lastX:mx,lastY:my});
-      }
+      });
     };
-    const onUp=()=>setDraggingWp(null);
+    const onUp=()=>{
+      if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+      setDraggingWp(null);
+    };
     window.addEventListener('mousemove',onMove);
     window.addEventListener('mouseup',onUp);
-    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
-  },[draggingWp,zoom,pan,connections]);
+    return ()=>{
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+      if(rafId) cancelAnimationFrame(rafId);
+    };
+  },[draggingWp,zoom,pan,connections,snapToGrid]);
 
   // Scale calibration confirm
   const confirmCalibration=(realMeters)=>{
@@ -1754,36 +1764,41 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
                   const isSel=selectedConn===conn.id;
 
-                  // Se device está em Quadro, usar posição do Quadro como referência visual
-                  const resolvePos=(dev)=>{
+                  // Resolve device position (may be inside Quadro)
+                  const resolveDevPos=(dev)=>{
                     const R=getDevR(dev);
                     if(dev.quadroId){
                       const qc=quadros.find(q=>q.id===dev.quadroId);
-                      if(qc) return {x:qc.x+80,y:qc.y+14,R};
+                      if(qc) return {x:qc.x+80-R,y:qc.y+14-R,R,inQuadro:true};
                     }
-                    return {x:dev.x+R,y:dev.y+R,R};
+                    return {x:dev.x,y:dev.y,R,inQuadro:false};
                   };
-                  const fromPos=resolvePos(from);
-                  const toPos=resolvePos(to);
-                  const fcx=fromPos.x, fcy=fromPos.y;
-                  const tcx=toPos.x, tcy=toPos.y;
+                  const fp=resolveDevPos(from);
+                  const tp=resolveDevPos(to);
+
+                  // Resolve anchors — use stored or auto-calculate
+                  const aFrom=conn.anchorFrom||bestAnchorPair({x:fp.x,y:fp.y},fp.R,{x:tp.x,y:tp.y},tp.R)[0];
+                  const aTo=conn.anchorTo||bestAnchorPair({x:fp.x,y:fp.y},fp.R,{x:tp.x,y:tp.y},tp.R)[1];
+
+                  // Anchor points (exact connection positions on device border)
+                  const ap1=getAnchorPoint({x:fp.x,y:fp.y},fp.R,aFrom);
+                  const ap2=getAnchorPoint({x:tp.x,y:tp.y},tp.R,aTo);
 
                   // Offset for multiple connections between same pair
                   const pairKey=[conn.from,conn.to].sort().join('|');
                   const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
                   const pairIdx=pairConns.indexOf(conn);
                   const pairTotal=pairConns.length;
-                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*10:0;
+                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*8:0;
 
-                  const dx=tcx-fcx;const dy=tcy-fcy;
-                  const len=Math.sqrt(dx*dx+dy*dy)||1;
-                  const ux=dx/len,uy=dy/len;
-                  const ppx=-uy,ppy=ux;
-
-                  const x1=fcx+ux*fromPos.R+ppx*offsetAmt;
-                  const y1=fcy+uy*fromPos.R+ppy*offsetAmt;
-                  const x2=tcx-ux*toPos.R+ppx*offsetAmt;
-                  const y2=tcy-uy*toPos.R+ppy*offsetAmt;
+                  // Apply perpendicular offset for parallel cables
+                  const pdx=ap2.x-ap1.x,pdy=ap2.y-ap1.y;
+                  const plen=Math.sqrt(pdx*pdx+pdy*pdy)||1;
+                  const ppx=-pdy/plen,ppy=pdx/plen;
+                  const x1=ap1.x+ppx*offsetAmt;
+                  const y1=ap1.y+ppy*offsetAmt;
+                  const x2=ap2.x+ppx*offsetAmt;
+                  const y2=ap2.y+ppy*offsetAmt;
 
                   const isPower=ct.group==='power';
                   const isSignal=ct.group==='signal';
@@ -1805,7 +1820,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   if(hasWps){
                     allPts=[{x:x1,y:y1},...wps,{x:x2,y:y2}];
                   } else {
-                    allPts=autoOrthoRoute(x1,y1,x2,y2);
+                    allPts=autoOrthoRoute(x1,y1,x2,y2,aFrom,aTo);
                   }
 
                   // Generate SVG path with rounded corners at bends
@@ -1888,21 +1903,64 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       </g>;
                     })}
 
-                    {/* draw.io-style: square blue handles at waypoints (shown when selected) */}
+                    {/* Waypoint handles — larger and easier to grab */}
                     {isSel&&wps.map((wp,wi)=>(
-                      <rect key={'wph'+wi} x={wp.x-4} y={wp.y-4} width={8} height={8}
-                        fill="#3b82f6" stroke="#fff" strokeWidth={1.5}
-                        rx={1} style={{cursor:'move'}}
-                        onMouseDown={(e)=>{
-                          e.stopPropagation();e.preventDefault();
-                          setDraggingWp({connId:conn.id,type:'point',wpIdx:wi});
-                          setSelectedConn(conn.id);
-                        }}
-                        onDoubleClick={(e)=>{
-                          e.stopPropagation();
-                          deleteWaypoint(conn.id,wi);
-                        }}/>
+                      <g key={'wph'+wi}>
+                        {/* Invisible hit area (larger target for easier grab) */}
+                        <rect x={wp.x-10} y={wp.y-10} width={20} height={20}
+                          fill="transparent" style={{cursor:'move'}}
+                          onMouseDown={(e)=>{
+                            e.stopPropagation();e.preventDefault();
+                            setDraggingWp({connId:conn.id,type:'point',wpIdx:wi});
+                            setSelectedConn(conn.id);
+                          }}
+                          onDoubleClick={(e)=>{
+                            e.stopPropagation();
+                            deleteWaypoint(conn.id,wi);
+                          }}/>
+                        {/* Visible handle */}
+                        <rect x={wp.x-5} y={wp.y-5} width={10} height={10}
+                          fill="#3b82f6" stroke="#fff" strokeWidth={1.5}
+                          rx={2} style={{pointerEvents:'none'}}/>
+                      </g>
                     ))}
+
+                    {/* Anchor change buttons — click to cycle N→E→S→W */}
+                    {isSel&&!cableMode&&(()=>{
+                      const anchorR=6;
+                      return <>
+                        {/* From anchor */}
+                        <circle cx={x1} cy={y1} r={anchorR} fill="#046BD2" stroke="#fff" strokeWidth={2}
+                          style={{cursor:'pointer'}}
+                          onClick={(e)=>{
+                            e.stopPropagation();
+                            const nxt=nextAnchor(aFrom);
+                            updateFloor(f=>({...f,connections:f.connections.map(c=>
+                              c.id===conn.id?{...c,anchorFrom:nxt,waypoints:undefined}:c)}));
+                          }}>
+                          <title>Mudar ponto de saída ({aFrom})</title>
+                        </circle>
+                        <text x={x1} y={y1+1} textAnchor="middle" dominantBaseline="central"
+                          fill="#fff" fontSize={8} fontWeight={700} style={{pointerEvents:'none'}}>
+                          {aFrom}
+                        </text>
+                        {/* To anchor */}
+                        <circle cx={x2} cy={y2} r={anchorR} fill="#046BD2" stroke="#fff" strokeWidth={2}
+                          style={{cursor:'pointer'}}
+                          onClick={(e)=>{
+                            e.stopPropagation();
+                            const nxt=nextAnchor(aTo);
+                            updateFloor(f=>({...f,connections:f.connections.map(c=>
+                              c.id===conn.id?{...c,anchorTo:nxt,waypoints:undefined}:c)}));
+                          }}>
+                          <title>Mudar ponto de chegada ({aTo})</title>
+                        </circle>
+                        <text x={x2} y={y2+1} textAnchor="middle" dominantBaseline="central"
+                          fill="#fff" fontSize={8} fontWeight={700} style={{pointerEvents:'none'}}>
+                          {aTo}
+                        </text>
+                      </>;
+                    })()}
                   </g>;
                 })}
                 {/* Cable mode preview line from source device */}
