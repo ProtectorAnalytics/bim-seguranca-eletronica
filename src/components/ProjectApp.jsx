@@ -25,7 +25,7 @@ import {
 } from '@/lib/helpers';
 import {
   SlidersHorizontal, Server, LayoutGrid, GitBranch,
-  ClipboardList, ShieldCheck, Zap, PanelRightClose, MessageCircle, List
+  ClipboardList, ShieldCheck, Zap, PanelRightClose, MessageCircle, List, Layers
 } from 'lucide-react';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
@@ -44,6 +44,7 @@ import CommentsPanel from './CommentsPanel';
 import CanvasContextMenu from './CanvasContextMenu';
 import CanvasSearch from './CanvasSearch';
 import DeviceListPanel from './DeviceListPanel';
+import CrossFloorConnectionModal from './CrossFloorConnectionModal';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 import { autoOrthoRoute, buildOrthoPath } from '@/lib/cable-routing';
 
@@ -97,6 +98,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Canvas search
   const [showSearch,setShowSearch]=useState(false);
   const [searchHighlight,setSearchHighlight]=useState(null); // Set of device IDs to highlight
+  // Cross-floor connection modal
+  const [crossFloorModal,setCrossFloorModal]=useState(null); // null | {deviceId, ifaceType?, ifaceLabel?}
   // Context menu
   const [contextMenu,setContextMenu]=useState(null); // {x,y,target}
   // Smart guides
@@ -366,6 +369,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       devices:f.devices.filter(d=>d.id!==devId),
       connections:f.connections.filter(c=>c.from!==devId&&c.to!==devId)
     }));
+    // Also remove cross-floor connections referencing this device
+    if(project.crossFloorConnections?.some(xc=>xc.fromDeviceId===devId||xc.toDeviceId===devId)){
+      setProject(p=>({...p,crossFloorConnections:(p.crossFloorConnections||[]).filter(xc=>xc.fromDeviceId!==devId&&xc.toDeviceId!==devId)}));
+    }
     if(selectedDevice===devId) setSelectedDevice(null);
   };
 
@@ -546,8 +553,44 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // Delete connection
   const deleteConnection=(connId)=>{
+    // Also check cross-floor connections
+    if(project.crossFloorConnections?.some(c=>c.id===connId)){
+      setProject(p=>({...p,crossFloorConnections:(p.crossFloorConnections||[]).filter(c=>c.id!==connId)}));
+      if(selectedConn===connId) setSelectedConn(null);
+      return;
+    }
     updateFloor(f=>({...f,connections:f.connections.filter(c=>c.id!==connId)}));
     if(selectedConn===connId) setSelectedConn(null);
+  };
+
+  // ── Cross-floor connections ──────────────────────────────────────
+  const crossFloorConns=project.crossFloorConnections||[];
+  // Cross-floor connections relevant to current floor
+  const currentFloorCrossConns=useMemo(()=>
+    crossFloorConns.filter(c=>c.fromFloorId===project.activeFloor||c.toFloorId===project.activeFloor)
+  ,[crossFloorConns,project.activeFloor]);
+
+  const addCrossFloorConnection=(data)=>{
+    const fromDev=project.floors.find(f=>f.id===data.fromFloorId)?.devices?.find(d=>d.id===data.fromDeviceId);
+    const toDev=project.floors.find(f=>f.id===data.toFloorId)?.devices?.find(d=>d.id===data.toDeviceId);
+    if(!fromDev||!toDev) return;
+    const fromKey=getDeviceIconKey(fromDev.key);
+    const toKey=getDeviceIconKey(toDev.key);
+    const validation=validateConnection(fromKey,toKey,data.type);
+    const purpose=validation?.purpose||'dados';
+    const newConn={
+      id:uid(),
+      fromDeviceId:data.fromDeviceId, fromFloorId:data.fromFloorId,
+      toDeviceId:data.toDeviceId, toFloorId:data.toFloorId,
+      type:data.type, distance:data.distance, purpose,
+      ifaceType:data.ifaceType||null, ifaceLabel:data.ifaceLabel||''
+    };
+    setProject(p=>({...p,crossFloorConnections:[...(p.crossFloorConnections||[]),newConn]}));
+    const ct=CABLE_TYPES.find(c=>c.id===data.type);
+    const fromFloorName=project.floors.find(f=>f.id===data.fromFloorId)?.name;
+    const toFloorName=project.floors.find(f=>f.id===data.toFloorId)?.name;
+    showConnToast(`✓ Cross-floor: ${ct?.name||data.type} · ${data.distance}m · ${fromFloorName} → ${toFloorName}`,'success');
+    setCrossFloorModal(null);
   };
 
   // ---- draw.io-style cable routing with orthogonal segments ----
@@ -982,6 +1025,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       cableCounts[c.type].totalMeters+=c.distance||1;
     });
 
+    // Add cross-floor connections to cable BOM
+    (project.crossFloorConnections||[]).forEach(c=>{
+      const cableType=CABLE_TYPES.find(ct=>ct.id===c.type);
+      if(!cableType) return;
+      if(!cableCounts[c.type]) cableCounts[c.type]={key:c.type,name:cableType.name,qty:0,totalMeters:0,def:cableType,unit:'m'};
+      cableCounts[c.type].qty++;
+      cableCounts[c.type].totalMeters+=c.distance||1;
+    });
+
     // Add batteries if configured on nobreak_ac (external battery support)
     allDevices.filter(d=>d.key==='nobreak_ac'&&d.config?.batExterna).forEach(nb=>{
       if(!counts['bateria_ext']) counts['bateria_ext']={key:'bateria_ext',name:'Bateria Externa',qty:0,unit:'pç',model:''};
@@ -1039,7 +1091,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     });
 
     return [...Object.values(counts),...Object.values(cableCounts),...Object.values(accCounts),...Object.values(qcCounts)];
-  },[allDevices,connections,project.floors]);
+  },[allDevices,connections,project.floors,project.crossFloorConnections]);
 
   // Topology tree
   const topology=useMemo(()=>{
@@ -1055,12 +1107,25 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         .map(id=>devices.find(d=>d.id===id))
         .filter(Boolean)
         .map(d=>buildTree(d));
-      return {device:dev,children,cable:connections.find(c=>(c.from===dev.id||c.to===dev.id))};
+      // Add cross-floor connections as virtual children
+      const xfChildren=currentFloorCrossConns
+        .filter(xc=>(xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor)||(xc.toDeviceId===dev.id&&xc.toFloorId===project.activeFloor))
+        .map(xc=>{
+          const isFrom=xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor;
+          const remoteDevId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+          const remoteFloorId=isFrom?xc.toFloorId:xc.fromFloorId;
+          const remoteFloor=project.floors.find(f=>f.id===remoteFloorId);
+          const remoteDev=remoteFloor?.devices?.find(d=>d.id===remoteDevId);
+          if(!remoteDev||connected.has(remoteDevId+'_xf')) return null;
+          connected.add(remoteDevId+'_xf');
+          return {device:{...remoteDev,id:remoteDevId+'_xf',name:`↕ ${remoteDev.name} (${remoteFloor?.name})`},children:[],crossFloor:true,cable:xc};
+        }).filter(Boolean);
+      return {device:dev,children:[...children,...xfChildren],cable:connections.find(c=>(c.from===dev.id||c.to===dev.id))};
     };
     const tree=roots.map(r=>buildTree(r));
     const disconnected=devices.filter(d=>!connected.has(d.id)).map(d=>({device:d,children:[],disconnected:true}));
     return [...tree,...disconnected];
-  },[devices,connections]);
+  },[devices,connections,currentFloorCrossConns,project.activeFloor,project.floors]);
 
   // Canvas mouse handlers
   const handleCanvasClick=(e)=>{
@@ -1584,11 +1649,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       title="Renomear" onClick={e=>{e.stopPropagation();setEditingFloorId(f.id)}}>✏️</button>
                     {project.floors.length>1&&<button style={{background:'none',border:'none',cursor:'pointer',fontSize:11,padding:'2px 4px',color:'#ef4444',opacity:.7}}
                       title="Excluir pavimento" onClick={e=>{e.stopPropagation();if(confirm(`Excluir "${f.name}"?`)){
-                        setProject(p=>{const nf=p.floors.filter(fl=>fl.id!==f.id);return{...p,floors:nf,activeFloor:nf[0]?.id||p.activeFloor}})}
+                        setProject(p=>{const nf=p.floors.filter(fl=>fl.id!==f.id);return{...p,floors:nf,activeFloor:nf[0]?.id||p.activeFloor,crossFloorConnections:(p.crossFloorConnections||[]).filter(xc=>xc.fromFloorId!==f.id&&xc.toFloorId!==f.id)}})}
                       }}>🗑️</button>}
                   </div>
                   <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
                     {f.devices.length} dispositivos · {f.connections.length} conexões
+                    {(project.crossFloorConnections||[]).filter(xc=>xc.fromFloorId===f.id||xc.toFloorId===f.id).length>0&&
+                      <span style={{color:'#8b5cf6',marginLeft:4}}>· {(project.crossFloorConnections||[]).filter(xc=>xc.fromFloorId===f.id||xc.toFloorId===f.id).length} cross-floor</span>}
                   </div>
                 </div>);
               })}
@@ -1847,6 +1914,49 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   return <circle cx={cx} cy={cy} r={R+3} fill="none"
                     stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" opacity=".6"/>;
                 })()}
+
+                {/* Cross-floor connection indicators */}
+                {layers.cables&&currentFloorCrossConns.map(xc=>{
+                  const isFrom=xc.fromFloorId===project.activeFloor;
+                  const localDevId=isFrom?xc.fromDeviceId:xc.toDeviceId;
+                  const remoteDevId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+                  const remoteFloorId=isFrom?xc.toFloorId:xc.fromFloorId;
+                  const localDev=devices.find(d=>d.id===localDevId);
+                  if(!localDev) return null;
+                  const remoteFloor=project.floors.find(f=>f.id===remoteFloorId);
+                  const remoteDev=remoteFloor?.devices?.find(d=>d.id===remoteDevId);
+                  if(!remoteDev) return null;
+                  const R=getDevR(localDev);
+                  let cx=localDev.x+R,cy=localDev.y+R;
+                  if(localDev.quadroId){const qc=quadros.find(q=>q.id===localDev.quadroId);if(qc){cx=qc.x+80;cy=qc.y+14;}}
+                  const ct=CABLE_TYPES.find(c=>c.id===xc.type)||CABLE_TYPES[0];
+                  const isSel=selectedConn===xc.id;
+                  const lblText=`↕ ${remoteFloor.name}: ${remoteDev.name} · ${ct.name} · ${xc.distance}m`;
+                  const estW=Math.max(lblText.length*5.8+20,100);
+                  return <g key={'xc-'+xc.id} style={{cursor:'pointer'}} onClick={(e)=>{e.stopPropagation();setSelectedConn(isSel?null:xc.id);setSelectedDevice(null)}}>
+                    {/* Dashed circle around local device */}
+                    <circle cx={cx} cy={cy} r={R+5} fill="none"
+                      stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={2} strokeDasharray="5 3" opacity={.7}/>
+                    {/* Vertical arrow indicator */}
+                    <line x1={cx} y1={cy-R-5} x2={cx} y2={cy-R-22}
+                      stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={2} strokeDasharray="3 2" markerEnd="url(#xfArrow)"/>
+                    {/* Label box */}
+                    <rect x={cx-estW/2} y={cy-R-42} width={estW} height={18}
+                      rx={4} ry={4} fill={isSel?'#EBF5FB':'#f5f3ff'} fillOpacity={.95}
+                      stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={.8}/>
+                    <text x={cx} y={cy-R-29} textAnchor="middle"
+                      style={{fontSize:9,fontWeight:600,fill:isSel?'#046BD2':'#6d28d9',pointerEvents:'none'}}>
+                      {lblText}
+                    </text>
+                  </g>;
+                })}
+
+                {/* Arrow marker for cross-floor indicators */}
+                <defs>
+                  <marker id="xfArrow" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+                    <path d="M0,0 L8,3 L0,6 Z" fill="#8b5cf6"/>
+                  </marker>
+                </defs>
               </svg>
 
               {/* Rack containers removed — rack is now a data entity in floor.racks[] */}
@@ -2315,6 +2425,23 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                        iface.required?<span className="pb-req">OBRIG.</span>:<span className="pb-opt">disponível</span>}
                     </button>);
                   })}
+                  {/* Cross-floor connection button */}
+                  {project.floors.length>1&&(
+                    <button className="port-btn" style={{borderTop:'2px solid #E2E8F0',marginTop:4,background:'#f0f9ff'}}
+                      onClick={()=>{
+                        setCrossFloorModal({deviceId:ppDev.id});
+                        setPortPopup(null);
+                      }}>
+                      <div style={{width:16,height:16,borderRadius:'50%',background:'#046BD2',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <Layers size={10} color="#fff"/>
+                      </div>
+                      <div className="pb-info">
+                        <div className="pb-label" style={{color:'#046BD2',fontWeight:700}}>Conectar a outro Pavimento</div>
+                        <div className="pb-type">Criar conexão entre pisos diferentes</div>
+                      </div>
+                      <span style={{fontSize:9,color:'#046BD2',fontWeight:700,flexShrink:0}}>CROSS-FLOOR</span>
+                    </button>
+                  )}
                 </div>
               </>
             );
@@ -2783,6 +2910,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 unassignDeviceFromRack={unassignDeviceFromRack}
                 assignDeviceToQuadro={assignDeviceToQuadro}
                 unassignDeviceFromQuadro={unassignDeviceFromQuadro}
+                crossFloorConnections={crossFloorConns}
+                project={project}
+                setCrossFloorModal={setCrossFloorModal}
               />
             )}
             {rightTab==='props'&&!selectedDev&&!selectedConn&&(
@@ -2794,15 +2924,48 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             )}
             {rightTab==='props'&&!selectedDev&&selectedConn&&(()=>{
               const conn=connections.find(c=>c.id===selectedConn);
-              if(!conn) return null;
-              const ct=CABLE_TYPES.find(c=>c.id===conn.type);
-              const fromDev=devices.find(d=>d.id===conn.from);
-              const toDev=devices.find(d=>d.id===conn.to);
-              return <CablePropertiesPanel conn={conn} cableType={ct}
-                fromDev={fromDev} toDev={toDev}
-                updateConnection={updateConnection}
-                onDelete={()=>deleteConnection(conn.id)}
-                onClose={()=>setSelectedConn(null)}/>;
+              if(conn){
+                const ct=CABLE_TYPES.find(c=>c.id===conn.type);
+                const fromDev=devices.find(d=>d.id===conn.from);
+                const toDev=devices.find(d=>d.id===conn.to);
+                return <CablePropertiesPanel conn={conn} cableType={ct}
+                  fromDev={fromDev} toDev={toDev}
+                  updateConnection={updateConnection}
+                  onDelete={()=>deleteConnection(conn.id)}
+                  onClose={()=>setSelectedConn(null)}/>;
+              }
+              // Cross-floor connection selected
+              const xfConn=crossFloorConns.find(c=>c.id===selectedConn);
+              if(xfConn){
+                const ct=CABLE_TYPES.find(c=>c.id===xfConn.type);
+                const fromFloor=project.floors.find(f=>f.id===xfConn.fromFloorId);
+                const toFloor=project.floors.find(f=>f.id===xfConn.toFloorId);
+                const fromDev=fromFloor?.devices?.find(d=>d.id===xfConn.fromDeviceId);
+                const toDev=toFloor?.devices?.find(d=>d.id===xfConn.toDeviceId);
+                return <div style={{padding:16}}>
+                  <div style={{fontSize:13,fontWeight:700,color:'#6d28d9',marginBottom:12,display:'flex',alignItems:'center',gap:6}}>
+                    <Layers size={16}/> Conexão Cross-Floor
+                  </div>
+                  <div style={{background:'#f5f3ff',borderRadius:8,padding:12,marginBottom:8}}>
+                    <div style={{fontSize:11,color:'#64748b',marginBottom:4}}>De:</div>
+                    <div style={{fontSize:12,fontWeight:600,color:'#1e293b'}}>{fromDev?.name||'?'} <span style={{fontSize:10,color:'#8b5cf6'}}>({fromFloor?.name})</span></div>
+                  </div>
+                  <div style={{background:'#f5f3ff',borderRadius:8,padding:12,marginBottom:8}}>
+                    <div style={{fontSize:11,color:'#64748b',marginBottom:4}}>Para:</div>
+                    <div style={{fontSize:12,fontWeight:600,color:'#1e293b'}}>{toDev?.name||'?'} <span style={{fontSize:10,color:'#8b5cf6'}}>({toFloor?.name})</span></div>
+                  </div>
+                  <div style={{display:'flex',gap:12,marginBottom:8}}>
+                    <div><span style={{fontSize:10,color:'#64748b'}}>Cabo:</span><br/><span style={{fontSize:12,fontWeight:600}}>{ct?.name||xfConn.type}</span></div>
+                    <div><span style={{fontSize:10,color:'#64748b'}}>Distância:</span><br/><span style={{fontSize:12,fontWeight:600}}>{xfConn.distance}m</span></div>
+                    <div><span style={{fontSize:10,color:'#64748b'}}>Finalidade:</span><br/><span style={{fontSize:12,fontWeight:600}}>{xfConn.purpose||'dados'}</span></div>
+                  </div>
+                  <div style={{display:'flex',gap:8,marginTop:12}}>
+                    <button onClick={()=>deleteConnection(xfConn.id)} style={{flex:1,padding:'6px 12px',borderRadius:6,border:'1px solid #fecaca',background:'#fef2f2',color:'#dc2626',fontSize:11,fontWeight:600,cursor:'pointer'}}>Excluir</button>
+                    <button onClick={()=>setSelectedConn(null)} style={{padding:'6px 12px',borderRadius:6,border:'1px solid #E2E8F0',background:'#fff',color:'#64748b',fontSize:11,cursor:'pointer'}}>Fechar</button>
+                  </div>
+                </div>;
+              }
+              return null;
             })()}
 
             {/* TOPOLOGY */}
@@ -3024,7 +3187,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
-        connections={project.floors.flatMap(f=>f.connections)} validationResults={validations}
+        connections={[...project.floors.flatMap(f=>f.connections),...(project.crossFloorConnections||[])]} validationResults={validations}
         onClose={()=>setShowExport(false)}
         onImport={(importedProject)=>{
           syncUid(importedProject);
@@ -3033,6 +3196,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         }}/>}
 
       {/* RackElevationModal removed — rack is now managed via RackPanel tab */}
+
+      {/* Cross-floor connection modal */}
+      {crossFloorModal&&<CrossFloorConnectionModal
+        project={project}
+        sourceDeviceId={crossFloorModal.deviceId}
+        sourceFloorId={project.activeFloor}
+        sourceIfaceType={crossFloorModal.ifaceType}
+        sourceIfaceLabel={crossFloorModal.ifaceLabel}
+        onConnect={addCrossFloorConnection}
+        onClose={()=>setCrossFloorModal(null)}/>}
     </div>
   );
 }
