@@ -2279,7 +2279,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               )}
 
               {/* Camera FOV overlay */}
-              <CameraFovOverlay devices={devices} show={layers.fov} heatmap={layers.heatmap}/>
+              <CameraFovOverlay devices={devices} show={layers.fov} heatmap={layers.heatmap}
+                updateDevice={updateDevice} zoom={zoom} pan={pan} canvasRef={canvasRef}/>
 
               {/* Smart guides */}
               {guides.length>0&&(
