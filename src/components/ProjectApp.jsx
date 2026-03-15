@@ -2136,18 +2136,21 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                           onMouseDown={(e)=>{e.stopPropagation();e.preventDefault()}}
                           onClick={(e)=>{
                             e.stopPropagation();
-                            const rect=canvasRef.current?.getBoundingClientRect();
-                            if(!rect) return;
-                            const popW=300,popH=400;
-                            let px=dev.x*zoom+pan.x+50;
-                            let py=dev.y*zoom+pan.y-10;
-                            // Clamp to viewport bounds
-                            const vw=rect.width,vh=rect.height;
-                            if(px+popW>vw) px=Math.max(10,dev.x*zoom+pan.x-popW-10);
-                            if(py+popH>vh) py=Math.max(10,vh-popH-10);
-                            if(px<10) px=10;
-                            if(py<10) py=10;
-                            setPortPopup({devId:dev.id,x:px,y:py});
+                            // Use screen coordinates from click event for fixed positioning
+                            const btnRect=e.currentTarget.getBoundingClientRect();
+                            const popW=320,popH=450;
+                            const vw=window.innerWidth,vh=window.innerHeight;
+                            let px=btnRect.right+8;
+                            let py=btnRect.top-10;
+                            // Clamp: if overflows right, show to the left of button
+                            if(px+popW>vw-12) px=Math.max(12,btnRect.left-popW-8);
+                            // Clamp: if overflows bottom, push up
+                            if(py+popH>vh-12) py=Math.max(12,vh-popH-12);
+                            // Clamp: if overflows top
+                            if(py<12) py=12;
+                            // Clamp: if still overflows left
+                            if(px<12) px=12;
+                            setPortPopup({devId:dev.id,x:px,y:py,fixed:true});
                           }}>⚡</div>
                       );
                     })()}
@@ -2414,7 +2417,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             return (
               <>
                 <div className="port-popup-overlay" onClick={()=>setPortPopup(null)}/>
-                <div className="port-popup" style={{left:portPopup.x,top:portPopup.y}}>
+                <div className="port-popup" style={{left:portPopup.x,top:portPopup.y,position:'fixed',maxHeight:'calc(100vh - 24px)',overflowY:'auto'}}>
                   <div className="pp-title">⚡ Portas — {ppDev.name}
                     <span style={{fontSize:10,fontWeight:400,marginLeft:8,color:totalUsed>0?'#f59e0b':'#6b7280'}}>
                       ({totalUsed}/{totalPorts} em uso)
