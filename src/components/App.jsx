@@ -68,6 +68,7 @@ export default function App(){
       floors:project.floors,
       activeFloor:project.activeFloor,
       settings:project.settings,
+      crossFloorConnections:project.crossFloorConnections||[],
       storageMode: storageMode,
       createdAt:idx>=0?projects[idx].createdAt:new Date().toISOString().split('T')[0],
       updatedAt:new Date().toISOString().split('T')[0],
@@ -125,6 +126,7 @@ export default function App(){
             name: cloudProj.name, scenario: cloudProj.scenario, client: { ...cloudProj.client },
             floors: cloudProj.floors.map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),
             activeFloor: cloudProj.activeFloor, settings: cloudProj.settings,
+            crossFloorConnections: cloudProj.crossFloorConnections || [],
           };
           migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p);
           setProject(p);
@@ -143,6 +145,7 @@ export default function App(){
       name: proj.name, scenario: proj.scenario, client: { ...proj.client },
       floors: (proj.floors || []).map(f => ({ ...f, racks: f.racks || [], quadros: f.quadros || [] })),
       activeFloor: proj.activeFloor, settings: proj.settings,
+      crossFloorConnections: proj.crossFloorConnections || [],
     };
     migrateProjectKeys(p); syncUid(p); dedupDeviceIds(p);
     setProject(p);

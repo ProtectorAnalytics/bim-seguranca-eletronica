@@ -178,7 +178,10 @@ function appToDb(project, projectId, userId) {
     name: project.name || 'Novo Projeto',
     scenario: project.scenario || null,
     client: project.client || {},
-    settings: project.settings || {},
+    settings: {
+      ...(project.settings || {}),
+      crossFloorConnections: project.crossFloorConnections || [],
+    },
     active_floor: project.activeFloor || 'f1',
     device_count: (project.floors || []).reduce((sum, f) => sum + (f.devices?.length || 0), 0),
     status: project.status || 'rascunho',
@@ -208,6 +211,11 @@ function dbToApp(proj, floorRows) {
     bgOpacity: f.data?.bgOpacity ?? 0.3,
   }));
 
+  const settings = proj.settings || {};
+  const crossFloorConnections = settings.crossFloorConnections || [];
+  // Remove from settings copy to keep it clean
+  const { crossFloorConnections: _cfc, ...cleanSettings } = settings;
+
   return {
     id: proj.id,
     name: proj.name,
@@ -215,7 +223,8 @@ function dbToApp(proj, floorRows) {
     client: proj.client || {},
     floors,
     activeFloor: proj.active_floor || 'f1',
-    settings: proj.settings || {},
+    settings: cleanSettings,
+    crossFloorConnections,
     status: proj.status || 'rascunho',
     storageMode: proj.storage_mode || 'cloud',
     _version: proj.version || 1,
