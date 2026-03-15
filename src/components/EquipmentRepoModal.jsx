@@ -252,7 +252,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
     const hiddenSet=new Set(hiddenDevices);
 
     return <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:760,maxHeight:'85vh',overflow:'auto'}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(760px, calc(100vw - 24px))',maxHeight:'85vh',overflow:'auto'}}>
         <h3 style={{fontSize:16,marginBottom:4}}>📦 Repositório de Equipamentos</h3>
         {/* Tabs */}
         <div style={{display:'flex',gap:0,marginBottom:12,borderBottom:'2px solid #e5e8eb'}}>
@@ -405,7 +405,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
 
   // ── WIZARD CONTAINER ──
   return <div className="modal-overlay" onClick={onClose}>
-    <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:620,maxHeight:'88vh',overflow:'auto'}}>
+    <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(620px, calc(100vw - 24px))',maxHeight:'88vh',overflow:'auto'}}>
       <StepBar/>
 
       {/* STEP 1: CATEGORY */}

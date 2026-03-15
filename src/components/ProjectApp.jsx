@@ -2437,7 +2437,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <div style={{position:'absolute',bottom:48,left:'50%',transform:'translateX(-50%)',
               background:connToast.type==='error'?'#dc2626':connToast.type==='warn'?'#d97706':connToast.type==='info'?'#2563eb':'#16a34a',
               color:'#fff',padding:'8px 20px',borderRadius:8,fontSize:11,fontWeight:600,zIndex:30,
-              boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:480,textAlign:'center',
+              boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:'min(480px, calc(100vw - 32px))',textAlign:'center',
               animation:'fadeIn .2s'}}>
               {connToast.msg}
             </div>
@@ -2447,7 +2447,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           {cablePicker&&(
             <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
               background:'#fff',borderRadius:12,boxShadow:'0 8px 40px rgba(0,0,0,.25)',padding:20,
-              zIndex:40,minWidth:320,maxWidth:420}}>
+              zIndex:40,minWidth:'min(320px, calc(100vw - 32px))',maxWidth:'min(420px, calc(100vw - 32px))'}}>
               <div style={{fontSize:13,fontWeight:700,color:'var(--azul)',marginBottom:4}}>
                 Cabo Incompatível
               </div>
@@ -3060,7 +3060,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         const currentMeters=(pixelDist/(40*currentScale)).toFixed(2);
         return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
           onClick={e=>{if(e.target===e.currentTarget){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}>
-          <div style={{background:'#fff',borderRadius:12,padding:24,width:340,boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:'min(340px, calc(100vw - 32px))',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
             <div style={{fontSize:14,fontWeight:700,color:'#8e44ad',marginBottom:4}}>📐 Calibrar Escala</div>
             <div style={{fontSize:10,color:'#64748b',marginBottom:16,lineHeight:1.4}}>
               Distância medida na imagem: <b>{currentMeters}m</b> (escala atual)

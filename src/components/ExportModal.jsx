@@ -195,7 +195,7 @@ export default function ExportModal({project, bom, allDevices, connections, vali
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:500,maxHeight:'90vh',overflowY:'auto'}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(500px, calc(100vw - 24px))',maxHeight:'90vh',overflowY:'auto'}}>
         <h3>📋 Projeto: Exportar / Importar</h3>
 
         {/* Tabs */}

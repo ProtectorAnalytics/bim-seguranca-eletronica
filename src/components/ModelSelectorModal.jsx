@@ -8,7 +8,7 @@ export default function ModelSelectorModal({deviceKey,onSelect,onCancel}){
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:600}}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(600px, calc(100vw - 24px))'}}>
         <h3>Selecionar Modelo</h3>
         <div style={{fontSize:11,color:'var(--cinza)',marginBottom:16}}>
           Escolha um modelo do catálogo ou configure manualmente.
