@@ -25,7 +25,7 @@ import {
 } from '@/lib/helpers';
 import {
   SlidersHorizontal, Server, LayoutGrid, GitBranch,
-  ClipboardList, ShieldCheck, Zap, PanelRightClose, MessageCircle
+  ClipboardList, ShieldCheck, Zap, PanelRightClose, MessageCircle, List
 } from 'lucide-react';
 import ModelSelectorModal from './ModelSelectorModal';
 import ExportModal from './ExportModal';
@@ -41,6 +41,9 @@ import MigrationWizard from './MigrationWizard';
 import DevicePropertiesPanel from './DevicePropertiesPanel';
 import CameraFovOverlay from './CameraFovOverlay';
 import CommentsPanel from './CommentsPanel';
+import CanvasContextMenu from './CanvasContextMenu';
+import CanvasSearch from './CanvasSearch';
+import DeviceListPanel from './DeviceListPanel';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 import { autoOrthoRoute, buildOrthoPath } from '@/lib/cable-routing';
 
@@ -89,8 +92,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const isPanningRef=useRef(false);
   const panStartRef=useRef({x:0,y:0,panX:0,panY:0});
   const prevToolRef=useRef(null); // for space-held temporary pan
+  // Clipboard for copy/paste
+  const [clipboard,setClipboard]=useState(null); // {devices:[{key,name,model,...}], offset:{x,y}}
+  // Canvas search
+  const [showSearch,setShowSearch]=useState(false);
+  const [searchHighlight,setSearchHighlight]=useState(null); // Set of device IDs to highlight
+  // Context menu
+  const [contextMenu,setContextMenu]=useState(null); // {x,y,target}
+  // Smart guides
+  const [guides,setGuides]=useState([]); // [{type:'h'|'v', x1,y1,x2,y2}]
   // Layers: toggle visibility of canvas elements
-  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false});
+  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
@@ -165,6 +177,103 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   };
   const deleteComment=(id)=>{
     updateFloor(f=>({...f,comments:(f.comments||[]).filter(c=>c.id!==id)}));
+  };
+
+  // ── Copy / Paste / Duplicate ──
+  const copySelected=()=>{
+    const ids=multiSelect.size>0?[...multiSelect]:(selectedDevice?[selectedDevice]:[]);
+    if(!ids.length) return;
+    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
+    const minX=Math.min(...devs.map(d=>d.x)),minY=Math.min(...devs.map(d=>d.y));
+    setClipboard({devices:devs.map(d=>({...d,_offX:d.x-minX,_offY:d.y-minY}))});
+  };
+  const pasteClipboard=(px,py)=>{
+    if(!clipboard?.devices?.length) return;
+    const baseX=px||200,baseY=py||200;
+    const newIds=[];
+    const idMap={};
+    clipboard.devices.forEach(d=>{
+      const nid=uid();
+      idMap[d.id]=nid;
+      newIds.push(nid);
+    });
+    updateFloor(f=>{
+      const newDevs=clipboard.devices.map(d=>({
+        ...d,id:idMap[d.id],x:snap(baseX+d._offX),y:snap(baseY+d._offY),
+        envId:null,quadroId:undefined,rackId:undefined
+      }));
+      // Also copy connections between copied devices
+      const newConns=connections
+        .filter(c=>idMap[c.from]&&idMap[c.to])
+        .map(c=>({...c,id:uid(),from:idMap[c.from],to:idMap[c.to]}));
+      return {...f,devices:[...f.devices,...newDevs],connections:[...(f.connections||[]),...newConns]};
+    });
+    setMultiSelect(new Set(newIds));
+    setSelectedDevice(null);
+  };
+  const duplicateSelected=()=>{
+    const ids=multiSelect.size>0?[...multiSelect]:(selectedDevice?[selectedDevice]:[]);
+    if(!ids.length) return;
+    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
+    const minX=Math.min(...devs.map(d=>d.x));
+    const minY=Math.min(...devs.map(d=>d.y));
+    setClipboard({devices:devs.map(d=>({...d,_offX:d.x-minX,_offY:d.y-minY}))});
+    pasteClipboard(minX+40,minY+40);
+  };
+
+  // ── Align & Distribute (multi-select) ──
+  const getSelectedDevs=()=>{
+    const ids=[...multiSelect];
+    return ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
+  };
+  const alignDevices=(axis)=>{
+    const devs=getSelectedDevs();if(devs.length<2) return;
+    const centers=devs.map(d=>({id:d.id,cx:d.x+getDevR(d),cy:d.y+getDevR(d),r:getDevR(d)}));
+    let target;
+    if(axis==='left') target=Math.min(...centers.map(c=>c.cx-c.r));
+    else if(axis==='right') target=Math.max(...centers.map(c=>c.cx+c.r));
+    else if(axis==='centerH'){const s=centers.reduce((a,c)=>a+c.cx,0)/centers.length;target=s;}
+    else if(axis==='top') target=Math.min(...centers.map(c=>c.cy-c.r));
+    else if(axis==='bottom') target=Math.max(...centers.map(c=>c.cy+c.r));
+    else if(axis==='centerV'){const s=centers.reduce((a,c)=>a+c.cy,0)/centers.length;target=s;}
+    updateFloor(f=>({...f,devices:f.devices.map(d=>{
+      if(!multiSelect.has(d.id)) return d;
+      const r=getDevR(d);
+      if(axis==='left') return {...d,x:target};
+      if(axis==='right') return {...d,x:target-2*r};
+      if(axis==='centerH') return {...d,x:target-r};
+      if(axis==='top') return {...d,y:target};
+      if(axis==='bottom') return {...d,y:target-2*r};
+      if(axis==='centerV') return {...d,y:target-r};
+      return d;
+    })}));
+  };
+  const distributeDevices=(dir)=>{
+    const devs=getSelectedDevs();if(devs.length<3) return;
+    const sorted=[...devs].sort((a,b)=>dir==='h'?a.x-b.x:a.y-b.y);
+    const first=sorted[0],last=sorted[sorted.length-1];
+    const totalSpan=dir==='h'?(last.x-first.x):(last.y-first.y);
+    const step=totalSpan/(sorted.length-1);
+    const updates={};
+    sorted.forEach((d,i)=>{
+      if(dir==='h') updates[d.id]={x:snap(first.x+step*i)};
+      else updates[d.id]={y:snap(first.y+step*i)};
+    });
+    updateFloor(f=>({...f,devices:f.devices.map(d=>updates[d.id]?{...d,...updates[d.id]}:d)}));
+  };
+
+  // ── Select by Type ──
+  const selectByType=(deviceKey)=>{
+    const ids=devices.filter(d=>d.key===deviceKey).map(d=>d.id);
+    setMultiSelect(new Set(ids));
+    setSelectedDevice(null);
+  };
+
+  // ── Layer Presets ──
+  const applyLayerPreset=(preset)=>{
+    if(preset==='client') setLayers({devices:true,cables:false,environments:true,grid:false,bg:true,dimensions:false,fov:true,heatmap:true});
+    else if(preset==='installer') setLayers({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
+    else if(preset==='engineer') setLayers({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:true,heatmap:false});
   };
 
   // All devices across all floors
@@ -1109,7 +1218,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       } else {
         const dx=(e.clientX-dragging.startX)/zoom;
         const dy=(e.clientY-dragging.startY)/zoom;
-        moveDevice(dragging.id,dragging.origX+dx,dragging.origY+dy);
+        const nx=dragging.origX+dx,ny=dragging.origY+dy;
+        moveDevice(dragging.id,nx,ny);
+        // Smart guides calculation
+        const dragR=getDevR(devices.find(d=>d.id===dragging.id)||{});
+        const dcx=snap(nx)+dragR,dcy=snap(ny)+dragR;
+        const newGuides=[];
+        const THRESH=5;
+        devices.forEach(d=>{
+          if(d.id===dragging.id||d.quadroId) return;
+          const r=getDevR(d),cx=d.x+r,cy=d.y+r;
+          if(Math.abs(cy-dcy)<THRESH) newGuides.push({type:'h',x1:Math.min(cx,dcx)-20,y1:cy,x2:Math.max(cx,dcx)+20,y2:cy});
+          if(Math.abs(cx-dcx)<THRESH) newGuides.push({type:'v',x1:cx,y1:Math.min(cy,dcy)-20,x2:cx,y2:Math.max(cy,dcy)+20});
+        });
+        setGuides(newGuides);
       }
     };
     const onUp=(e)=>{
@@ -1126,7 +1248,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           }
         }
       }
-      setDragging(null);
+      setDragging(null);setGuides([]);
     };
     window.addEventListener('mousemove',onMove);
     window.addEventListener('mouseup',onUp);
@@ -1192,6 +1314,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
       if((e.ctrlKey||e.metaKey)&&e.key==='a'){e.preventDefault();setMultiSelect(new Set(devices.map(d=>d.id)));setTool('select')}
       if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print()}
+      // Copy/Paste/Duplicate/Search
+      if((e.ctrlKey||e.metaKey)&&e.key==='c'){e.preventDefault();copySelected()}
+      if((e.ctrlKey||e.metaKey)&&e.key==='v'){e.preventDefault();pasteClipboard()}
+      if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();duplicateSelected()}
+      if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();setShowSearch(s=>!s)}
     };
     const keyupHandler=(e)=>{
       // Release Space → restore previous tool
@@ -1204,6 +1331,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     window.addEventListener('keyup',keyupHandler);
     return ()=>{window.removeEventListener('keydown',handler);window.removeEventListener('keyup',keyupHandler)};
   },[selectedDevice,selectedConn,connections,devices,multiSelect,tool]);
+
+  // Right-click context menu
+  const handleContextMenu=(e)=>{
+    e.preventDefault();
+    const devEl=e.target.closest('.device-on-canvas');
+    const devId=devEl?.dataset?.devId;
+    const target=devId?devices.find(d=>d.id===devId):null;
+    setContextMenu({x:e.clientX,y:e.clientY,target});
+  };
 
   // Wheel zoom
   const handleWheel=(e)=>{
@@ -1274,7 +1410,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         showCableLabels={showCableLabels} setShowCableLabels={setShowCableLabels}
         deviceLabel={deviceLabel} setDeviceLabel={setDeviceLabel}
         snapToGrid={snapToGrid} setSnapToGrid={setSnapToGrid}
-        layers={layers} toggleLayer={toggleLayer}
+        layers={layers} toggleLayer={toggleLayer} applyLayerPreset={applyLayerPreset}
         undo={undo} redo={redo}
         devices={devices} connections={connections} validations={validations}
         envFilterTag={envFilterTag} setEnvFilterTag={setEnvFilterTag}
@@ -1454,7 +1590,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         </div>
 
         {/* CANVAS */}
-        <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onWheel={handleWheel}
+        <div className="canvas-area" ref={canvasRef} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onWheel={handleWheel} onContextMenu={handleContextMenu}
           onMouseDownCapture={(e)=>{
             // Middle-click → pan from anywhere (capture phase fires before device handlers)
             if(e.button===1){e.preventDefault();e.stopPropagation();
@@ -1846,7 +1982,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${sizeClass} ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
+                    data-dev-id={dev.id}
                     style={{left:dev.x,top:dev.y,
+                      ...(searchHighlight&&!searchHighlight.has(dev.id)?{opacity:.15,filter:'grayscale(0.8)'}:{}),
                       ...(inRack?{zIndex:2}:{}),
                       ...(multiSelect.has(dev.id)?{outline:'2px solid #3498db',outlineOffset:2,borderRadius:10,boxShadow:'0 0 8px rgba(52,152,219,.4)'}:{}),
                       ...(isSource?{outline:'2px solid #f59e0b',outlineOffset:2,borderRadius:10}:{}),
@@ -2077,7 +2215,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               )}
 
               {/* Camera FOV overlay */}
-              <CameraFovOverlay devices={devices} show={layers.fov}/>
+              <CameraFovOverlay devices={devices} show={layers.fov} heatmap={layers.heatmap}/>
+
+              {/* Smart guides */}
+              {guides.length>0&&(
+                <svg width="4000" height="4000" style={{position:'absolute',top:0,left:0,pointerEvents:'none',zIndex:9}}>
+                  {guides.map((g,i)=>(
+                    <line key={i} x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2}
+                      stroke="#ff00ff" strokeWidth={1} strokeDasharray="4 2" opacity={0.8}/>
+                  ))}
+                </svg>
+              )}
 
               {/* Comment pins on canvas */}
               {comments.map(c=>!c.resolved&&(
@@ -2356,6 +2504,44 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           })()}
         </div>
 
+        {/* Search overlay */}
+        <CanvasSearch devices={devices} show={showSearch}
+          onClose={()=>{setShowSearch(false);setSearchHighlight(null)}}
+          onHighlight={setSearchHighlight}
+          onFocus={(d)=>{
+            const el=document.querySelector('.canvas-viewport');
+            if(el){el.scrollLeft=d.x-el.clientWidth/2;el.scrollTop=d.y-el.clientHeight/2;}
+          }}
+          onSelect={(id)=>{setSelectedDevice(id);setRightTab('props')}}/>
+
+        {/* Context menu */}
+        {contextMenu&&(
+          <CanvasContextMenu x={contextMenu.x} y={contextMenu.y}
+            target={contextMenu.target}
+            multiSelectCount={multiSelect.size}
+            hasClipboard={!!clipboard}
+            onClose={()=>setContextMenu(null)}
+            onCopy={()=>{copySelected();setContextMenu(null)}}
+            onPaste={(x,y)=>{pasteClipboard(x,y);setContextMenu(null)}}
+            onDuplicate={()=>{duplicateSelected();setContextMenu(null)}}
+            onDelete={()=>{
+              if(multiSelect.size>0){multiSelect.forEach(id=>deleteDevice(id));setMultiSelect(new Set())}
+              else if(contextMenu.target) deleteDevice(contextMenu.target.id);
+              setContextMenu(null);
+            }}
+            onSelectAll={()=>{setMultiSelect(new Set(devices.map(d=>d.id)));setContextMenu(null)}}
+            onSelectByType={(key)=>{selectByType(key);setContextMenu(null)}}
+            onAlignLeft={()=>{alignDevices('left');setContextMenu(null)}}
+            onAlignCenterH={()=>{alignDevices('centerH');setContextMenu(null)}}
+            onAlignRight={()=>{alignDevices('right');setContextMenu(null)}}
+            onAlignTop={()=>{alignDevices('top');setContextMenu(null)}}
+            onAlignCenterV={()=>{alignDevices('centerV');setContextMenu(null)}}
+            onAlignBottom={()=>{alignDevices('bottom');setContextMenu(null)}}
+            onDistributeH={()=>{distributeDevices('h');setContextMenu(null)}}
+            onDistributeV={()=>{distributeDevices('v');setContextMenu(null)}}
+          />
+        )}
+
         {/* RIGHT PANEL */}
         <div className={`right-panel ${!rightPanelOpen?(isSmallScreen?'responsive-collapsed':'collapsed'):''}`}>
           <div className="rp-tabs">
@@ -2396,6 +2582,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               title="Diagrama Unifilar">
               <Zap size={15} strokeWidth={2}/>
               <span>Unifilar</span>
+            </div>
+            <div className={`rp-tab ${rightTab==='devlist'?'active':''}`} onClick={()=>setRightTab('devlist')}
+              title="Lista de Dispositivos">
+              <List size={15} strokeWidth={2}/>
+              <span>Lista</span>
+              {devices.length>0&&<span className="rp-badge">{devices.length}</span>}
             </div>
             <div className={`rp-tab ${rightTab==='comments'?'active':''}`} onClick={()=>setRightTab('comments')}
               title="Comentários">
@@ -2631,6 +2823,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             {rightTab==='validation'&&(
               <ValidationPanel validations={validations} devices={devices}
                 setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}/>
+            )}
+            {/* DEVICE LIST */}
+            {rightTab==='devlist'&&(
+              <DeviceListPanel devices={devices} environments={environments}
+                onFocus={(d)=>{
+                  const el=document.querySelector('.canvas-viewport');
+                  if(el){el.scrollLeft=d.x-el.clientWidth/2;el.scrollTop=d.y-el.clientHeight/2;}
+                }}
+                onSelect={(id)=>{setSelectedDevice(id);setRightTab('props')}}
+                onSelectType={selectByType}/>
             )}
             {/* COMMENTS */}
             {rightTab==='comments'&&(
