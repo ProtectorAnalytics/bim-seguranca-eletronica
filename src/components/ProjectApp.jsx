@@ -46,10 +46,12 @@ import CanvasContextMenu from './CanvasContextMenu';
 import CanvasSearch from './CanvasSearch';
 import DeviceListPanel from './DeviceListPanel';
 import CrossFloorConnectionModal from './CrossFloorConnectionModal';
+import ShareProjectModal from './ShareProjectModal';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
+import { useRealtimeCollab } from '@/hooks/useRealtimeCollab';
 
-export default function ProjectApp({project,setProject,undo,redo,onBack}){
+export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId}){
   const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | floors
@@ -107,6 +109,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const [guides,setGuides]=useState([]); // [{type:'h'|'v', x1,y1,x2,y2}]
   // Layers: toggle visibility of canvas elements
   const [layers,setLayers]=useState({devices:true,cables:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
+  // Share modal
+  const [showShareModal,setShowShareModal]=useState(false);
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
@@ -1489,6 +1493,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         )}
         <span style={{fontSize:10,opacity:.5}}>Cenário: {SCENARIOS.find(s=>s.id===project.scenario)?.name}</span>
         <button className="tb-btn" onClick={()=>setShowExport(true)}>📋 Exportar</button>
+        {!readOnly && storageMode==='cloud' && (
+          <button className="tb-btn" onClick={()=>setShowShareModal(true)} style={{color:'#046BD2'}}>🔗 Compartilhar</button>
+        )}
         <button className="tb-btn" onClick={onBack}>← Voltar</button>
       </div>
 
@@ -3307,6 +3314,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         sourceIfaceLabel={crossFloorModal.ifaceLabel}
         onConnect={addCrossFloorConnection}
         onClose={()=>setCrossFloorModal(null)}/>}
+
+      {/* Share project modal */}
+      {showShareModal&&<ShareProjectModal
+        projectId={projectId||project.id||''}
+        projectName={project.name||'Projeto'}
+        onClose={()=>setShowShareModal(false)}/>}
     </div>
   );
 }
