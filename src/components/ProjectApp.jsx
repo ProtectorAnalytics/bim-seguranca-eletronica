@@ -1937,17 +1937,21 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     {/* Dashed circle around local device */}
                     <circle cx={cx} cy={cy} r={R+5} fill="none"
                       stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={2} strokeDasharray="5 3" opacity={.7}/>
-                    {/* Vertical arrow indicator */}
+                    {/* Vertical arrow indicator — click to show label */}
                     <line x1={cx} y1={cy-R-5} x2={cx} y2={cy-R-22}
                       stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={2} strokeDasharray="3 2" markerEnd="url(#xfArrow)"/>
-                    {/* Label box */}
-                    <rect x={cx-estW/2} y={cy-R-42} width={estW} height={18}
-                      rx={4} ry={4} fill={isSel?'#EBF5FB':'#f5f3ff'} fillOpacity={.95}
-                      stroke={isSel?'#046BD2':'#8b5cf6'} strokeWidth={.8}/>
-                    <text x={cx} y={cy-R-29} textAnchor="middle"
-                      style={{fontSize:9,fontWeight:600,fill:isSel?'#046BD2':'#6d28d9',pointerEvents:'none'}}>
-                      {lblText}
-                    </text>
+                    {/* Clickable hit area on arrow tip */}
+                    <circle cx={cx} cy={cy-R-22} r={8} fill="transparent" style={{cursor:'pointer'}}/>
+                    {/* Label box — only shown when selected */}
+                    {isSel&&<>
+                      <rect x={cx-estW/2} y={cy-R-42} width={estW} height={18}
+                        rx={4} ry={4} fill='#EBF5FB' fillOpacity={.95}
+                        stroke='#046BD2' strokeWidth={.8}/>
+                      <text x={cx} y={cy-R-29} textAnchor="middle"
+                        style={{fontSize:9,fontWeight:600,fill:'#046BD2',pointerEvents:'none'}}>
+                        {lblText}
+                      </text>
+                    </>}
                   </g>;
                 })}
 
@@ -2088,17 +2092,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const assigns=dev.nvrAssignments||[];
                   if(assigns.length>0){const total=dev.qty||1,asgn=assigns.reduce((s,a)=>s+(a.qty||0),0);
                     devTags.push({t:asgn>=total?'✓ NVR':`${asgn}/${total} NVR`,c:asgn>=total?'#22c55e':'#f59e0b'})}}
-                // Cross-floor connection tags
-                const xfConnsForDev=currentFloorCrossConns.filter(xc=>
-                  (xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor)||(xc.toDeviceId===dev.id&&xc.toFloorId===project.activeFloor));
-                xfConnsForDev.forEach(xc=>{
-                  const isFrom=xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor;
-                  const remFloorId=isFrom?xc.toFloorId:xc.fromFloorId;
-                  const remDevId=isFrom?xc.toDeviceId:xc.fromDeviceId;
-                  const remFloor=project.floors.find(f=>f.id===remFloorId);
-                  const remDev=remFloor?.devices?.find(d=>d.id===remDevId);
-                  if(remDev&&remFloor) devTags.push({t:`↕ ${remFloor.name}`,c:'#8b5cf6'});
-                });
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${sizeClass} ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}
