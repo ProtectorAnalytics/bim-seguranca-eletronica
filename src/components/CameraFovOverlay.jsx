@@ -207,24 +207,20 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
         if (angle >= 360) return null;
 
         const rotation = dev.fovRotation ?? dev.rotation ?? 0;
-        const z = zoom || 1;
-        const p = pan || { x: 0, y: 0 };
         const { cx, cy } = getIconCenter(dev);
 
         const handleDist = range * 0.7;
         const hx = cx + handleDist * Math.cos(toRad(rotation));
         const hy = cy + handleDist * Math.sin(toRad(rotation));
 
-        const screenX = hx * z + p.x;
-        const screenY = hy * z + p.y;
         const isDragging = dragging === dev.id;
 
         return (
           <div key={dev.id + '_handle'}
             style={{
               position: 'absolute',
-              left: screenX - 7,
-              top: screenY - 7,
+              left: hx - 7,
+              top: hy - 7,
               width: 14,
               height: 14,
               borderRadius: '50%',
