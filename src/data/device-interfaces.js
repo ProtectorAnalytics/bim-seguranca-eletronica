@@ -91,11 +91,17 @@ export const DEVICE_INTERFACES = {
                  {type:'power_in',cables:['cat5e','cat6'],label:'PoE Passivo (12-30V)',required:false}],
   // NVR padrão (sem PoE) — conecta via switch
   nvr:          [{type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Porta de rede LAN (RJ45)',required:true},
-                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true}],
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
+                 {type:'video_out',cables:['hdmi'],label:'Saída HDMI (monitor)',required:false},
+                 {type:'video_out',cables:['hdmi'],label:'Saída VGA (monitor)',required:false},
+                 {type:'passthrough',cables:['usb'],label:'Porta USB (mouse)',required:false}],
   // NVR com PoE integrado — aceita câmeras diretamente nas portas PoE
   nvr_poe:      [{type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Portas PoE integradas (câmeras diretas)',required:true},
                  {type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Porta uplink (rede/switch)',required:false},
-                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true}],
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
+                 {type:'video_out',cables:['hdmi'],label:'Saída HDMI (monitor)',required:false},
+                 {type:'video_out',cables:['hdmi'],label:'Saída VGA (monitor)',required:false},
+                 {type:'passthrough',cables:['usb'],label:'Porta USB (mouse)',required:false}],
   router:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas WAN / LAN',required:true},
                  {type:'power_in',cables:['ac_power'],label:'Alimentação AC',required:true}],
   // Infraestrutura
@@ -123,6 +129,16 @@ export const DEVICE_INTERFACES = {
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (circuito)',required:true}],
   quadro_eletrico:[{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada geral AC (QGBT)',required:true},
                    {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída circuitos AC',required:true}],
+  // Fechaduras Solenoide / Eletromecânica
+  fechadura_sol: [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true},
+                  {type:'automation_in',cables:['pp2v_10','pp2v_05'],label:'Acionamento (facial / controladora)',required:true},
+                  {type:'signal_out',cables:['pp2v_05'],label:'Sensor porta (estado aberto/fechado)',required:false}],
+  // Periféricos / Monitores
+  monitor_led:  [{type:'video_out',cables:['hdmi'],label:'Entrada HDMI (vídeo)',required:true},
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true}],
+  cabo_hdmi:    [{type:'passthrough',cables:['hdmi'],label:'HDMI (passagem vídeo NVR → Monitor)'}],
+  mouse_usb:    [{type:'passthrough',cables:['usb'],label:'USB (conexão ao NVR/PC)'}],
+  cabo_ext_usb: [{type:'passthrough',cables:['usb'],label:'Extensão USB (passagem)'}],
 };
 
 // ====================================================================
@@ -149,7 +165,7 @@ export const isTeclado = k => k.startsWith('teclado_');
 export const isSwitch = k => k.startsWith('sw_');
 export const isSwitchPoE = k => k === 'sw_poe' || k.startsWith('sw_poe_');
 export const isNvrPoE = k => k.includes('_poe') && isNVR(k);
-export const isControleAcesso = k => ['leitor_facial','controladora','fechadura','leitor_tag','eletroima','leitor_biometrico','leitor_rfid','sensor_abertura'].includes(k) || k.startsWith('botoeira') || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_');
+export const isControleAcesso = k => ['leitor_facial','controladora','fechadura','leitor_tag','eletroima','leitor_biometrico','leitor_rfid','sensor_abertura','fechadura_eletromecanica','fechadura_solenoide_embutir','fechadura_solenoide_sobrepor'].includes(k) || k.startsWith('botoeira') || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_');
 export const isIncendio = k => k.startsWith('central_inc_') || k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('modulo_inc_') || k.startsWith('sirene_inc_') || k.startsWith('fogo_') || k.startsWith('morley_');
 export const isCentralIncendio = k => k.startsWith('central_inc_') || k.startsWith('fogo_central_') || k === 'morley_central';
 export const isDetectorIncendio = k => k.startsWith('detector_') || k.startsWith('acionador_') || k.startsWith('fogo_det_') || k.startsWith('fogo_acionador_') || k === 'morley_detector';
@@ -167,8 +183,8 @@ export const isBateria = k => k === 'bateria_ext' || k.startsWith('bat_12v_');
 export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('bat_12v_');
 export const needsPoE = k => isCameraIP(k) || isAP(k);
 export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
-export const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
-export const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
+export const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_') || k.startsWith('monitor_led');
+export const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || k.startsWith('fechadura_') || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
 export const needsIPConfig = k => needsNetwork(k) || isAP(k) || isONT(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
 
 // ====================================================================
@@ -355,6 +371,7 @@ export function resolveInterfacesByKey(key) {
     {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC',required:true},
     {type:'data_in',cables:['pp2v_05'],label:'Wiegand/RS485',required:true}];
   if (key === 'eletroima') return DEVICE_INTERFACES.fechadura;
+  if (key.startsWith('fechadura_solenoide') || key === 'fechadura_eletromecanica') return DEVICE_INTERFACES.fechadura_sol;
   if (key === 'botoeira_nt' || key === 'botoeira_emergencia' || key.startsWith('botoeira')) return DEVICE_INTERFACES.botoeira;
   if (key === 'sensor_abertura' || key === 'sensor_porta') return DEVICE_INTERFACES.sensor_abertura;
   if (key.startsWith('biometrico_') || key.startsWith('tag_uhf_')) return DEVICE_INTERFACES.leitor_tag;
@@ -411,6 +428,14 @@ export function resolveInterfacesByKey(key) {
     {type:'power_in',cables:['ac_power','pp2v_10'],label:'Alimentação',required:true}];
   if (key === 'dps_rede') return [
     {type:'passthrough',cables:['cat5e','cat6','cat6a','ac_power','pp_flex'],label:'Proteção surto (passagem)'}];
+
+  // ── Monitores LED ──
+  if (key.startsWith('monitor_led')) return DEVICE_INTERFACES.monitor_led;
+  // ── Cabo HDMI ──
+  if (key === 'cabo_hdmi') return DEVICE_INTERFACES.cabo_hdmi;
+  // ── Mouse / Cabo USB ──
+  if (key === 'mouse_usb') return DEVICE_INTERFACES.mouse_usb;
+  if (key === 'cabo_extensor_usb') return DEVICE_INTERFACES.cabo_ext_usb;
 
   // ── Fallback: power interface genérica para qualquer dispositivo ──
   return [{type:'power_in',cables:['pp2v_10','pp2v_05','ac_power'],label:'Alimentação',required:false}];

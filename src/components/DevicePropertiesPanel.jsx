@@ -3,13 +3,13 @@ import { DEVICE_LIB } from '@/data/device-lib';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { MODEL_CATALOG } from '@/data/model-catalog';
 import { ENV_COLORS } from '@/data/constants';
-import { ICONS } from '@/icons';
+import { ICONS, ICON_BANK, COLOR_PALETTE } from '@/icons';
 import {
   isCamera, isSwitch, isGravador, needsPoE, needsIPConfig,
   getNvrChannels, getNvrUsedChannels, autoAssignCameras,
   canMountInRack, canMountInQuadro, getSwitchPorts
 } from '@/data/device-interfaces';
-import { findDevDef, getDeviceIconKey, isValidIPv4, isValidVLAN } from '@/lib/helpers';
+import { findDevDef, getDeviceIconKey, isValidIPv4, isValidVLAN, getDeviceOverrides, saveDeviceOverrides } from '@/lib/helpers';
 import { getRackOccupancy } from '@/lib/rack-helpers';
 
 /* ── Section header (replaces repeated inline fontSize:10 style) ── */
@@ -54,6 +54,8 @@ export default function DevicePropertiesPanel({
   assignDeviceToQuadro, unassignDeviceFromQuadro,
   crossFloorConnections, project, setCrossFloorModal
 }){
+  const [showIconPicker, setShowIconPicker] = React.useState(false);
+
   if (!dev) return null;
 
   const def = findDevDef(dev.key);
@@ -114,6 +116,66 @@ export default function DevicePropertiesPanel({
           </select>
         </span>
       </div>
+      {/* Icon & Color quick picker */}
+      <div className="prop-row" style={{borderTop:'1px solid #e5e8eb',paddingTop:6,marginTop:4}}>
+        <button onClick={()=>setShowIconPicker(!showIconPicker)}
+          style={{width:'100%',padding:'5px 8px',fontSize:10,fontWeight:600,border:'1px solid #d1d5db',borderRadius:5,
+            cursor:'pointer',background:showIconPicker?'#eff6ff':'#f8fafc',color:showIconPicker?'#2563eb':'#475569',
+            display:'flex',alignItems:'center',gap:6,justifyContent:'center',transition:'.15s'}}>
+          <div style={{width:18,height:18,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',transform:'scale(0.6)'}}>
+            {ICONS[getDeviceIconKey(dev.key)]?.(color)}
+          </div>
+          {showIconPicker?'▲ Fechar':'▼ Alterar Ícone / Cor'}
+        </button>
+      </div>
+      {showIconPicker && (
+        <div style={{padding:8,background:'#f8fafc',borderRadius:8,border:'1px solid #e2e8f0',marginTop:4}}>
+          {/* Color palette */}
+          <div style={{marginBottom:6}}>
+            <label style={{fontSize:9,fontWeight:600,color:'#64748b',marginBottom:3,display:'block'}}>Cor</label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+              {COLOR_PALETTE.map(c=>{
+                const ov=getDeviceOverrides();
+                const currentColor=ov[dev.key]?.customColor||'';
+                const sel=currentColor===c;
+                return <div key={c} onClick={()=>{
+                  const overrides={...getDeviceOverrides()};
+                  if(!overrides[dev.key]) overrides[dev.key]={};
+                  overrides[dev.key].customColor=sel?'':c;
+                  saveDeviceOverrides(overrides);
+                  updateDevice(dev.id,{_refreshIcon:Date.now()});
+                }} style={{width:18,height:18,borderRadius:3,background:c,cursor:'pointer',
+                  border:sel?'2px solid #1e293b':'1px solid #d1d5db',
+                  boxShadow:sel?'0 0 0 1px #fff, 0 0 0 3px '+c:'none',transition:'.1s'}}/>;
+              })}
+            </div>
+          </div>
+          {/* Icon bank */}
+          <div>
+            <label style={{fontSize:9,fontWeight:600,color:'#64748b',marginBottom:3,display:'block'}}>Ícone</label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:3,maxHeight:120,overflowY:'auto'}}>
+              {ICON_BANK.map(ib=>{
+                const ov=getDeviceOverrides();
+                const currentIcon=ov[dev.key]?.customIcon||'';
+                const sel=currentIcon===ib.id;
+                const cc=ov[dev.key]?.customColor||color;
+                return <div key={ib.id} title={ib.label}
+                  onClick={()=>{
+                    const overrides={...getDeviceOverrides()};
+                    if(!overrides[dev.key]) overrides[dev.key]={};
+                    overrides[dev.key].customIcon=sel?'':ib.id;
+                    saveDeviceOverrides(overrides);
+                    updateDevice(dev.id,{_refreshIcon:Date.now()});
+                  }}
+                  style={{width:28,height:28,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',
+                    cursor:'pointer',background:sel?cc+'20':'#fff',border:sel?`2px solid ${cc}`:'1px solid #e2e8f0',transition:'.1s'}}>
+                  <div style={{transform:'scale(0.55)'}}>{ICONS[ib.id]?.(sel?cc:'#94a3b8')}</div>
+                </div>;
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -315,6 +377,26 @@ export default function DevicePropertiesPanel({
           <input type="checkbox" checked={dev.config?.batExterna || false}
             onChange={e => updateDevice(dev.id, {config: {...dev.config, batExterna: e.target.checked}})}/>
           <span className="dp-check-label">Módulo externo</span>
+        </span>
+      </div>
+    </>
+  ) : null;
+
+  /* ── NVR HD Capacity ── */
+  const nvrHDSection = isGravador(dev.key) ? (
+    <>
+      <SectionTitle>HD (Armazenamento)</SectionTitle>
+      <div className="prop-row">
+        <span className="pr-label">Capacidade HD:</span>
+        <span className="pr-value">
+          <select value={dev.config?.hdCapacityTB || ''}
+            onChange={e => updateDevice(dev.id, {config: {...dev.config, hdCapacityTB: e.target.value}})}>
+            <option value="">Selecione...</option>
+            {[1,2,4,6,8,10,12,14,16,18,20].map(tb=>
+              <option key={tb} value={tb}>{tb} TB</option>
+            )}
+          </select>
+          {!dev.config?.hdCapacityTB && <span style={{color:'#dc2626',fontSize:9,fontWeight:700,marginLeft:6}}>OBRIGATÓRIO</span>}
         </span>
       </div>
     </>
@@ -576,6 +658,7 @@ export default function DevicePropertiesPanel({
       {nvrSection}
       {nobreakACSection}
       {nobreakDCSection}
+      {nvrHDSection}
       {nvrChannelSection}
       {switchSection}
       {rackAssignment}

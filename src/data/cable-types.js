@@ -6,6 +6,8 @@ export const CABLE_TYPES = [
   {id:'cat6a',name:'CAT6A',color:'#1d4ed8',speed:'10Gbps',maxLen:90,group:'data'},
   {id:'smf',name:'SM Fibra',color:'#f59e0b',speed:'100Gbps+',maxLen:40000,group:'data'},
   {id:'mmf',name:'MM Fibra',color:'#ef4444',speed:'10Gbps',maxLen:300,group:'data'},
+  {id:'hdmi',name:'Cabo HDMI',color:'#1e293b',speed:'4K 60Hz',maxLen:15,group:'data'},
+  {id:'usb',name:'Cabo USB',color:'#475569',speed:'480Mbps',maxLen:5,group:'data'},
   {id:'coaxial',name:'Coaxial RG59',color:'#374151',speed:'Analógico',maxLen:300,group:'signal'},
   {id:'wireless',name:'Wireless/Mesh',color:'#8b5cf6',speed:'WiFi6',maxLen:100,group:'data'},
   // PP Cables — standard for electronic security installations
