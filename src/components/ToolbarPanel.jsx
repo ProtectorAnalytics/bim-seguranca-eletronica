@@ -17,7 +17,7 @@ export default function ToolbarPanel({
   showCableLabels, setShowCableLabels,
   deviceLabel, setDeviceLabel,
   snapToGrid, setSnapToGrid,
-  layers, toggleLayer,
+  layers, toggleLayer, applyLayerPreset,
   undo, redo,
   devices, connections, validations,
   envFilterTag, setEnvFilterTag,
@@ -119,6 +119,23 @@ export default function ToolbarPanel({
             background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:8,padding:'6px 0',
             minWidth:160,boxShadow:'0 8px 24px rgba(0,0,0,.12)'}}>
             <div style={{fontSize:10,color:'#64748b',padding:'2px 10px 4px',fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Camadas</div>
+            {applyLayerPreset&&<>
+              <div style={{fontSize:9,color:'#94a3b8',padding:'2px 10px 2px',fontWeight:600}}>Presets</div>
+              {[{id:'client',label:'👤 Cliente',desc:'Limpo, sem cabos'},
+                {id:'installer',label:'🔧 Instalador',desc:'Cabos + cotas'},
+                {id:'engineer',label:'⚙️ Engenheiro',desc:'Tudo visível'}
+              ].map(p=>(
+                <div key={p.id} onClick={()=>applyLayerPreset(p.id)}
+                  style={{padding:'4px 10px',cursor:'pointer',fontSize:10,color:'#046BD2',
+                    display:'flex',justifyContent:'space-between',gap:8}}
+                  onMouseOver={e=>e.currentTarget.style.background='#F0F5FA'}
+                  onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <span>{p.label}</span>
+                  <span style={{color:'#94a3b8',fontSize:9}}>{p.desc}</span>
+                </div>
+              ))}
+              <div style={{borderTop:'1px solid #E2E8F0',margin:'4px 0'}}/>
+            </>}
             {[
               {key:'devices',label:'Dispositivos',icon:'📦'},
               {key:'cables',label:'Cabos',icon:'🔗'},
@@ -126,7 +143,8 @@ export default function ToolbarPanel({
               {key:'grid',label:'Grade',icon:'⊞'},
               {key:'bg',label:'Planta Fundo',icon:'🖼️'},
               {key:'dimensions',label:'Cotas',icon:'📏'},
-              {key:'fov',label:'Campo de Visão',icon:'👁️'}
+              {key:'fov',label:'Campo de Visão',icon:'👁️'},
+              {key:'heatmap',label:'Heatmap Cobertura',icon:'🔥'}
             ].map(l=>(
               <div key={l.key} onClick={()=>toggleLayer(l.key)}
                 style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',cursor:'pointer',
