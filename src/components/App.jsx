@@ -22,10 +22,35 @@ import ProjectApp from './ProjectApp';
 import { useSubscription } from '../hooks/useSubscription';
 import { useProjectHistory } from '../hooks/useProjectHistory';
 
+// Session persistence helpers
+const SESSION_SCREEN_KEY = 'bim_session_screen';
+const SESSION_PROJECT_KEY = 'bim_session_project_id';
+const SESSION_STORAGE_MODE_KEY = 'bim_session_storage_mode';
+
+function getSessionState() {
+  try {
+    return {
+      screen: sessionStorage.getItem(SESSION_SCREEN_KEY) || 'dashboard',
+      projectId: sessionStorage.getItem(SESSION_PROJECT_KEY) || null,
+      storageMode: sessionStorage.getItem(SESSION_STORAGE_MODE_KEY) || 'cloud',
+    };
+  } catch { return { screen: 'dashboard', projectId: null, storageMode: 'cloud' }; }
+}
+
+function saveSessionState(screen, projectId, storageMode) {
+  try {
+    sessionStorage.setItem(SESSION_SCREEN_KEY, screen);
+    if (projectId) sessionStorage.setItem(SESSION_PROJECT_KEY, projectId);
+    else sessionStorage.removeItem(SESSION_PROJECT_KEY);
+    sessionStorage.setItem(SESSION_STORAGE_MODE_KEY, storageMode);
+  } catch { /* ignore */ }
+}
+
 export default function App(){
   const { user, loading: authLoading, isAdmin, configError, getAccessToken } = useAuth();
   const limits = useSubscription();
-  const [screen,setScreen]=useState('dashboard');
+  const sessionState = useRef(getSessionState()).current;
+  const [screen,setScreenRaw]=useState(sessionState.screen);
   const [project,_setProject]=useState(null);
   const { pushSnapshot, undo, redo, clearHistory, skipNext } = useProjectHistory(_setProject);
   const setProject=(updaterOrVal)=>{
@@ -43,8 +68,21 @@ export default function App(){
       }catch(e){console.error('setProject error',e);skipNext.current=false;return prev;}
     });
   };
-  const [editingProjectId,setEditingProjectId]=useState(null);
-  const [storageMode,setStorageMode]=useState('cloud'); // 'cloud' | 'local'
+  const [editingProjectId,setEditingProjectId]=useState(sessionState.projectId);
+  const [storageMode,setStorageMode]=useState(sessionState.storageMode);
+
+  // Wrap setScreen to persist to sessionStorage
+  const setScreen = useCallback((s) => {
+    setScreenRaw(s);
+    // If leaving the project screen, clear project from session
+    const pid = s === 'project' ? editingProjectId : null;
+    saveSessionState(s, pid, storageMode);
+  }, [editingProjectId, storageMode]);
+
+  // Also persist when editingProjectId changes
+  useEffect(() => {
+    saveSessionState(screen, editingProjectId, storageMode);
+  }, [editingProjectId, storageMode]);
   const [cloudSaveStatus,setCloudSaveStatus]=useState(null); // null | 'saving' | 'saved' | 'error'
   const [clientData,setClientData]=useState({
     nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
@@ -153,6 +191,27 @@ export default function App(){
     setStorageMode(proj.storageMode || 'local');
     setScreen('project');
   }, [clearHistory, getAccessToken]);
+
+  // ── Restore session: reload project if page was refreshed while editing ──
+  const sessionRestored = useRef(false);
+  useEffect(() => {
+    if (sessionRestored.current || !user || authLoading) return;
+    sessionRestored.current = true;
+
+    const ss = getSessionState();
+    // Only restore project screen if we have a project ID
+    if (ss.screen === 'project' && ss.projectId && !project) {
+      const projects = getSavedProjects();
+      const saved = projects.find(p => p.id === ss.projectId);
+      if (saved) {
+        onOpenProject(saved);
+      } else if (ss.storageMode === 'cloud') {
+        onOpenProject({ id: ss.projectId, storageMode: 'cloud', _needsCloudLoad: true });
+      } else {
+        setScreen('dashboard');
+      }
+    }
+  }, [user, authLoading, onOpenProject]);
 
   // Config error guard
   if(configError) return (
