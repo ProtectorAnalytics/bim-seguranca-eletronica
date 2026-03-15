@@ -33,8 +33,8 @@ function getFovParams(dev) {
 }
 
 // Get icon center offset based on device icon size
-function getIconCenter(dev) {
-  const size = dev.iconSize || 'lg';
+function getIconCenter(dev, globalSize) {
+  const size = dev.iconSize || globalSize || 'normal';
   const dim = size === 'sm' ? 36 : size === 'md' ? 46 : 58;
   const half = dim / 2;
   return { cx: dev.x + half, cy: dev.y + half };
@@ -59,7 +59,7 @@ function buildWedgePath(cx, cy, angle, range, rotation) {
  * Renders SVG FOV wedges + optional heatmap for cameras.
  * Hikvision-style: cyan fill, solid border, interactive rotation handle.
  */
-export default function CameraFovOverlay({ devices, show, heatmap, updateDevice, zoom, pan, canvasRef }) {
+export default function CameraFovOverlay({ devices, show, heatmap, updateDevice, zoom, pan, canvasRef, globalIconSize }) {
   if (!show) return null;
 
   const cameras = devices.filter(d => isCamera(d.key) && !d.quadroId);
@@ -80,7 +80,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
     const dev = devices.find(d => d.id === devId);
     if (!dev || !canvasRef?.current) return;
 
-    const center = getIconCenter(dev);
+    const center = getIconCenter(dev, globalIconSize);
     dragRef.current = { devId, cx: center.cx, cy: center.cy };
     setDragging(devId);
 
@@ -120,7 +120,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
           if (!params) return null;
           const { angle, range } = params;
           const rotation = dev.fovRotation ?? dev.rotation ?? 0;
-          const { cx, cy } = getIconCenter(dev);
+          const { cx, cy } = getIconCenter(dev, globalIconSize);
 
           if (angle >= 360) {
             return (
@@ -142,7 +142,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
           const params = getFovParams(dev);
           if (!params) return null;
           const { range } = params;
-          const { cx, cy } = getIconCenter(dev);
+          const { cx, cy } = getIconCenter(dev, globalIconSize);
           const rings = [
             { r: range * 0.25, color: '#22c55e' },
             { r: range * 0.5, color: '#84cc16' },
@@ -170,7 +170,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
 
           const { angle, range } = params;
           const rotation = dev.fovRotation ?? dev.rotation ?? 0;
-          const { cx, cy } = getIconCenter(dev);
+          const { cx, cy } = getIconCenter(dev, globalIconSize);
 
           if (angle >= 360) {
             return (
@@ -207,7 +207,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
         if (angle >= 360) return null;
 
         const rotation = dev.fovRotation ?? dev.rotation ?? 0;
-        const { cx, cy } = getIconCenter(dev);
+        const { cx, cy } = getIconCenter(dev, globalIconSize);
 
         const handleDist = range * 0.7;
         const hx = cx + handleDist * Math.cos(toRad(rotation));
