@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Check, Trash2, Plus } from 'lucide-react';
+import { MessageCircle, Check, Trash2, Plus, Pencil } from 'lucide-react';
 
 /**
  * CommentsPanel — sidebar panel listing all floor comments.
@@ -8,11 +8,14 @@ import { MessageCircle, Check, Trash2, Plus } from 'lucide-react';
  *   onAdd: (text) => void — add new comment (placed at center of viewport)
  *   onResolve: (commentId) => void
  *   onDelete: (commentId) => void
+ *   onEdit: (commentId, newText) => void
  *   onFocus: (comment) => void — pan canvas to comment location
  */
-export default function CommentsPanel({ comments = [], onAdd, onResolve, onDelete, onFocus }) {
+export default function CommentsPanel({ comments = [], onAdd, onResolve, onDelete, onEdit, onFocus }) {
   const [newText, setNewText] = useState('');
   const [filter, setFilter] = useState('open'); // 'open' | 'all'
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
 
   const filtered = filter === 'open' ? comments.filter(c => !c.resolved) : comments;
   const openCount = comments.filter(c => !c.resolved).length;
@@ -21,6 +24,19 @@ export default function CommentsPanel({ comments = [], onAdd, onResolve, onDelet
     if (!newText.trim()) return;
     onAdd(newText.trim());
     setNewText('');
+  };
+
+  const startEdit = (c) => {
+    setEditingId(c.id);
+    setEditText(c.text);
+  };
+
+  const saveEdit = () => {
+    if (editText.trim() && onEdit) {
+      onEdit(editingId, editText.trim());
+    }
+    setEditingId(null);
+    setEditText('');
   };
 
   return (
@@ -78,38 +94,64 @@ export default function CommentsPanel({ comments = [], onAdd, onResolve, onDelet
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {filtered.map(c => (
-            <div key={c.id} onClick={() => onFocus?.(c)} style={{
+            <div key={c.id} onClick={() => editingId !== c.id && onFocus?.(c)} style={{
               padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
               background: c.resolved ? '#f8fafc' : '#fff',
               border: `1px solid ${c.resolved ? '#f1f5f9' : '#E2E8F0'}`,
               opacity: c.resolved ? 0.6 : 1,
               transition: 'all .15s',
             }}>
-              <div style={{ fontSize: 11, color: '#1e293b', lineHeight: 1.4,
-                textDecoration: c.resolved ? 'line-through' : 'none' }}>
-                {c.text}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                <span style={{ fontSize: 9, color: '#94a3b8' }}>
-                  {c.author || 'Você'} · {new Date(c.createdAt).toLocaleDateString('pt-BR')}
-                </span>
+              {editingId === c.id ? (
                 <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-                  {!c.resolved && (
-                    <button onClick={() => onResolve(c.id)} title="Resolver" style={{
-                      background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.3)',
-                      borderRadius: 4, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                    }}>
-                      <Check size={10} color="#22c55e" />
-                    </button>
-                  )}
-                  <button onClick={() => onDelete(c.id)} title="Excluir" style={{
-                    background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.2)',
-                    borderRadius: 4, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  }}>
-                    <Trash2 size={10} color="#ef4444" />
-                  </button>
+                  <input value={editText} onChange={e => setEditText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                    autoFocus
+                    style={{
+                      flex: 1, padding: '4px 8px', fontSize: 11, border: '1px solid #046BD2',
+                      borderRadius: 4, background: '#F0F5FA', color: '#1e293b', outline: 'none',
+                    }} />
+                  <button onClick={saveEdit} style={{
+                    background: '#046BD2', color: '#fff', border: 'none', borderRadius: 4,
+                    padding: '4px 8px', cursor: 'pointer', fontSize: 10,
+                  }}>OK</button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 11, color: '#1e293b', lineHeight: 1.4,
+                    textDecoration: c.resolved ? 'line-through' : 'none' }}>
+                    {c.text}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                    <span style={{ fontSize: 9, color: '#94a3b8' }}>
+                      {c.author || 'Você'} · {new Date(c.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                    <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                      {!c.resolved && (
+                        <>
+                          <button onClick={() => startEdit(c)} title="Editar" style={{
+                            background: 'rgba(4,107,210,.08)', border: '1px solid rgba(4,107,210,.2)',
+                            borderRadius: 4, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          }}>
+                            <Pencil size={10} color="#046BD2" />
+                          </button>
+                          <button onClick={() => onResolve(c.id)} title="Resolver" style={{
+                            background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.3)',
+                            borderRadius: 4, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          }}>
+                            <Check size={10} color="#22c55e" />
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => onDelete(c.id)} title="Excluir" style={{
+                        background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.2)',
+                        borderRadius: 4, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      }}>
+                        <Trash2 size={10} color="#ef4444" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

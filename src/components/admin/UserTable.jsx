@@ -32,6 +32,8 @@ export default function UserTable({ onNavigateInvites }) {
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState({ email: '', fullName: '', company: '', role: 'user', planId: '', unlimited: false })
   const [creating, setCreating] = useState(false)
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 20
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -326,7 +328,7 @@ export default function UserTable({ onNavigateInvites }) {
           </tr>
         </thead>
         <tbody>
-          {users.map(u => {
+          {users.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(u => {
             const sub = u.subscriptions?.[0]
             const plan = sub?.plans
             const statusColor = {
@@ -414,6 +416,22 @@ export default function UserTable({ onNavigateInvites }) {
           )}
         </tbody>
       </table>
+      {/* Pagination */}
+      {users.length > PAGE_SIZE && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12 }}>
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+            style={{ padding: '4px 10px', fontSize: 11, border: '1px solid #E2E8F0', borderRadius: 4, cursor: page === 0 ? 'default' : 'pointer', background: '#fff', color: page === 0 ? '#cbd5e1' : '#1e293b' }}>
+            ← Anterior
+          </button>
+          <span style={{ fontSize: 11, color: '#64748b' }}>
+            {page + 1} / {Math.ceil(users.length / PAGE_SIZE)}
+          </span>
+          <button onClick={() => setPage(p => Math.min(Math.ceil(users.length / PAGE_SIZE) - 1, p + 1))} disabled={(page + 1) * PAGE_SIZE >= users.length}
+            style={{ padding: '4px 10px', fontSize: 11, border: '1px solid #E2E8F0', borderRadius: 4, cursor: (page + 1) * PAGE_SIZE >= users.length ? 'default' : 'pointer', background: '#fff', color: (page + 1) * PAGE_SIZE >= users.length ? '#cbd5e1' : '#1e293b' }}>
+            Próximo →
+          </button>
+        </div>
+      )}
     </div>
   )
 }

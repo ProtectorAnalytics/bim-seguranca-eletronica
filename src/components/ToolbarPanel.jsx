@@ -12,6 +12,7 @@ export default function ToolbarPanel({
   cableType, setCableType,
   routeType, setRouteType,
   autoCable,
+  onCrossFloor, floorCount,
   setShowMigrationWizard, legacyCount,
   iconSize, changeIconSize,
   showCableLabels, setShowCableLabels,
@@ -56,6 +57,9 @@ export default function ToolbarPanel({
             fontSize:8,fontWeight:700,borderRadius:'50%',width:14,height:14,display:'flex',alignItems:'center',
             justifyContent:'center',lineHeight:1}}>{legacyCount}</span>}
         </button>
+        {floorCount > 1 && onCrossFloor && (
+          <button className="tool-btn" title="Conexão entre pavimentos" onClick={onCrossFloor}>🔀</button>
+        )}
       </div>
 
       {/* Opcoes de cabo (aparece so no modo cabo) */}

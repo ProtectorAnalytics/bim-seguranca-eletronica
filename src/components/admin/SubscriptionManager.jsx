@@ -10,6 +10,8 @@ export default function SubscriptionManager() {
   const [actionError, setActionError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [confirmAction, setConfirmAction] = useState(null) // { subId, action, label }
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 20
 
   const fetchData = async () => {
     setLoading(true)
@@ -114,7 +116,7 @@ export default function SubscriptionManager() {
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {['all', 'trialing', 'active', 'expired', 'cancelled', 'suspended'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
+          <button key={f} onClick={() => { setFilter(f); setPage(0); }} style={{
             background: filter === f ? '#3b82f6' : '#E2E8F0', color: filter === f ? '#fff' : '#64748b', border: 'none',
             borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontWeight: filter === f ? 700 : 400
           }}>
@@ -135,7 +137,7 @@ export default function SubscriptionManager() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(s => {
+            {filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(s => {
               const isConfirming = confirmAction?.subId === s.id
               return (
                 <tr key={s.id}>
@@ -227,6 +229,22 @@ export default function SubscriptionManager() {
           </tbody>
         </table>
       </div>
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12 }}>
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+            style={{ padding: '4px 10px', fontSize: 11, border: '1px solid #E2E8F0', borderRadius: 4, cursor: page === 0 ? 'default' : 'pointer', background: '#fff', color: page === 0 ? '#cbd5e1' : '#1e293b' }}>
+            ← Anterior
+          </button>
+          <span style={{ fontSize: 11, color: '#64748b' }}>
+            {page + 1} / {Math.ceil(filtered.length / PAGE_SIZE)}
+          </span>
+          <button onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE) - 1, p + 1))} disabled={(page + 1) * PAGE_SIZE >= filtered.length}
+            style={{ padding: '4px 10px', fontSize: 11, border: '1px solid #E2E8F0', borderRadius: 4, cursor: (page + 1) * PAGE_SIZE >= filtered.length ? 'default' : 'pointer', background: '#fff', color: (page + 1) * PAGE_SIZE >= filtered.length ? '#cbd5e1' : '#1e293b' }}>
+            Próximo →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
