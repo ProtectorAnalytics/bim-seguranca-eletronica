@@ -74,6 +74,7 @@ Tabelas principais:
 - Ícones: Lucide React (NUNCA usar thumbnails/imagens para ícones de dispositivos)
 - Commit messages em português com prefixo convencional (feat, fix, chore, etc.)
 - Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com> no final de cada commit
+- **OBRIGATÓRIO em TODA alteração**: atualizar a versão (`APP_VERSION` em `src/data/constants.js` e `version` em `package.json`) incrementando o build. Também atualizar `date` com a data atual e incluir o horário (formato `YYYY-MM-DD HH:MM`). Exemplo: `date: '2026-03-15 14:30'`. Se o campo `date` não tiver horário, adicionar.
 
 ## Sistema de Convites
 - Tipo `pre_register`: vinculado a email específico, uso único

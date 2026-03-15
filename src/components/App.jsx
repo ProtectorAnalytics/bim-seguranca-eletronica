@@ -234,5 +234,5 @@ export default function App(){
 
   else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
 
-  return <>{content}<VersionBadge/></>;
+  return <>{content}{screen!=='client'&&<VersionBadge/>}</>;
 }
