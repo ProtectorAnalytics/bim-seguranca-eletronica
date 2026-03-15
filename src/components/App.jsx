@@ -294,6 +294,8 @@ export default function App(){
 
   else if(screen==='subscription') content = <SubscriptionPage onBack={()=>setScreen('dashboard')} onProfile={()=>setScreen('profile')} />;
 
+  else if(!project) content = <LoadingScreen />;
+
   else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
 
   return <>{content}{screen!=='client'&&<VersionBadge/>}</>;
