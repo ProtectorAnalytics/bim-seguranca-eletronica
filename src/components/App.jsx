@@ -19,6 +19,7 @@ import ResetPasswordPage from './ResetPasswordPage';
 import UpgradeBanner from './UpgradeBanner';
 import VersionBadge from './VersionBadge';
 import ProjectApp from './ProjectApp';
+import SharedProjectView from './SharedProjectView';
 import { useSubscription } from '../hooks/useSubscription';
 import { useProjectHistory } from '../hooks/useProjectHistory';
 
@@ -232,10 +233,22 @@ export default function App(){
   // ── URL-based flows (invite / password recovery) ──
   const urlParams = new URLSearchParams(window.location.search)
   const inviteToken = urlParams.get('invite')
+  const shareTokenParam = urlParams.get('share')
   const urlType = urlParams.get('type')
 
   // Auth guard
   if(authLoading) return <><LoadingScreen/><VersionBadge/></>;
+
+  // Shared project link (can be accessed without auth)
+  if(shareTokenParam) return (
+    <>
+      <SharedProjectView
+        shareToken={shareTokenParam}
+        onExit={() => { window.history.replaceState({}, '', '/'); window.location.reload() }}
+      />
+      <VersionBadge/>
+    </>
+  );
 
   // Invite registration (no auth required)
   if(inviteToken) return <><InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /><VersionBadge/></>;
@@ -296,7 +309,7 @@ export default function App(){
 
   else if(!project) content = <LoadingScreen />;
 
-  else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} onBack={()=>setScreen('dashboard')}/>;
+  else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} projectId={editingProjectId} onBack={()=>setScreen('dashboard')}/>;
 
   return <>{content}{screen!=='client'&&<VersionBadge/>}</>;
 }
