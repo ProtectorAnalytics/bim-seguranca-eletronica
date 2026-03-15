@@ -118,14 +118,14 @@ export default function App(){
     else projects.push(updated);
     saveProjects(projects);
 
-    // 2. If cloud mode + logged in: debounced cloud save
+    // 2. If cloud mode + logged in: debounced cloud save with status callback
     if(storageMode === 'cloud' && user){
       setCloudSaveStatus('saving');
       getAccessToken().then(token => {
         if(!token) { setCloudSaveStatus('error'); return; }
-        debouncedSaveCloud(project, editingProjectId, user.id, token, 2000);
-        // Mark saved after debounce + estimated save time
-        setTimeout(() => setCloudSaveStatus('saved'), 3000);
+        debouncedSaveCloud(project, editingProjectId, user.id, token, 2000, (status) => {
+          setCloudSaveStatus(status);
+        });
       });
       // Also cache locally for offline access
       setCachedProject(editingProjectId, updated);

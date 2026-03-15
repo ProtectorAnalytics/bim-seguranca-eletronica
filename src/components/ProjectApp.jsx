@@ -51,7 +51,7 @@ import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRack
 import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
 import { useRealtimeCollab } from '@/hooks/useRealtimeCollab';
 
-export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId}){
+export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId,cloudSaveStatus}){
   const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | floors
@@ -315,7 +315,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     // Feature gate: device limit per floor
     const currentDevices = floor?.devices?.length || 0;
     if(currentDevices >= limits.maxDevicesPerFloor){
-      alert(`Limite de ${limits.maxDevicesPerFloor} dispositivos por andar no plano ${limits.planName}. Faça upgrade para adicionar mais.`);
+      showConnToast(`Limite de ${limits.maxDevicesPerFloor} dispositivos por andar no plano ${limits.planName}. Faça upgrade para adicionar mais.`,'warn');
       return;
     }
 
@@ -1487,6 +1487,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
             width:220,padding:'4px 8px',outline:'none',transition:'all .2s'}}
           onFocus={e=>{e.target.style.background='#F0F5FA';e.target.style.borderColor='#046BD2'}}
           onBlur={e=>{e.target.style.background='transparent';e.target.style.borderColor='transparent'}}/>
+        {storageMode==='cloud'&&cloudSaveStatus&&(
+          <span style={{fontSize:10,padding:'2px 8px',borderRadius:6,
+            background:cloudSaveStatus==='saving'?'#FEF3C7':cloudSaveStatus==='saved'?'#D1FAE5':cloudSaveStatus==='error'?'#FEE2E2':'transparent',
+            color:cloudSaveStatus==='saving'?'#92400E':cloudSaveStatus==='saved'?'#065F46':cloudSaveStatus==='error'?'#991B1B':'#94a3b8'}}>
+            {cloudSaveStatus==='saving'?'Salvando...':cloudSaveStatus==='saved'?'Salvo na nuvem':cloudSaveStatus==='error'?'Erro ao salvar':''}
+          </span>
+        )}
         <span style={{flex:1}}/>
         {project.client&&(project.client.razaoSocial||project.client.nome)&&(
           <span style={{fontSize:10,opacity:.5}}>👤 {project.client.razaoSocial||project.client.nome}</span>
