@@ -5,6 +5,7 @@ import { createStore, get, set, del } from 'idb-keyval';
 const historyStore = createStore('bim-history', 'snapshots');
 
 const MAX_SNAPSHOTS = 50;
+const MAX_BYTES = 50 * 1024 * 1024; // 50MB cap for history store
 const PAST_KEY = 'history_past';
 const FUTURE_KEY = 'history_future';
 
@@ -63,6 +64,15 @@ export function useProjectHistory(_setProject) {
       const snap = JSON.stringify(prevProject);
       past.current.push(snap);
       if (past.current.length > MAX_SNAPSHOTS) past.current.shift();
+
+      // Prune oldest snapshots if total size exceeds cap
+      let totalBytes = past.current.reduce((sum, s) => sum + s.length * 2, 0)
+        + future.current.reduce((sum, s) => sum + s.length * 2, 0);
+      while (totalBytes > MAX_BYTES && past.current.length > 1) {
+        const removed = past.current.shift();
+        totalBytes -= removed.length * 2;
+      }
+
       future.current = [];
       persistAsync();
     } catch (e) {

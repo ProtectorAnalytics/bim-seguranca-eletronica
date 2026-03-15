@@ -85,6 +85,7 @@ export default function App(){
     saveSessionState(screen, editingProjectId, storageMode);
   }, [editingProjectId, storageMode]);
   const [cloudSaveStatus,setCloudSaveStatus]=useState(null); // null | 'saving' | 'saved' | 'error'
+  const [cloudFallback,setCloudFallback]=useState(false); // true when cloud load failed and using local cache
   const [clientData,setClientData]=useState({
     nome:'',razaoSocial:'',cnpj:'',cpf:'',tipo:'pj',
     endereco:'',cidade:'',uf:'',cep:'',
@@ -171,10 +172,12 @@ export default function App(){
           setProject(p);
           setEditingProjectId(proj.id);
           setStorageMode('cloud');
+          setCloudFallback(false);
           setScreen('project');
           return;
         }
         console.warn('[App] Cloud load failed, trying local cache:', error?.message);
+        setCloudFallback(true);
       }
     }
 
@@ -309,7 +312,7 @@ export default function App(){
 
   else if(!project) content = <LoadingScreen />;
 
-  else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} storageMode={storageMode} projectId={editingProjectId} onBack={()=>setScreen('dashboard')}/>;
+  else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} cloudFallback={cloudFallback} storageMode={storageMode} projectId={editingProjectId} onBack={()=>setScreen('dashboard')}/>;
 
   return <>{content}{screen!=='client'&&<VersionBadge/>}</>;
 }

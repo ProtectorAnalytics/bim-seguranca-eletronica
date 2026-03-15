@@ -51,7 +51,7 @@ import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRack
 import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
 import { useRealtimeCollab } from '@/hooks/useRealtimeCollab';
 
-export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId,cloudSaveStatus}){
+export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId,cloudSaveStatus,cloudFallback}){
   const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | floors
@@ -184,6 +184,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   };
   const deleteComment=(id)=>{
     updateFloor(f=>({...f,comments:(f.comments||[]).filter(c=>c.id!==id)}));
+  };
+  const editComment=(id,newText)=>{
+    updateFloor(f=>({...f,comments:(f.comments||[]).map(c=>c.id===id?{...c,text:newText}:c)}));
   };
 
   // ── Copy / Paste / Duplicate ──
@@ -1506,6 +1509,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         <button className="tb-btn" onClick={onBack}>← Voltar</button>
       </div>
 
+      {/* Cloud fallback warning */}
+      {cloudFallback&&storageMode==='cloud'&&(
+        <div style={{background:'#FEF3C7',borderBottom:'1px solid #F59E0B',padding:'4px 16px',fontSize:11,color:'#92400E',display:'flex',alignItems:'center',gap:8}}>
+          <span>⚠️ Falha ao carregar da nuvem — usando cópia local (pode estar desatualizada). Suas alterações serão sincronizadas quando a conexão voltar.</span>
+        </div>
+      )}
+
       {/* ===== FLOOR TABS ===== */}
       <div className="floor-tabs">
         {project.floors.map(f=>(
@@ -1524,6 +1534,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         cableType={cableType} setCableType={setCableType}
         routeType={routeType} setRouteType={setRouteType}
         autoCable={autoCable}
+        onCrossFloor={project.floors.length>1?()=>setCrossFloorModal({deviceId:selectedDevice||devices[0]?.id}):null}
+        floorCount={project.floors.length}
         setShowMigrationWizard={setShowMigrationWizard} legacyCount={legacyCount}
         iconSize={iconSize} changeIconSize={changeIconSize}
         showCableLabels={showCableLabels} setShowCableLabels={setShowCableLabels}
@@ -3112,7 +3124,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
             {/* COMMENTS */}
             {rightTab==='comments'&&(
               <CommentsPanel comments={comments} onAdd={addComment}
-                onResolve={resolveComment} onDelete={deleteComment}
+                onResolve={resolveComment} onDelete={deleteComment} onEdit={editComment}
                 onFocus={(c)=>{
                   const el=document.querySelector('.canvas-viewport');
                   if(el){el.scrollLeft=c.x-el.clientWidth/2;el.scrollTop=c.y-el.clientHeight/2;}

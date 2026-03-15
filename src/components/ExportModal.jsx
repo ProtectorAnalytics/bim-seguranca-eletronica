@@ -237,6 +237,18 @@ export default function ExportModal({project, bom, allDevices, connections, vali
             </div>
 
             {/* PDF Export */}
+            {/* Validation warnings */}
+            {validationResults.length > 0 && (() => {
+              const errors = validationResults.filter(v => v.sev === 'ERROR');
+              const warnings = validationResults.filter(v => v.sev === 'WARN');
+              return (errors.length > 0 || warnings.length > 0) ? (
+                <div style={{background:'#FEF3C7',border:'1px solid #F59E0B',borderRadius:6,padding:'8px 12px',marginBottom:10,fontSize:11,color:'#92400E'}}>
+                  ⚠️ Projeto com {errors.length > 0 ? `${errors.length} erro(s)` : ''}{errors.length > 0 && warnings.length > 0 ? ' e ' : ''}{warnings.length > 0 ? `${warnings.length} aviso(s)` : ''} de validação.
+                  A exportação continuará, mas recomendamos revisar os alertas antes de enviar ao cliente.
+                </div>
+              ) : null;
+            })()}
+
             {!limits.canExportPdf && (
               <UpgradeBanner message="Exportação PDF disponível nos planos Básico e Pro." />
             )}
