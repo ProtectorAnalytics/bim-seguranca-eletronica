@@ -240,14 +240,40 @@ function dbToApp(proj, floorRows) {
 // ====================================================================
 const _saveTimers = new Map();
 
-export function debouncedSaveCloud(project, projectId, userId, token, delayMs = 2000) {
+/**
+ * Debounced cloud save with retry (exponential backoff: 2s, 4s, 8s).
+ * @param {Function} onStatus - optional callback: ('saving'|'saved'|'error', errorMsg?)
+ */
+export function debouncedSaveCloud(project, projectId, userId, token, delayMs = 2000, onStatus) {
   if (_saveTimers.has(projectId)) clearTimeout(_saveTimers.get(projectId));
   _saveTimers.set(projectId, setTimeout(async () => {
     _saveTimers.delete(projectId);
-    const result = await saveCloudProject(project, projectId, userId, token);
-    if (result.error) {
-      console.warn('[projectStorage] Auto-save failed:', result.error.message);
+    if (onStatus) onStatus('saving');
+
+    const maxRetries = 3;
+    const baseDelay = 2000;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const result = await saveCloudProject(project, projectId, userId, token);
+      if (!result.error) {
+        console.log(`[projectStorage] Auto-save OK (attempt ${attempt + 1})`);
+        if (onStatus) onStatus('saved');
+        return;
+      }
+      lastError = result.error;
+      console.warn(`[projectStorage] Auto-save attempt ${attempt + 1} failed:`, result.error.message);
+
+      // Don't retry on auth errors (401/403)
+      if (result.error.status === 401 || result.error.status === 403) break;
+
+      if (attempt < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+      }
     }
+
+    console.error('[projectStorage] Auto-save failed after retries:', lastError?.message);
+    if (onStatus) onStatus('error', lastError?.message);
   }, delayMs));
 }
 
