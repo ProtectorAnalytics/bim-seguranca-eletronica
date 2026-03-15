@@ -99,7 +99,7 @@ export default function ClientForm({data,setData,onStart,onBack,storageMode,onSt
         <div className="cf-sub">Preencha os dados do cliente e selecione o cenário</div>
 
         {/* Tipo de pessoa */}
-        <div style={{display:'flex',gap:8,marginBottom:16}}>
+        <div style={{display:'flex',gap:8,marginBottom:16,maxWidth:400}}>
           {[{id:'pj',label:'Pessoa Jurídica',icon:'🏢'},{id:'pf',label:'Pessoa Física',icon:'👤'}].map(t=>(
             <button key={t.id} onClick={()=>upd('tipo',t.id)}
               style={{flex:1,padding:'8px',borderRadius:8,border:`2px solid ${data.tipo===t.id?'var(--azul)':'var(--cinzaM)'}`,
@@ -111,139 +111,148 @@ export default function ClientForm({data,setData,onStart,onBack,storageMode,onSt
           ))}
         </div>
 
-        <div className="cf-section">{data.tipo==='pj'?'Dados da Empresa':'Dados Pessoais'}</div>
-        <div className="cf-grid">
-          {data.tipo==='pj'&&(
-            <div className="cf-field" style={{gridColumn:'1/-1'}}>
-              <label>Razão Social *</label>
-              <input value={data.razaoSocial} onChange={e=>upd('razaoSocial',e.target.value)} placeholder="Nome da empresa"/>
-            </div>
-          )}
-          <div className="cf-field" style={data.tipo==='pf'?{gridColumn:'1/-1'}:{}}>
-            <label>{data.tipo==='pj'?'Nome Fantasia':'Nome Completo *'}</label>
-            <input value={data.nome} onChange={e=>upd('nome',e.target.value)} placeholder={data.tipo==='pj'?'Nome fantasia':'Nome do cliente'}/>
-          </div>
-          <div className="cf-field">
-            <label>{data.tipo==='pj'?'CNPJ':'CPF'}
-              {data.tipo==='pj'&&cnpjStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
-              {data.tipo==='pj'&&cnpjStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
-              {data.tipo==='pj'&&cnpjStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro na consulta</span>}
-            </label>
-            <div style={{display:'flex',gap:6}}>
-              <input value={data.tipo==='pj'?data.cnpj:data.cpf} style={{flex:1}}
-                onChange={e=>{
-                  const val=data.tipo==='pj'?maskCNPJ(e.target.value):maskCPF(e.target.value);
-                  upd(data.tipo==='pj'?'cnpj':'cpf',val);
-                  if(data.tipo==='pj'&&val.replace(/\D/g,'').length===14) fetchCNPJ(val);
-                }}
-                placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
+        {/* Layout paisagem: 2 colunas */}
+        <div className="cf-landscape">
+          {/* Coluna esquerda: Dados + Endereço */}
+          <div className="cf-landscape-col">
+            <div className="cf-section">{data.tipo==='pj'?'Dados da Empresa':'Dados Pessoais'}</div>
+            <div className="cf-grid">
               {data.tipo==='pj'&&(
-                <button onClick={()=>fetchCNPJ(data.cnpj)} disabled={cnpjLoading||data.cnpj.replace(/\D/g,'').length!==14}
-                  style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--cinzaM)',
-                    background:cnpjLoading?'#f8fafc':'rgba(4,107,210,.06)',
-                    color:cnpjLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
-                    cursor:cnpjLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
-                  {cnpjLoading?'⏳':'🔍'} Buscar
-                </button>
+                <div className="cf-field" style={{gridColumn:'1/-1'}}>
+                  <label>Razão Social *</label>
+                  <input value={data.razaoSocial} onChange={e=>upd('razaoSocial',e.target.value)} placeholder="Nome da empresa"/>
+                </div>
               )}
+              <div className="cf-field" style={data.tipo==='pf'?{gridColumn:'1/-1'}:{}}>
+                <label>{data.tipo==='pj'?'Nome Fantasia':'Nome Completo *'}</label>
+                <input value={data.nome} onChange={e=>upd('nome',e.target.value)} placeholder={data.tipo==='pj'?'Nome fantasia':'Nome do cliente'}/>
+              </div>
+              <div className="cf-field">
+                <label>{data.tipo==='pj'?'CNPJ':'CPF'}
+                  {data.tipo==='pj'&&cnpjStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
+                  {data.tipo==='pj'&&cnpjStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
+                  {data.tipo==='pj'&&cnpjStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro na consulta</span>}
+                </label>
+                <div style={{display:'flex',gap:6}}>
+                  <input value={data.tipo==='pj'?data.cnpj:data.cpf} style={{flex:1}}
+                    onChange={e=>{
+                      const val=data.tipo==='pj'?maskCNPJ(e.target.value):maskCPF(e.target.value);
+                      upd(data.tipo==='pj'?'cnpj':'cpf',val);
+                      if(data.tipo==='pj'&&val.replace(/\D/g,'').length===14) fetchCNPJ(val);
+                    }}
+                    placeholder={data.tipo==='pj'?'00.000.000/0000-00':'000.000.000-00'}/>
+                  {data.tipo==='pj'&&(
+                    <button onClick={()=>fetchCNPJ(data.cnpj)} disabled={cnpjLoading||data.cnpj.replace(/\D/g,'').length!==14}
+                      style={{padding:'0 12px',borderRadius:8,border:'1px solid var(--cinzaM)',
+                        background:cnpjLoading?'#f8fafc':'rgba(4,107,210,.06)',
+                        color:cnpjLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
+                        cursor:cnpjLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
+                      {cnpjLoading?'⏳':'🔍'} Buscar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="cf-section">Endereço</div>
+            <div className="cf-grid">
+              <div className="cf-field" style={{gridColumn:'1/-1'}}>
+                <label>Endereço</label>
+                <input value={data.endereco} onChange={e=>upd('endereco',e.target.value)} placeholder="Rua, número, complemento"/>
+              </div>
+              <div className="cf-field">
+                <label>Cidade</label>
+                <input value={data.cidade} onChange={e=>upd('cidade',e.target.value)} placeholder="Cidade"/>
+              </div>
+              <div className="cf-field">
+                <label>UF</label>
+                <select value={data.uf} onChange={e=>upd('uf',e.target.value)}>
+                  <option value="">Selecione</option>
+                  {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(u=>(
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="cf-field">
+                <label>CEP
+                  {cepStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
+                  {cepStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
+                  {cepStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro</span>}
+                </label>
+                <div style={{display:'flex',gap:6}}>
+                  <input value={data.cep} style={{flex:1}}
+                    onChange={e=>{
+                      const val=maskCEP(e.target.value);
+                      upd('cep',val);
+                      if(val.replace(/\D/g,'').length===8) fetchCEP(val);
+                    }}
+                    placeholder="00000-000"/>
+                  <button onClick={()=>fetchCEP(data.cep)} disabled={cepLoading||data.cep.replace(/\D/g,'').length!==8}
+                    style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--cinzaM)',
+                      background:cepLoading?'#f8fafc':'rgba(4,107,210,.06)',
+                      color:cepLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
+                      cursor:cepLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
+                    {cepLoading?'⏳':'🔍'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="cf-section">Endereço</div>
-        <div className="cf-grid">
-          <div className="cf-field" style={{gridColumn:'1/-1'}}>
-            <label>Endereço</label>
-            <input value={data.endereco} onChange={e=>upd('endereco',e.target.value)} placeholder="Rua, número, complemento"/>
-          </div>
-          <div className="cf-field">
-            <label>Cidade</label>
-            <input value={data.cidade} onChange={e=>upd('cidade',e.target.value)} placeholder="Cidade"/>
-          </div>
-          <div className="cf-field">
-            <label>UF</label>
-            <select value={data.uf} onChange={e=>upd('uf',e.target.value)}>
-              <option value="">Selecione</option>
-              {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(u=>(
-                <option key={u} value={u}>{u}</option>
+          {/* Coluna direita: Contato + Projeto + Cenário */}
+          <div className="cf-landscape-col">
+            <div className="cf-section">Contato</div>
+            <div className="cf-grid">
+              <div className="cf-field">
+                <label>Pessoa de Contato</label>
+                <input value={data.contato} onChange={e=>upd('contato',e.target.value)} placeholder="Nome do responsável"/>
+              </div>
+              <div className="cf-field">
+                <label>Telefone</label>
+                <input value={data.telefone} onChange={e=>upd('telefone',maskPhone(e.target.value))} placeholder="(00) 00000-0000"/>
+              </div>
+              <div className="cf-field" style={{gridColumn:'1/-1'}}>
+                <label>E-mail</label>
+                <input value={data.email} onChange={e=>upd('email',e.target.value)} placeholder="email@empresa.com" type="email"/>
+              </div>
+            </div>
+
+            <div className="cf-section">Projeto</div>
+            <div className="cf-grid">
+              <div className="cf-field">
+                <label>Nome do Projeto</label>
+                <input value={data.projetoNome} onChange={e=>upd('projetoNome',e.target.value)} placeholder="Ex: CFTV Matriz 2026"/>
+              </div>
+              <div className="cf-field">
+                <label>Referência / Proposta</label>
+                <input value={data.projetoRef} onChange={e=>upd('projetoRef',e.target.value)} placeholder="Ex: PROP-2026-042"/>
+              </div>
+            </div>
+            <div className="cf-grid full" style={{marginTop:8}}>
+              <div className="cf-field">
+                <label>Observações</label>
+                <textarea value={data.obs} onChange={e=>upd('obs',e.target.value)} placeholder="Notas adicionais sobre o projeto..." rows="2"/>
+              </div>
+            </div>
+
+            {/* Cenário do projeto */}
+            <div className="cf-section">Cenário do Projeto</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:12}}>
+              {SCENARIOS.map(s=>(
+                <button key={s.id} onClick={()=>setSelectedScenario(s.id)}
+                  style={{
+                    padding:'12px 6px',borderRadius:10,cursor:'pointer',transition:'.2s',textAlign:'center',
+                    border: selectedScenario===s.id ? '2px solid var(--azul)' : '1px solid var(--cinzaM)',
+                    background: selectedScenario===s.id ? 'rgba(4,107,210,.06)' : 'var(--branco)',
+                    boxShadow: selectedScenario===s.id ? '0 2px 8px rgba(4,107,210,.15)' : 'var(--sombra)',
+                  }}>
+                  <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
+                  <div style={{fontSize:11,fontWeight:700,color: selectedScenario===s.id ? 'var(--azul)' : '#1e293b',lineHeight:1.2}}>{s.name}</div>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:2}}>{s.desc}</div>
+                </button>
               ))}
-            </select>
-          </div>
-          <div className="cf-field">
-            <label>CEP
-              {cepStatus==='success'&&<span style={{color:'#22c55e',marginLeft:6,fontSize:9}}>✓ Encontrado</span>}
-              {cepStatus==='notfound'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Não encontrado</span>}
-              {cepStatus==='error'&&<span style={{color:'#ef4444',marginLeft:6,fontSize:9}}>✕ Erro</span>}
-            </label>
-            <div style={{display:'flex',gap:6}}>
-              <input value={data.cep} style={{flex:1}}
-                onChange={e=>{
-                  const val=maskCEP(e.target.value);
-                  upd('cep',val);
-                  if(val.replace(/\D/g,'').length===8) fetchCEP(val);
-                }}
-                placeholder="00000-000"/>
-              <button onClick={()=>fetchCEP(data.cep)} disabled={cepLoading||data.cep.replace(/\D/g,'').length!==8}
-                style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--cinzaM)',
-                  background:cepLoading?'#f8fafc':'rgba(4,107,210,.06)',
-                  color:cepLoading?'#94a3b8':'var(--azul)',fontSize:10,fontWeight:700,
-                  cursor:cepLoading?'wait':'pointer',whiteSpace:'nowrap',transition:'.2s'}}>
-                {cepLoading?'⏳':'🔍'}
-              </button>
             </div>
           </div>
-        </div>
-
-        <div className="cf-section">Contato</div>
-        <div className="cf-grid">
-          <div className="cf-field">
-            <label>Pessoa de Contato</label>
-            <input value={data.contato} onChange={e=>upd('contato',e.target.value)} placeholder="Nome do responsável"/>
-          </div>
-          <div className="cf-field">
-            <label>Telefone</label>
-            <input value={data.telefone} onChange={e=>upd('telefone',maskPhone(e.target.value))} placeholder="(00) 00000-0000"/>
-          </div>
-          <div className="cf-field" style={{gridColumn:'1/-1'}}>
-            <label>E-mail</label>
-            <input value={data.email} onChange={e=>upd('email',e.target.value)} placeholder="email@empresa.com" type="email"/>
-          </div>
-        </div>
-
-        <div className="cf-section">Projeto</div>
-        <div className="cf-grid">
-          <div className="cf-field">
-            <label>Nome do Projeto</label>
-            <input value={data.projetoNome} onChange={e=>upd('projetoNome',e.target.value)} placeholder="Ex: CFTV Matriz 2026"/>
-          </div>
-          <div className="cf-field">
-            <label>Referência / Proposta</label>
-            <input value={data.projetoRef} onChange={e=>upd('projetoRef',e.target.value)} placeholder="Ex: PROP-2026-042"/>
-          </div>
-        </div>
-        <div className="cf-grid full" style={{marginTop:8}}>
-          <div className="cf-field">
-            <label>Observações</label>
-            <textarea value={data.obs} onChange={e=>upd('obs',e.target.value)} placeholder="Notas adicionais sobre o projeto..." rows="2"/>
-          </div>
-        </div>
-
-        {/* Cenário do projeto */}
-        <div className="cf-section">Cenário do Projeto</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:12}}>
-          {SCENARIOS.map(s=>(
-            <button key={s.id} onClick={()=>setSelectedScenario(s.id)}
-              style={{
-                padding:'12px 6px',borderRadius:10,cursor:'pointer',transition:'.2s',textAlign:'center',
-                border: selectedScenario===s.id ? '2px solid var(--azul)' : '1px solid var(--cinzaM)',
-                background: selectedScenario===s.id ? 'rgba(4,107,210,.06)' : 'var(--branco)',
-                boxShadow: selectedScenario===s.id ? '0 2px 8px rgba(4,107,210,.15)' : 'var(--sombra)',
-              }}>
-              <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
-              <div style={{fontSize:11,fontWeight:700,color: selectedScenario===s.id ? 'var(--azul)' : '#1e293b',lineHeight:1.2}}>{s.name}</div>
-              <div style={{fontSize:9,color:'#94a3b8',marginTop:2}}>{s.desc}</div>
-            </button>
-          ))}
         </div>
 
         {/* Salvar em */}
