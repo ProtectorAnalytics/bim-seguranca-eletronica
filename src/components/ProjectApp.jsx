@@ -2083,9 +2083,13 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 if(isGravador(dev.key)){const ch=getNvrChannels(dev),used=getNvrUsedChannels(dev.id,devices);
                   devTags.push({t:`${used}/${ch}ch`,c:used>ch?'#ef4444':used>0?'#22c55e':'#94a3b8'})}
                 if(isSwitch(dev.key)){const tp=getSwitchPorts(dev);
-                  const up=connections.filter(c=>c.from===dev.id||c.to===dev.id)
+                  let up=connections.filter(c=>c.from===dev.id||c.to===dev.id)
                     .map(c=>{const o=c.from===dev.id?c.to:c.from;return devices.find(d=>d.id===o)}).filter(Boolean)
                     .reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
+                  // Add cross-floor connections count
+                  const xfSwConns=currentFloorCrossConns.filter(xc=>xc.fromDeviceId===dev.id||xc.toDeviceId===dev.id);
+                  xfSwConns.forEach(xc=>{const isFrom=xc.fromDeviceId===dev.id;const rfId=isFrom?xc.toFloorId:xc.fromFloorId;const rdId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+                    const rf=project.floors.find(f=>f.id===rfId);const rd=rf?.devices?.find(d=>d.id===rdId);if(rd)up+=(needsPoE(rd.key)?(rd.qty||1):1)});
                   devTags.push({t:`${up}/${tp}p`,c:up>tp?'#ef4444':up>0?'#3b82f6':'#94a3b8'})}
                 if(isCamera(dev.key)){
                   if((dev.qty||1)>1) devTags.push({t:`×${dev.qty}`,c:'#3b82f6'});
@@ -2350,7 +2354,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
               {/* Camera FOV overlay */}
               <CameraFovOverlay devices={devices} show={layers.fov} heatmap={layers.heatmap}
-                updateDevice={updateDevice} zoom={zoom} pan={pan} canvasRef={canvasRef}/>
+                updateDevice={updateDevice} zoom={zoom} pan={pan} canvasRef={canvasRef} globalIconSize={iconSize}/>
 
               {/* Smart guides */}
               {guides.length>0&&(
