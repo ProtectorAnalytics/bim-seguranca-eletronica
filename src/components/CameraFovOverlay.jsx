@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { isCamera } from '@/data/device-interfaces';
 import { findDevDef } from '@/lib/helpers';
 import { DEVICE_LIB } from '@/data/device-lib';
@@ -32,9 +32,12 @@ function getFovParams(dev) {
   return { angle, range };
 }
 
-function getCameraColor(dev) {
-  const catInfo = DEVICE_LIB.find(c => c.items.some(i => i.key === dev.key));
-  return catInfo?.color || '#f59e0b';
+// Get icon center offset based on device icon size
+function getIconCenter(dev) {
+  const size = dev.iconSize || 'lg';
+  const dim = size === 'sm' ? 36 : size === 'md' ? 46 : 58;
+  const half = dim / 2;
+  return { cx: dev.x + half, cy: dev.y + half };
 }
 
 // Helper to convert deg to radians (0° = up)
@@ -60,7 +63,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
   if (!show) return null;
 
   const cameras = devices.filter(d => isCamera(d.key) && !d.quadroId);
-  const [dragging, setDragging] = useState(null); // { devId, startAngle }
+  const [dragging, setDragging] = useState(null);
   const dragRef = useRef(null);
 
   // FOV color scheme — Hikvision cyan style
@@ -77,7 +80,8 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
     const dev = devices.find(d => d.id === devId);
     if (!dev || !canvasRef?.current) return;
 
-    dragRef.current = { devId, dev };
+    const center = getIconCenter(dev);
+    dragRef.current = { devId, cx: center.cx, cy: center.cy };
     setDragging(devId);
 
     const onMouseMove = (me) => {
@@ -87,11 +91,10 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
       const p = pan || { x: 0, y: 0 };
       const mx = (me.clientX - rect.left - p.x) / z;
       const my = (me.clientY - rect.top - p.y) / z;
-      const dx = mx - dragRef.current.dev.x;
-      const dy = my - dragRef.current.dev.y;
+      const dx = mx - dragRef.current.cx;
+      const dy = my - dragRef.current.cy;
       let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
       if (angle < 0) angle += 360;
-      // Snap to 5° increments when not holding Shift
       if (!me.shiftKey) angle = Math.round(angle / 5) * 5;
       if (updateDevice) updateDevice(dragRef.current.devId, { fovRotation: angle });
     };
@@ -117,16 +120,17 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
           if (!params) return null;
           const { angle, range } = params;
           const rotation = dev.fovRotation ?? dev.rotation ?? 0;
+          const { cx, cy } = getIconCenter(dev);
 
           if (angle >= 360) {
             return (
-              <circle key={dev.id + '_heat'} cx={dev.x} cy={dev.y} r={range}
+              <circle key={dev.id + '_heat'} cx={cx} cy={cy} r={range}
                 fill="#22c55e" fillOpacity={0.15} stroke="#22c55e" strokeOpacity={0.3}
                 strokeWidth={1} />
             );
           }
 
-          const d = buildWedgePath(dev.x, dev.y, angle, range, rotation);
+          const d = buildWedgePath(cx, cy, angle, range, rotation);
           return (
             <path key={dev.id + '_heat'} d={d}
               fill="#22c55e" fillOpacity={0.18} stroke="#22c55e" strokeOpacity={0.4}
@@ -138,6 +142,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
           const params = getFovParams(dev);
           if (!params) return null;
           const { range } = params;
+          const { cx, cy } = getIconCenter(dev);
           const rings = [
             { r: range * 0.25, color: '#22c55e' },
             { r: range * 0.5, color: '#84cc16' },
@@ -145,7 +150,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
             { r: range, color: '#f97316' },
           ];
           return rings.map((ring, i) => (
-            <circle key={dev.id + '_ring_' + i} cx={dev.x} cy={dev.y} r={ring.r}
+            <circle key={dev.id + '_ring_' + i} cx={cx} cy={cy} r={ring.r}
               fill="none" stroke={ring.color} strokeWidth={0.8}
               strokeDasharray="3 3" opacity={0.5} />
           ));
@@ -159,41 +164,34 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
     <>
       <svg className="fov-overlay" width="4000" height="4000"
         style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 3 }}>
-        <defs>
-          <linearGradient id="fov-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={fovFill} stopOpacity={fovFillOpacity * 1.5} />
-            <stop offset="100%" stopColor={fovFill} stopOpacity={fovFillOpacity * 0.3} />
-          </linearGradient>
-        </defs>
         {cameras.map(dev => {
           const params = getFovParams(dev);
           if (!params) return null;
 
           const { angle, range } = params;
           const rotation = dev.fovRotation ?? dev.rotation ?? 0;
+          const { cx, cy } = getIconCenter(dev);
 
           if (angle >= 360) {
             return (
-              <circle key={dev.id + '_fov'} cx={dev.x} cy={dev.y} r={range}
+              <circle key={dev.id + '_fov'} cx={cx} cy={cy} r={range}
                 fill={fovFill} fillOpacity={fovFillOpacity} stroke={fovStroke}
                 strokeOpacity={fovStrokeOpacity} strokeWidth={fovStrokeWidth} />
             );
           }
 
-          const d = buildWedgePath(dev.x, dev.y, angle, range, rotation);
+          const d = buildWedgePath(cx, cy, angle, range, rotation);
 
           return (
             <g key={dev.id + '_fov'}>
-              {/* Main FOV cone — solid fill + solid border */}
               <path d={d}
                 fill={fovFill} fillOpacity={fovFillOpacity}
                 stroke={fovStroke} strokeOpacity={fovStrokeOpacity}
                 strokeWidth={fovStrokeWidth} strokeLinejoin="round" />
-              {/* Center line (direction indicator) */}
               <line
-                x1={dev.x} y1={dev.y}
-                x2={dev.x + range * 0.4 * Math.cos(toRad(rotation))}
-                y2={dev.y + range * 0.4 * Math.sin(toRad(rotation))}
+                x1={cx} y1={cy}
+                x2={cx + range * 0.4 * Math.cos(toRad(rotation))}
+                y2={cy + range * 0.4 * Math.sin(toRad(rotation))}
                 stroke={fovStroke} strokeOpacity={0.3} strokeWidth={1}
                 strokeDasharray="4 3" />
             </g>
@@ -201,7 +199,7 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
         })}
       </svg>
 
-      {/* Rotation handles — rendered as HTML divs for pointer events */}
+      {/* Rotation handles */}
       {updateDevice && cameras.map(dev => {
         const params = getFovParams(dev);
         if (!params) return null;
@@ -211,13 +209,12 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
         const rotation = dev.fovRotation ?? dev.rotation ?? 0;
         const z = zoom || 1;
         const p = pan || { x: 0, y: 0 };
+        const { cx, cy } = getIconCenter(dev);
 
-        // Handle position at the tip of the FOV center line
         const handleDist = range * 0.7;
-        const hx = dev.x + handleDist * Math.cos(toRad(rotation));
-        const hy = dev.y + handleDist * Math.sin(toRad(rotation));
+        const hx = cx + handleDist * Math.cos(toRad(rotation));
+        const hy = cy + handleDist * Math.sin(toRad(rotation));
 
-        // Convert canvas coords to screen coords
         const screenX = hx * z + p.x;
         const screenY = hy * z + p.y;
         const isDragging = dragging === dev.id;
