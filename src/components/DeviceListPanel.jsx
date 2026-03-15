@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
+import { ENV_COLORS } from '@/data/constants';
 import { findDevDef } from '@/lib/helpers';
 import { Search, Filter, MousePointer2 } from 'lucide-react';
 
@@ -216,7 +217,7 @@ export default function DeviceListPanel({ devices, onFocus, onSelect, onSelectTy
                   <DeviceRow
                     key={d.id}
                     device={d}
-                    envMap={envMap}
+
                     onFocus={onFocus}
                     onSelect={onSelect}
                   />
@@ -229,7 +230,7 @@ export default function DeviceListPanel({ devices, onFocus, onSelect, onSelectTy
             <DeviceRow
               key={d.id}
               device={d}
-              envMap={envMap}
+
               onFocus={onFocus}
               onSelect={onSelect}
             />
@@ -249,8 +250,8 @@ export default function DeviceListPanel({ devices, onFocus, onSelect, onSelectTy
   );
 }
 
-function DeviceRow({ device, envMap, onFocus, onSelect }) {
-  const env = envMap[device.envId];
+function DeviceRow({ device, onFocus, onSelect }) {
+  const env = device.ambiente ? (ENV_COLORS.find(e => e.name === device.ambiente) || { name: device.ambiente, color: '#6b7280' }) : null;
   const defName = device.def?.name || device.name || device.key;
   const model = device.model || '';
 
