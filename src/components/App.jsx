@@ -7,7 +7,7 @@ import LoginPage from './LoginPage';
 import Dashboard from './Dashboard';
 import ProjectListPage from './ProjectListPage';
 import ClientForm from './ClientForm';
-import ScenarioSelect from './ScenarioSelect';
+// ScenarioSelect merged into ClientForm
 import ClientListPage from './ClientListPage';
 import EquipmentRepoPage from './EquipmentRepoPage';
 import SettingsPage from './SettingsPage';
@@ -199,9 +199,7 @@ export default function App(){
 
   if(screen==='projects') return <ProjectListPage onBack={()=>setScreen('dashboard')} onOpenProject={onOpenProject}/>;
 
-  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} onNext={()=>setScreen('scenario')} onBack={()=>setScreen('dashboard')} />;
-
-  if(screen==='scenario') return <ScenarioSelect clientData={clientData} storageMode={storageMode} onStorageModeChange={setStorageMode} onBack={()=>setScreen('client')} onStart={(scenario)=>{
+  if(screen==='client') return <ClientForm data={clientData} setData={setClientData} storageMode={storageMode} onStorageModeChange={setStorageMode} onBack={()=>setScreen('dashboard')} onStart={(scenario)=>{
     const projId='proj_'+Date.now();
     const newProj={
       name:clientData.projetoNome||'Novo Projeto',
@@ -213,7 +211,6 @@ export default function App(){
     };
     setProject(newProj);
     setEditingProjectId(projId);
-    // Save client
     const clients=getSavedClients();
     const existing=clients.findIndex(c=>c.id===clientData.id);
     if(existing>=0) clients[existing]={...clientData,id:clientData.id||'cli_'+Date.now()};
