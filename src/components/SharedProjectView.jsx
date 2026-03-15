@@ -4,7 +4,7 @@ import { syncUid, migrateProjectKeys, dedupDeviceIds } from '@/lib/helpers';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
 import ProjectApp from './ProjectApp';
-import { Lock, AlertTriangle, LogIn } from 'lucide-react';
+import { Lock, AlertTriangle, LogIn, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import LoginPage from './LoginPage';
 
 export default function SharedProjectView({ shareToken, onExit }) {
@@ -16,7 +16,9 @@ export default function SharedProjectView({ shareToken, onExit }) {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showLogin, setShowLogin] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
   const saveTimer = useRef(null);
+  const initialLoad = useRef(true); // Skip save on first load
 
   const loadProject = useCallback(async (pwd) => {
     setState('loading');
@@ -100,12 +102,30 @@ export default function SharedProjectView({ shareToken, onExit }) {
   useEffect(() => {
     if (!project || permission !== 'edit') return;
 
+    // Skip the first render (project just loaded, no changes yet)
+    if (initialLoad.current) {
+      initialLoad.current = false;
+      return;
+    }
+
+    setSaveStatus('saving');
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      const authToken = user ? await getAccessToken() : null;
-      const { error } = await saveSharedProject(shareToken, project.floors, authToken);
-      if (error) console.warn('[SharedProject] Save failed:', error.message);
-    }, 3000);
+      try {
+        const authToken = user ? await getAccessToken() : null;
+        const { error } = await saveSharedProject(shareToken, project.floors, authToken);
+        if (error) {
+          console.warn('[SharedProject] Save failed:', error.message);
+          setSaveStatus('error');
+        } else {
+          setSaveStatus('saved');
+          setTimeout(() => setSaveStatus(null), 3000);
+        }
+      } catch (e) {
+        console.error('[SharedProject] Save exception:', e);
+        setSaveStatus('error');
+      }
+    }, 2000);
 
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [project]);
@@ -214,6 +234,17 @@ export default function SharedProjectView({ shareToken, onExit }) {
         }}>
           {permission === 'edit' ? 'Edição' : 'Visualização'}
         </span>
+        {permission === 'edit' && saveStatus && (
+          <span style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 10, color: saveStatus === 'error' ? '#dc2626' : saveStatus === 'saving' ? '#d97706' : '#16a34a',
+          }}>
+            {saveStatus === 'saving' && <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}><Loader2 size={10} /></span> Salvando...</>}
+            {saveStatus === 'saved' && <><Cloud size={10} /> Salvo</>}
+            {saveStatus === 'error' && <><CloudOff size={10} /> Erro ao salvar</>}
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+          </span>
+        )}
         <button onClick={onExit} style={{
           marginLeft: 'auto', background: 'none', border: '1px solid #E2E8F0',
           borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer',

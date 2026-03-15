@@ -171,9 +171,10 @@ export async function saveSharedProject(shareToken, floors, authToken = null) {
     }),
   }));
 
+  // Pass as JSON object (not string) — the rpc() function handles serialization
   const { data, error } = await rpc(
     'save_shared_project',
-    { share_token: shareToken, floor_updates: JSON.stringify(floorUpdates) },
+    { share_token: shareToken, floor_updates: floorUpdates },
     authToken
   );
   if (error) return { error };
