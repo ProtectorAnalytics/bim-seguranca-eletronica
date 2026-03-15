@@ -2138,9 +2138,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             e.stopPropagation();
                             const rect=canvasRef.current?.getBoundingClientRect();
                             if(!rect) return;
-                            setPortPopup({devId:dev.id,
-                              x:(dev.x*zoom+pan.x+50),
-                              y:(dev.y*zoom+pan.y-10)});
+                            const popW=300,popH=400;
+                            let px=dev.x*zoom+pan.x+50;
+                            let py=dev.y*zoom+pan.y-10;
+                            // Clamp to viewport bounds
+                            const vw=rect.width,vh=rect.height;
+                            if(px+popW>vw) px=Math.max(10,dev.x*zoom+pan.x-popW-10);
+                            if(py+popH>vh) py=Math.max(10,vh-popH-10);
+                            if(px<10) px=10;
+                            if(py<10) py=10;
+                            setPortPopup({devId:dev.id,x:px,y:py});
                           }}>⚡</div>
                       );
                     })()}

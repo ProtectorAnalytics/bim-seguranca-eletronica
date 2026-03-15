@@ -6,29 +6,31 @@ import App from './components/App'
 import { ToastProvider } from './components/Toast'
 import './styles/globals.css'
 
-// ── Auto-update: força SW a atualizar e limpa caches antigos ──
+// ── Auto-update: detecta nova versão e notifica o usuário ──
+let swUpdateShown = false
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.ready.then(reg => {
-    // Checa update a cada 60s (padrão PWA é 24h)
-    setInterval(() => reg.update(), 60_000)
+    setInterval(() => reg.update(), 120_000)
 
     reg.addEventListener('updatefound', () => {
       const newSW = reg.installing
       if (!newSW) return
       newSW.addEventListener('statechange', () => {
-        // Quando o novo SW ativa, limpa todos os caches e recarrega
-        if (newSW.state === 'activated') {
+        if (newSW.state === 'activated' && !swUpdateShown) {
+          swUpdateShown = true
+          // Limpa caches antigos mas NÃO recarrega automaticamente
           caches.keys().then(names =>
             Promise.all(names.map(n => caches.delete(n)))
-          ).then(() => window.location.reload())
+          )
+          // Mostra banner não-intrusivo pedindo para atualizar
+          const banner = document.createElement('div')
+          banner.id = 'sw-update-banner'
+          banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#046BD2;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;font-family:Inter,sans-serif;animation:slideUp .3s ease-out'
+          banner.innerHTML = '<span>Nova versão disponível!</span><button onclick="window.location.reload()" style="background:#fff;color:#046BD2;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">Atualizar</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;padding:0 4px">✕</button>'
+          document.body.appendChild(banner)
         }
       })
     })
-  })
-
-  // Se já existe um SW esperando (skipWaiting), ativa imediatamente
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload()
   })
 }
 
