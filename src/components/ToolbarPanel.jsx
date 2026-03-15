@@ -139,7 +139,6 @@ export default function ToolbarPanel({
             {[
               {key:'devices',label:'Dispositivos',icon:'📦'},
               {key:'cables',label:'Cabos',icon:'🔗'},
-              {key:'environments',label:'Ambientes',icon:'🏠'},
               {key:'grid',label:'Grade',icon:'⊞'},
               {key:'bg',label:'Planta Fundo',icon:'🖼️'},
               {key:'dimensions',label:'Cotas',icon:'📏'},
