@@ -4,6 +4,28 @@
 // The CONNECTION_RULES matrix defines valid device↔device combos + allowed cables.
 // ====================================================================
 
+// Interface cardinality rules:
+// '1:1'  — one connection per port (RJ45, HDMI, fibra SFP)
+// 'N:1'  — multiple connections on same port (contato seco, botoeira, sensor)
+// '1:N'  — one source to many devices (alimentação DC/AC, fonte)
+export const INTERFACE_CARDINALITY = {
+  data_in:        '1:1',  // RJ45 network — one cable per port
+  data_io:        '1:1',  // Switch port — one cable per port (but device has N ports)
+  power_in:       '1:1',  // Device has one power input
+  power_out:      '1:N',  // One source feeds multiple devices (fonte, nobreak)
+  signal_in:      'N:1',  // Multiple sensors on same zone (botoeira → facial)
+  signal_out:     '1:1',  // Relay output — one target
+  automation_in:  'N:1',  // Multiple triggers (botoeiras → motor)
+  automation_out: '1:1',  // One automation output per target
+  passthrough:    'N:1',  // Infrastructure passthrough — multiple cables
+  video_out:      '1:1',  // HDMI/VGA — one monitor per port
+  rs485:          'N:1',  // Serial bus — multiple devices on same bus
+  wiegand:        '1:1',  // Wiegand — one reader per input
+  fiber_in:       '1:1',  // SFP fiber input
+  alarm_zone:     'N:1',  // Multiple sensors per zone
+  wifi_client:    'N:1',  // Multiple WiFi clients per AP
+};
+
 // Device interface types
 export const DEVICE_INTERFACES = {
   // CFTV — todas câmeras IP: PoE OU 12V + sensor inputs + contato seco
