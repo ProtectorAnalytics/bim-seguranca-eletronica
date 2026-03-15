@@ -2088,6 +2088,17 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const assigns=dev.nvrAssignments||[];
                   if(assigns.length>0){const total=dev.qty||1,asgn=assigns.reduce((s,a)=>s+(a.qty||0),0);
                     devTags.push({t:asgn>=total?'✓ NVR':`${asgn}/${total} NVR`,c:asgn>=total?'#22c55e':'#f59e0b'})}}
+                // Cross-floor connection tags
+                const xfConnsForDev=currentFloorCrossConns.filter(xc=>
+                  (xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor)||(xc.toDeviceId===dev.id&&xc.toFloorId===project.activeFloor));
+                xfConnsForDev.forEach(xc=>{
+                  const isFrom=xc.fromDeviceId===dev.id&&xc.fromFloorId===project.activeFloor;
+                  const remFloorId=isFrom?xc.toFloorId:xc.fromFloorId;
+                  const remDevId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+                  const remFloor=project.floors.find(f=>f.id===remFloorId);
+                  const remDev=remFloor?.devices?.find(d=>d.id===remDevId);
+                  if(remDev&&remFloor) devTags.push({t:`↕ ${remFloor.name}`,c:'#8b5cf6'});
+                });
                 return (
                   <div key={dev.id}
                     className={`device-on-canvas ${sizeClass} ${selectedDevice===dev.id?'selected':''} ${multiSelect.has(dev.id)?'multi-selected':''}`}

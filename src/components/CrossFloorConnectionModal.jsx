@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CABLE_TYPES } from '@/data/cable-types';
-import { ICONS } from '@/icons';
 import {
-  findDevDef, getDeviceIconKey, getDeviceInterfaces, validateConnection, calcPPSection
+  findDevDef, getDeviceIconKey, validateConnection, calcPPSection
 } from '@/lib/helpers';
 import { Layers, Cable, Search, X } from 'lucide-react';
 
@@ -19,10 +18,8 @@ export default function CrossFloorConnectionModal({
   const sourceFloor = project.floors.find(f => f.id === sourceFloorId);
   const sourceDev = sourceFloor?.devices?.find(d => d.id === sourceDeviceId);
 
-  // Other floors (exclude current)
   const otherFloors = project.floors.filter(f => f.id !== sourceFloorId);
 
-  // Devices on selected floor, filtered by search and compatibility
   const targetDevices = useMemo(() => {
     if (!selectedFloorId || !sourceDev) return [];
     const floor = project.floors.find(f => f.id === selectedFloorId);
@@ -42,7 +39,6 @@ export default function CrossFloorConnectionModal({
     });
   }, [selectedFloorId, sourceDev, search, project.floors]);
 
-  // Available cable types for selected target
   const availableCables = useMemo(() => {
     if (!selectedTargetId || !sourceDev) return CABLE_TYPES;
     const targetDev = targetDevices.find(d => d.id === selectedTargetId);
@@ -56,7 +52,6 @@ export default function CrossFloorConnectionModal({
 
   const handleConnect = () => {
     if (!selectedTargetId || !selectedFloorId) return;
-    // Auto-calculate PP cable section
     let finalCable = cableType;
     const ct = CABLE_TYPES.find(c => c.id === cableType);
     if (ct?.vias && ct?.secao) {
@@ -74,10 +69,6 @@ export default function CrossFloorConnectionModal({
       ifaceLabel: sourceIfaceLabel || ''
     });
   };
-
-  const selectedFloor = project.floors.find(f => f.id === selectedFloorId);
-  const selectedTarget = targetDevices.find(d => d.id === selectedTargetId);
-  const sourceDef = sourceDev ? findDevDef(sourceDev.key) : null;
 
   const cableGroups = { data: [], signal: [], power: [], automation: [] };
   availableCables.forEach(ct => {
@@ -160,30 +151,31 @@ export default function CrossFloorConnectionModal({
                 )}
                 {targetDevices.map(dev => {
                   const def = findDevDef(dev.key);
-                  const iconKey = getDeviceIconKey(dev.key);
-                  const Icon = ICONS[iconKey] || ICONS.generic;
                   const isSelected = selectedTargetId === dev.id;
                   return (
                     <div key={dev.id} onClick={() => {
+                      if (!dev.compatible) return;
                       setSelectedTargetId(dev.id);
-                      // Auto-select best cable
                       if (dev.validCables?.length > 0) {
                         const firstValid = CABLE_TYPES.find(ct => dev.validCables.includes(ct.id));
                         if (firstValid) setCableType(firstValid.id);
                       }
                     }}
                       style={{
-                        padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                        padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10,
+                        cursor: dev.compatible ? 'pointer' : 'default',
                         borderBottom: '1px solid #f1f5f9',
                         background: isSelected ? '#EBF5FB' : 'transparent',
                         opacity: dev.compatible ? 1 : 0.4,
                         transition: 'background .15s'
                       }}>
                       <div style={{
-                        width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: dev.compatible ? '#f0f9ff' : '#f1f5f9', border: isSelected ? '2px solid #046BD2' : '1px solid #e2e8f0'
+                        width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: dev.compatible ? '#f0f9ff' : '#f1f5f9',
+                        border: isSelected ? '2px solid #046BD2' : '1px solid #e2e8f0',
+                        fontSize: 13, fontWeight: 700, color: dev.compatible ? '#046BD2' : '#94a3b8'
                       }}>
-                        <Icon style={{ width: 18, height: 18 }} />
+                        {dev.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>{dev.name}</div>
