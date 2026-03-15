@@ -78,7 +78,7 @@ export default function MigrationWizard({ devices, onReplace, onClose }) {
   if (legacyDevs.length === 0) {
     return (
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, padding: 24 }}>
+        <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 'min(480px, calc(100vw - 24px))', padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <span style={{ fontSize: 22 }}>✅</span>
             <h3 style={{ margin: 0, fontSize: 16 }}>Nenhum dispositivo legado</h3>
@@ -100,7 +100,7 @@ export default function MigrationWizard({ devices, onReplace, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
+        style={{ maxWidth: 'min(640px, calc(100vw - 24px))', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: '#fffbeb' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

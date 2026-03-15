@@ -44,6 +44,13 @@ function drawFooter(doc) {
   doc.text('www.protectoranalytics.com.br', w - 14, h - 9, { align: 'right' });
 }
 
+// ── Helper: safely get finalY from autoTable result ──
+function getFinalY(result, doc, fallback) {
+  if (result && typeof result.finalY === 'number') return result.finalY;
+  if (doc.lastAutoTable && typeof doc.lastAutoTable.finalY === 'number') return doc.lastAutoTable.finalY;
+  return fallback || 200;
+}
+
 // ── Main export function ───────────────────────────
 export async function exportProjectPDF({ project, bom, allDevices, connections, validationResults = [], options = {} }) {
   const {
@@ -57,16 +64,23 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   } = options;
 
   // Lazy load heavy libraries (code-splitting)
-  const [jspdfModule, html2canvasModule, autoTableModule] = await Promise.all([
-    import('jspdf'),
-    import('html2canvas'),
-    import('jspdf-autotable'),
-  ]);
+  let jspdfModule, html2canvasModule, autoTableModule;
+  try {
+    [jspdfModule, html2canvasModule, autoTableModule] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas'),
+      import('jspdf-autotable'),
+    ]);
+  } catch (loadErr) {
+    throw new Error('Falha ao carregar bibliotecas de PDF: ' + loadErr.message);
+  }
   // jsPDF 2.x+ uses named export, fallback to default for compatibility
   const jsPDF = jspdfModule.jsPDF || jspdfModule.default;
+  if (!jsPDF) throw new Error('jsPDF não encontrado no módulo importado');
   const html2canvas = html2canvasModule.default || html2canvasModule;
   // jspdf-autotable v5.x exports a function instead of patching prototype
-  const autoTable = autoTableModule.default || autoTableModule;
+  const autoTable = autoTableModule.autoTable || autoTableModule.default || autoTableModule;
+  if (typeof autoTable !== 'function') throw new Error('autoTable não é uma função válida');
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const w = doc.internal.pageSize.getWidth(); // 210
@@ -400,7 +414,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         didDrawPage: () => drawFooter(doc),
       });
 
-      tableY = devTableResult.finalY + 8;
+      tableY = getFinalY(devTableResult, doc, tableY + 60) + 8;
     }
 
     // Cable table
@@ -455,7 +469,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
 
         const canvas = await html2canvas(canvasEl, {
           scale: 2,
-          backgroundColor: '#1e293b',
+          backgroundColor: '#ffffff',
           logging: false,
           useCORS: true,
           allowTaint: true,
@@ -608,7 +622,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         didDrawPage: () => drawFooter(doc),
       });
 
-      yPos = topoResult.finalY + 10;
+      yPos = getFinalY(topoResult, doc, yPos + 40) + 10;
     });
 
     drawFooter(doc);

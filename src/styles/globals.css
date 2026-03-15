@@ -364,7 +364,7 @@ tr.rack-face-free td{color:#cbd5e1}
 
 /* Export dialog */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .15s ease-out}
-.modal-card{background:#fff;border-radius:8px;padding:28px;max-width:520px;width:90%;box-shadow:var(--shadow-xl);max-height:80vh;overflow-y:auto;animation:scaleIn .2s ease-out}
+.modal-card{background:#fff;border-radius:8px;padding:28px;max-width:520px;width:min(90vw,520px);box-shadow:var(--shadow-xl);max-height:85vh;overflow-y:auto;animation:scaleIn .2s ease-out}
 .modal-card h3{font-size:16px;color:var(--azul);margin-bottom:12px}
 .modal-card .mc-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
 .modal-card .mc-row label{flex:1;cursor:pointer}
@@ -462,8 +462,8 @@ tr.rack-face-free td{color:#cbd5e1}
   .left-panel.responsive-collapsed{width:0;margin-left:0;margin-right:0;padding:0;opacity:0;pointer-events:none;overflow:hidden}
   .right-panel.responsive-collapsed{width:0;margin-left:0;margin-right:0;padding:0;opacity:0;pointer-events:none;overflow:hidden}
   /* When panels ARE open on small screens, overlay mode */
-  .left-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;left:0;top:0;bottom:0;width:280px;margin:0;border-radius:0 12px 12px 0;z-index:30}
-  .right-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;right:0;top:0;bottom:0;width:320px;margin:0;border-radius:12px 0 0 12px;z-index:30}
+  .left-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;left:0;top:0;bottom:0;width:min(280px,calc(100vw - 20px));margin:0;border-radius:0 12px 12px 0;z-index:30}
+  .right-panel:not(.collapsed):not(.responsive-collapsed){position:absolute;right:0;top:0;bottom:0;width:min(320px,calc(100vw - 20px));margin:0;border-radius:12px 0 0 12px;z-index:30}
   /* Panel backdrop when overlay */
   .panel-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:25}
   .panel-backdrop.visible{display:block}
@@ -472,6 +472,8 @@ tr.rack-face-free td{color:#cbd5e1}
   .toolbar::-webkit-scrollbar{display:none}
   .tool-group{flex-shrink:0}
   .sim-toggle label{display:none}
+  /* Port popup responsive */
+  .port-popup{max-width:calc(100vw - 24px)}
   /* Topbar compact */
   .app-topbar{height:48px;padding:0 10px;gap:8px}
   .app-topbar .logo{display:none}
@@ -520,7 +522,12 @@ tr.rack-face-free td{color:#cbd5e1}
   .landing-sub{font-size:13px}
   .landing{padding:16px 12px}
   /* Port popup compact */
-  .port-popup{min-width:200px}
+  .port-popup{min-width:200px;max-width:calc(100vw - 24px)}
+  /* Dashboard header stack on mobile */
+  .dashboard-header{flex-direction:column;gap:16px}
+  .dashboard-header .dh-right{width:100%}
+  /* Modal card full-width safety */
+  .modal-card{max-width:min(520px,calc(100vw - 24px))!important;width:calc(100vw - 24px)}
 }
 
 @media print {
@@ -548,8 +555,10 @@ tr.rack-face-free td{color:#cbd5e1}
   }
   .canvas-transform {
     transform: none !important;
-    width: 2000px !important;
-    height: 2000px !important;
+    width: 100% !important;
+    min-width: 1200px;
+    height: auto !important;
+    min-height: 800px;
   }
   .canvas-grid { opacity: 0.08 !important; }
   .carimbo-canvas { display: block !important; border-color: #000 !important; }

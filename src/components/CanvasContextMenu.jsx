@@ -4,6 +4,7 @@ import {
   Clipboard,
   Trash2,
   MousePointer2,
+  Maximize2,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -118,6 +119,7 @@ export default function CanvasContextMenu({
   onAlignBottom,
   onDistributeH,
   onDistributeV,
+  onSpread,
   hasClipboard,
 }) {
   const menuRef = useRef(null);
@@ -243,6 +245,12 @@ export default function CanvasContextMenu({
             icon={ArrowUpDown}
             label="Distribuir verticalmente"
             onClick={onDistributeV}
+          />
+          <Divider />
+          <MenuItem
+            icon={Maximize2}
+            label="Organizar (espalhar)"
+            onClick={onSpread}
           />
         </>
       )}

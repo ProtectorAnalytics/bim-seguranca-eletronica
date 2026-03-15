@@ -47,7 +47,7 @@ function DeviceListItem({name, qty, dotColor, suffix, onClick}){
 
 /* ── Main Component ── */
 export default function DevicePropertiesPanel({
-  dev, devices, connections, racks, quadros, iconSize,
+  dev, devices, connections, racks, quadros, allRacks, iconSize,
   updateDevice, deleteConnection, copyDevice, deleteDevice,
   setSelectedDevice, setRightTab, setCableMode, setTool,
   showConnToast, assignDeviceToRackAction, unassignDeviceFromRack,
@@ -405,7 +405,8 @@ export default function DevicePropertiesPanel({
   })() : null;
 
   /* ── Rack assignment ── */
-  const rackAssignment = canMountInRack(dev.key) && racks.length > 0 ? (
+  const rackList = allRacks && allRacks.length > 0 ? allRacks : racks.map(r=>({...r,floorName:'Este andar'}));
+  const rackAssignment = canMountInRack(dev.key) && rackList.length > 0 ? (
     <div className="prop-row">
       <span className="pr-label">Rack:</span>
       <span className="pr-value">
@@ -415,9 +416,9 @@ export default function DevicePropertiesPanel({
           else if (dev.parentRack) unassignDeviceFromRack(dev.id);
         }}>
           <option value="">Não montado</option>
-          {racks.map(r => {
+          {rackList.map(r => {
             const occ = getRackOccupancy(r, devices);
-            return <option key={r.id} value={r.id}>{r.name} ({r.tag}) — {occ.freeU}U livres</option>;
+            return <option key={r.id} value={r.id}>{r.name} ({r.tag}) · {r.floorName} — {occ.freeU}U livres</option>;
           })}
         </select>
       </span>

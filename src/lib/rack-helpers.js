@@ -100,7 +100,20 @@ function buildSlotMap(rack, devices) {
     }
   });
 
-  return { slots, children };
+  // Place accessories in remaining free slots
+  const accessories = rack.acessorios || [];
+  accessories.forEach((acc, i) => {
+    const uSize = acc.unidades || 1;
+    const startU = findFirstFreeSlot(slots, uSize);
+    if (startU >= 0) {
+      const accId = `__acc_${i}`;
+      for (let s = 0; s < uSize; s++) {
+        if (startU + s < rack.alturaU) slots[startU + s] = accId;
+      }
+    }
+  });
+
+  return { slots, children, accessories };
 }
 
 // ── Plano de Faces ──────────────────────────────────────────────────
@@ -108,16 +121,16 @@ function buildSlotMap(rack, devices) {
 // Cada linha: { pos, device, uSize, description, identification, isStart }
 export function buildFacePlan(rack, devices) {
   if (!rack) return [];
-  const { slots, children } = buildSlotMap(rack, devices);
+  const { slots, children, accessories } = buildSlotMap(rack, devices);
 
   const plan = [];
   const visited = new Set();
 
   // Do topo para a base (U mais alto primeiro)
   for (let u = rack.alturaU - 1; u >= 0; u--) {
-    const deviceId = slots[u];
+    const slotId = slots[u];
 
-    if (!deviceId) {
+    if (!slotId) {
       plan.push({
         pos: u + 1,
         device: null,
@@ -126,24 +139,35 @@ export function buildFacePlan(rack, devices) {
         identification: '',
         isStart: true,
       });
-    } else if (!visited.has(deviceId)) {
-      visited.add(deviceId);
-      const device = children.find(c => c.id === deviceId);
-      if (device) {
-        const uSize = getDeviceUSize(device.key);
-        plan.push({
-          pos: u + 1,
-          device,
-          uSize,
-          description: device.name,
-          identification: generateDeviceTag(rack.tag, device, children),
-          isStart: true,
-        });
-        // Marcar slots de continuação (para 2U+)
-        for (let s = 1; s < uSize; s++) {
-          if (u - s >= 0) {
-            // slot de continuação não gera linha separada (visualmente é rowSpan)
-          }
+    } else if (!visited.has(slotId)) {
+      visited.add(slotId);
+      // Check if it's an accessory
+      if (slotId.startsWith('__acc_')) {
+        const accIdx = parseInt(slotId.replace('__acc_', ''), 10);
+        const acc = accessories[accIdx];
+        if (acc) {
+          plan.push({
+            pos: u + 1,
+            device: null,
+            accessory: acc,
+            uSize: acc.unidades || 1,
+            description: `🔧 ${acc.name}`,
+            identification: '',
+            isStart: true,
+          });
+        }
+      } else {
+        const device = children.find(c => c.id === slotId);
+        if (device) {
+          const uSize = getDeviceUSize(device.key);
+          plan.push({
+            pos: u + 1,
+            device,
+            uSize,
+            description: device.name,
+            identification: generateDeviceTag(rack.tag, device, children),
+            isStart: true,
+          });
         }
       }
     }
@@ -155,15 +179,20 @@ export function buildFacePlan(rack, devices) {
 
 // ── Ocupação do rack ────────────────────────────────────────────────
 export function getRackOccupancy(rack, devices) {
-  if (!rack) return { totalU: 0, usedU: 0, freeU: 0, deviceCount: 0, percent: 0 };
+  if (!rack) return { totalU: 0, usedU: 0, freeU: 0, deviceCount: 0, accessoryU: 0, percent: 0 };
   const children = devices.filter(d => d.parentRack === rack.id);
-  let usedU = 0;
-  children.forEach(c => { usedU += getDeviceUSize(c.key); });
+  let devU = 0;
+  children.forEach(c => { devU += getDeviceUSize(c.key); });
+  // Accessories also occupy U space
+  let accessoryU = 0;
+  (rack.acessorios || []).forEach(a => { accessoryU += (a.unidades || 1); });
+  const usedU = devU + accessoryU;
   return {
     totalU: rack.alturaU,
     usedU,
     freeU: rack.alturaU - usedU,
     deviceCount: children.length,
+    accessoryU,
     percent: rack.alturaU > 0 ? Math.round((usedU / rack.alturaU) * 100) : 0,
   };
 }

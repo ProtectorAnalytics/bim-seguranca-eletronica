@@ -262,6 +262,27 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     updateFloor(f=>({...f,devices:f.devices.map(d=>updates[d.id]?{...d,...updates[d.id]}:d)}));
   };
 
+  // ── Spread overlapping devices (explode cluster) ──
+  const spreadDevices=()=>{
+    const ids=multiSelect.size>1?[...multiSelect]:(selectedDevice?devices.filter(d=>{
+      const sel=devices.find(dd=>dd.id===selectedDevice);
+      if(!sel) return false;
+      const dist=Math.sqrt((d.x-sel.x)**2+(d.y-sel.y)**2);
+      return dist<60&&d.id!==selectedDevice;
+    }).map(d=>d.id).concat([selectedDevice]):[]);
+    if(ids.length<2) return;
+    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
+    const cx=devs.reduce((s,d)=>s+d.x,0)/devs.length;
+    const cy=devs.reduce((s,d)=>s+d.y,0)/devs.length;
+    const radius=Math.max(60,devs.length*25);
+    const updates={};
+    devs.forEach((d,i)=>{
+      const angle=(i/devs.length)*2*Math.PI-Math.PI/2;
+      updates[d.id]={x:snap(cx+radius*Math.cos(angle)),y:snap(cy+radius*Math.sin(angle))};
+    });
+    updateFloor(f=>({...f,devices:f.devices.map(d=>updates[d.id]?{...d,...updates[d.id]}:d)}));
+  };
+
   // ── Select by Type ──
   const selectByType=(deviceKey)=>{
     const ids=devices.filter(d=>d.key===deviceKey).map(d=>d.id);
@@ -484,10 +505,20 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
     // Valid — create connection with ifaceType metadata + route
     const purpose=validation.purpose||'dados';
-    updateFloor(f=>({...f,connections:[...f.connections,{
-      id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
-      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'
-    }]}));
+    const newConn={id:uid(),from:fromId,to:toId,type:finalCable,distance:dist,purpose,
+      ifaceType:ifaceType||null,ifaceLabel:ifaceLabel||'',route:routeType||'straight'};
+    updateFloor(f=>{
+      const updated={...f,connections:[...f.connections,newConn]};
+      // Auto-assign câmeras a NVRs quando conectados (diretamente ou via switch)
+      const assigns=autoAssignCameras(updated.devices,updated.connections);
+      if(assigns.length>0){
+        updated.devices=updated.devices.map(d=>{
+          const a=assigns.find(u=>u.id===d.id);
+          return a?{...d,nvrAssignments:a.nvrAssignments}:d;
+        });
+      }
+      return updated;
+    });
     const portInfo=ifaceLabel?` [${ifaceLabel}]`:'';
     const fcName=CABLE_TYPES.find(c=>c.id===finalCable)?.name||finalCable;
     showConnToast(`✓ ${fcName} · ${dist}m · ${purpose}${portInfo}`,'success');
@@ -1377,7 +1408,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         <span style={{fontSize:9,opacity:.4,marginLeft:-8}}>{APP_VERSION.full}</span>
         <span style={{width:1,height:24,background:'var(--cinzaM)'}}/>
         <input value={project.name} onChange={e=>setProject(p=>({...p,name:e.target.value}))}
-          style={{background:'transparent',border:'none',color:'#1e293b',fontSize:14,fontWeight:600,width:200,outline:'none'}}/>
+          placeholder="Nome do projeto"
+          className="project-name-input"
+          style={{background:'transparent',border:'1px solid transparent',borderRadius:6,color:'#1e293b',fontSize:14,fontWeight:600,
+            width:220,padding:'4px 8px',outline:'none',transition:'all .2s'}}
+          onFocus={e=>{e.target.style.background='#F0F5FA';e.target.style.borderColor='#046BD2'}}
+          onBlur={e=>{e.target.style.background='transparent';e.target.style.borderColor='transparent'}}/>
         <span style={{flex:1}}/>
         {project.client&&(project.client.razaoSocial||project.client.nome)&&(
           <span style={{fontSize:10,opacity:.5}}>👤 {project.client.razaoSocial||project.client.nome}</span>
@@ -1439,25 +1475,53 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               setTool={setTool} customDevices={customDevices} DEVICE_LIB={DEVICE_LIB}
               showEquipmentRepo={showEquipmentRepo} setShowEquipmentRepo={setShowEquipmentRepo} refreshKey={defRefreshKey}/>}
             {leftTab==='environments'&&<>
-              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Clique para adicionar ao piso:</div>
-              {ENV_COLORS.map(ec=>(
-                <div key={ec.name} className="env-badge" style={{background:ec.bg,color:ec.color,border:`1px solid ${ec.color}30`}}
-                  onClick={()=>addEnvironment(ec.name,ec.color,ec.bg)}>
-                  🏠 {ec.name}
-                </div>
-              ))}
-              <div style={{marginTop:12,fontSize:10,color:'var(--cinza)'}}>
-                Ambientes no piso atual:
+              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Adicionar ambiente:</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
+                {ENV_COLORS.map(ec=>(
+                  <div key={ec.name} style={{background:ec.bg,color:ec.color,border:`1px solid ${ec.color}30`,
+                    padding:'3px 8px',borderRadius:4,fontSize:9,cursor:'pointer',fontWeight:600}}
+                    onClick={()=>addEnvironment(ec.name,ec.color,ec.bg)}>
+                    + {ec.name}
+                  </div>
+                ))}
               </div>
-              {environments.map(env=>(
-                <div key={env.id} style={{padding:'6px 8px',margin:'4px 0',borderRadius:4,background:env.bg,
-                  borderLeft:`3px solid ${env.color}`,fontSize:11,display:'flex',alignItems:'center',gap:6}}>
-                  <span style={{flex:1,fontWeight:600,color:env.color}}>{env.name}</span>
-                  <span style={{fontSize:9,color:'var(--cinza)'}}>
-                    {devices.filter(d=>d.envId===env.id).length} devices
-                  </span>
+              {environments.length>0&&<div style={{fontSize:10,color:'var(--cinza)',marginBottom:4,fontWeight:600}}>
+                Ambientes ({environments.length}):
+              </div>}
+              {environments.map(env=>{
+                const devCount=devices.filter(d=>{
+                  const r=getDevR(d);const cx=d.x+r,cy=d.y+r;
+                  return cx>=env.x&&cx<=env.x+env.w&&cy>=env.y&&cy<=env.y+env.h;
+                }).length;
+                const areaM2=((env.w/40)*(env.h/40)*(floor?.bgScale||1)**2).toFixed(1);
+                return (
+                  <div key={env.id} style={{padding:'8px 10px',margin:'4px 0',borderRadius:6,background:'#fff',
+                    border:`1px solid ${env.color}40`,fontSize:11}}>
+                    <div style={{display:'flex',alignItems:'center',gap:4,marginBottom:4}}>
+                      <span style={{width:8,height:8,borderRadius:'50%',background:env.color,flexShrink:0}}/>
+                      <input value={env.name} style={{flex:1,border:'none',background:'transparent',fontSize:11,fontWeight:600,
+                        color:env.color,outline:'none',padding:0}}
+                        onChange={e=>updateFloor(f=>({...f,environments:f.environments.map(en=>en.id===env.id?{...en,name:e.target.value}:en)}))}/>
+                      <button onClick={()=>updateFloor(f=>({...f,environments:f.environments.filter(en=>en.id!==env.id)}))}
+                        style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'#ef4444',padding:2}}
+                        title="Excluir">✕</button>
+                    </div>
+                    <div style={{display:'flex',gap:8,fontSize:9,color:'#64748b'}}>
+                      <span>📦 {devCount} disp.</span>
+                      <span>📐 {areaM2}m²</span>
+                      <span style={{cursor:'pointer',color:'#046BD2'}} onClick={()=>{
+                        const el=document.querySelector('.canvas-viewport');
+                        if(el){el.scrollLeft=env.x-el.clientWidth/2;el.scrollTop=env.y-el.clientHeight/2;}
+                      }}>🎯 Focar</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {environments.length===0&&(
+                <div style={{textAlign:'center',padding:16,color:'#94a3b8',fontSize:10}}>
+                  Nenhum ambiente criado.<br/>Clique acima para adicionar.
                 </div>
-              ))}
+              )}
             </>}
             {leftTab==='floors'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Pavimentos do projeto:</div>
@@ -2373,7 +2437,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             <div style={{position:'absolute',bottom:48,left:'50%',transform:'translateX(-50%)',
               background:connToast.type==='error'?'#dc2626':connToast.type==='warn'?'#d97706':connToast.type==='info'?'#2563eb':'#16a34a',
               color:'#fff',padding:'8px 20px',borderRadius:8,fontSize:11,fontWeight:600,zIndex:30,
-              boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:480,textAlign:'center',
+              boxShadow:'0 4px 20px rgba(0,0,0,.3)',maxWidth:'min(480px, calc(100vw - 32px))',textAlign:'center',
               animation:'fadeIn .2s'}}>
               {connToast.msg}
             </div>
@@ -2383,7 +2447,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
           {cablePicker&&(
             <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
               background:'#fff',borderRadius:12,boxShadow:'0 8px 40px rgba(0,0,0,.25)',padding:20,
-              zIndex:40,minWidth:320,maxWidth:420}}>
+              zIndex:40,minWidth:'min(320px, calc(100vw - 32px))',maxWidth:'min(420px, calc(100vw - 32px))'}}>
               <div style={{fontSize:13,fontWeight:700,color:'var(--azul)',marginBottom:4}}>
                 Cabo Incompatível
               </div>
@@ -2539,6 +2603,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             onAlignBottom={()=>{alignDevices('bottom');setContextMenu(null)}}
             onDistributeH={()=>{distributeDevices('h');setContextMenu(null)}}
             onDistributeV={()=>{distributeDevices('v');setContextMenu(null)}}
+            onSpread={()=>{spreadDevices();setContextMenu(null)}}
           />
         )}
 
@@ -2777,6 +2842,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               <DevicePropertiesPanel
                 dev={selectedDev}
                 devices={devices} connections={connections} racks={racks} quadros={quadros}
+                allRacks={project.floors.flatMap(f=>(f.racks||[]).map(r=>({...r,floorName:f.name,floorId:f.id})))}
                 iconSize={iconSize} updateDevice={updateDevice}
                 deleteConnection={deleteConnection} copyDevice={copyDevice} deleteDevice={deleteDevice}
                 setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}
@@ -2994,7 +3060,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
         const currentMeters=(pixelDist/(40*currentScale)).toFixed(2);
         return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
           onClick={e=>{if(e.target===e.currentTarget){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}>
-          <div style={{background:'#fff',borderRadius:12,padding:24,width:340,boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:'min(340px, calc(100vw - 32px))',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
             <div style={{fontSize:14,fontWeight:700,color:'#8e44ad',marginBottom:4}}>📐 Calibrar Escala</div>
             <div style={{fontSize:10,color:'#64748b',marginBottom:16,lineHeight:1.4}}>
               Distância medida na imagem: <b>{currentMeters}m</b> (escala atual)

@@ -90,7 +90,7 @@ export default function UserMenu({ onProfile, onSubscription, onSettings, onAdmi
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 1000,
           background: '#ffffff', border: '1px solid #E2E8F0',
-          borderRadius: 12, padding: 6, minWidth: 260,
+          borderRadius: 12, padding: 6, minWidth: 'min(260px, calc(100vw - 24px))',
           boxShadow: '0 12px 40px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.06)',
           animation: 'menuFadeIn .15s ease-out',
         }}>

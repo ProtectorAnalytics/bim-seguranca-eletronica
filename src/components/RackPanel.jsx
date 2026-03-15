@@ -136,8 +136,9 @@ export default function RackPanel({
               </thead>
               <tbody>
                 {facePlan.map((row, i) => (
-                  <tr key={i} className={row.device ? 'rack-face-occupied' : 'rack-face-free'}
-                    style={{cursor: row.device ? 'pointer' : 'default'}}
+                  <tr key={i} className={row.device ? 'rack-face-occupied' : row.accessory ? 'rack-face-occupied' : 'rack-face-free'}
+                    style={{cursor: row.device ? 'pointer' : 'default',
+                      background: row.accessory ? '#fef9ef' : undefined}}
                     onClick={() => { if(row.device) onSelectDevice(row.device.id) }}>
                     <td className="rack-face-pos">{row.pos}U</td>
                     <td className="rack-face-desc">
@@ -148,6 +149,11 @@ export default function RackPanel({
                           <span style={{fontSize:10,color:'#ef4444',cursor:'pointer',opacity:.5,fontWeight:700,
                             padding:'0 3px'}} title="Remover do rack"
                             onClick={e => { e.stopPropagation(); onUnassignDevice(row.device.id) }}>✕</span>
+                        </div>
+                      ) : row.accessory ? (
+                        <div style={{display:'flex',alignItems:'center',gap:4}}>
+                          <span style={{flex:1,fontWeight:500,color:'#92400e',fontSize:10}}>{row.description}</span>
+                          {row.uSize > 1 && <span style={{fontSize:8,color:'#94a3b8'}}>{row.uSize}U</span>}
                         </div>
                       ) : (
                         <span style={{color:'#94a3b8',fontStyle:'italic'}}>LIVRE</span>
