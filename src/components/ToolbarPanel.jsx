@@ -115,7 +115,7 @@ export default function ToolbarPanel({
               const dd=e.currentTarget.nextElementSibling;
               dd.style.display=dd.style.display==='block'?'none':'block';
             }}>◧</button>
-          <div style={{display:'none',position:'absolute',top:'100%',left:0,zIndex:100,
+          <div data-layers-dd style={{display:'none',position:'absolute',top:'100%',left:0,zIndex:100,
             background:'#ffffff',border:'1px solid #E2E8F0',borderRadius:8,padding:'6px 0',
             minWidth:160,boxShadow:'0 8px 24px rgba(0,0,0,.12)'}}>
             <div style={{fontSize:10,color:'#64748b',padding:'2px 10px 4px',fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>Camadas</div>
@@ -125,7 +125,7 @@ export default function ToolbarPanel({
                 {id:'installer',label:'🔧 Instalador',desc:'Cabos + cotas'},
                 {id:'engineer',label:'⚙️ Engenheiro',desc:'Tudo visível'}
               ].map(p=>(
-                <div key={p.id} onClick={()=>applyLayerPreset(p.id)}
+                <div key={p.id} onClick={(e)=>{applyLayerPreset(p.id);e.currentTarget.closest('[data-layers-dd]').style.display='none';}}
                   style={{padding:'4px 10px',cursor:'pointer',fontSize:10,color:'#046BD2',
                     display:'flex',justifyContent:'space-between',gap:8}}
                   onMouseOver={e=>e.currentTarget.style.background='#F0F5FA'}
@@ -146,7 +146,7 @@ export default function ToolbarPanel({
               {key:'fov',label:'Campo de Visão',icon:'👁️'},
               {key:'heatmap',label:'Heatmap Cobertura',icon:'🔥'}
             ].map(l=>(
-              <div key={l.key} onClick={()=>toggleLayer(l.key)}
+              <div key={l.key} onClick={(e)=>{toggleLayer(l.key);e.currentTarget.closest('[data-layers-dd]').style.display='none';}}
                 style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',cursor:'pointer',
                   fontSize:11,color:layers[l.key]?'#1e293b':'#94a3b8',transition:'.15s',
                   background:'transparent'}}

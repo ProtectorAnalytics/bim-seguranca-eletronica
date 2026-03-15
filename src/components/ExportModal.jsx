@@ -311,6 +311,62 @@ export default function ExportModal({project, bom, allDevices, connections, vali
               )}
             </div>
 
+            {/* Print Preview */}
+            <div style={{background:'#f8fafc', border:'1px solid #94a3b8', borderRadius:6, padding:12, marginBottom:10}}>
+              <div style={{fontWeight:600, fontSize:13, color:'#475569', marginBottom:6}}>🖨️ Imprimir Planta</div>
+              <div style={{fontSize:11, color:'#666', marginBottom:8}}>
+                Imprime a planta do pavimento atual ajustada à página.
+              </div>
+              <button onClick={()=>{
+                  onClose();
+                  setTimeout(()=>{
+                    const canvasEl = document.querySelector('.canvas-area');
+                    if(!canvasEl) { alert('Área do canvas não encontrada'); return; }
+                    const printWin = window.open('','_blank','width=1100,height=800');
+                    if(!printWin) { alert('Popup bloqueado pelo navegador'); return; }
+                    const floorName = project.floors?.find(f=>f.id===project.activeFloor)?.name || '';
+                    printWin.document.write(`<!DOCTYPE html><html><head><title>BIM Protector — ${project.name||'Projeto'}</title>
+                      <style>
+                        @page { size: landscape; margin: 10mm; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body { font-family: Inter, Arial, sans-serif; background: #fff; }
+                        .print-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; border-bottom: 2px solid #046BD2; margin-bottom: 8px; }
+                        .print-header h1 { font-size: 16px; color: #1e293b; }
+                        .print-header .info { font-size: 10px; color: #64748b; text-align: right; }
+                        .print-canvas { width: 100%; text-align: center; }
+                        .print-canvas img { max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain; }
+                        .print-footer { font-size: 8px; color: #94a3b8; text-align: center; padding: 6px; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+                        @media print { .no-print { display: none !important; } }
+                      </style></head><body>
+                      <div class="no-print" style="background:#046BD2;color:#fff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-weight:700">Preview de Impressão</span>
+                        <button onclick="window.print()" style="background:#fff;color:#046BD2;border:none;padding:6px 16px;border-radius:4px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
+                      </div>
+                      <div class="print-header">
+                        <h1>${project.name||'Projeto'}</h1>
+                        <div class="info">Pavimento: ${floorName}<br>${new Date().toLocaleDateString('pt-BR')}<br>BIM Protector</div>
+                      </div>
+                      <div class="print-canvas" id="print-target"></div>
+                      <div class="print-footer">Gerado por BIM Protector — www.protectoranalytics.com.br</div>
+                    </body></html>`);
+                    printWin.document.close();
+                    import('html2canvas').then(mod=>{
+                      const h2c = mod.default || mod;
+                      h2c(canvasEl,{scale:2,backgroundColor:'#ffffff',useCORS:true,allowTaint:true,logging:false}).then(canvas=>{
+                        const img = canvas.toDataURL('image/png');
+                        const el = printWin.document.getElementById('print-target');
+                        if(el) el.innerHTML = `<img src="${img}" alt="Planta"/>`;
+                      }).catch(err=>{ printWin.document.body.innerHTML += `<p style="color:red">Erro na captura: ${err.message}</p>`; });
+                    });
+                  },200);
+                }}
+                style={btnStyle('#475569','#334155',false)}
+                onMouseOver={e=>e.currentTarget.style.background='#334155'}
+                onMouseOut={e=>e.currentTarget.style.background='#475569'}>
+                🖨️ Preview de Impressão
+              </button>
+            </div>
+
             {/* PNG + CSV section */}
             <div style={{display:'flex',gap:8}}>
               {/* PNG Export */}
