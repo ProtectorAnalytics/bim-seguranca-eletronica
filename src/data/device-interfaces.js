@@ -183,6 +183,10 @@ export const isBateria = k => k === 'bateria_ext' || k.startsWith('bat_12v_');
 export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('bat_12v_');
 export const needsPoE = k => isCameraIP(k) || isAP(k);
 export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
+/** Concentradores de rede — conexão entre eles = uplink (não ocupa porta de acesso) */
+export const isConcentrador = k => isSwitch(k) || k === 'router' || isONT(k) || k === 'conversor_midia';
+/** Cabos que ocupam porta RJ45/SFP do switch (ethernet + fibra óptica) */
+export const DATA_PORT_CABLES = new Set(['cat5e','cat6','cat6a','smf','mmf']);
 export const needsACPower = k => isSwitch(k) || isGravador(k) || k === 'router' || isEletrificador(k) || isCentralIncendio(k) || isAutomatizador(k) || isNobreak(k) || isLuminaria(k) || k.startsWith('catraca_') || k.startsWith('torniquete_') || k.startsWith('monitor_led');
 export const needsDCPower = k => k === 'leitor_facial' || k === 'fechadura' || k.startsWith('fechadura_') || isSirene(k) || k === 'leitor_tag' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_');
 export const needsIPConfig = k => needsNetwork(k) || isAP(k) || isONT(k) || k.startsWith('catraca_') || k.startsWith('torniquete_');
@@ -220,23 +224,25 @@ export const getCameraUnassigned = (cam) => {
 /* ── Port usage for network devices (Switch/NVR RJ45 ports) ── */
 export const getPortUsage = (netDevId, devs, conns) => {
   const netDev=devs.find(d=>d.id===netDevId);
-  if(!netDev) return {capacity:0,used:0,available:0};
+  if(!netDev) return {capacity:0,used:0,available:0,poe:0,access:0,uplinks:0};
   const capacity=isSwitch(netDev.key)?getSwitchPorts(netDev)
     :isGravador(netDev.key)?getSwitchPorts(netDev):0;
-  const dataTypes=new Set(['cat6','cat5e','smf','mmf']);
-  let used=0;
-  conns.filter(c=>(c.from===netDevId||c.to===netDevId)&&dataTypes.has(c.type))
+  let poe=0, access=0, uplinks=0;
+  conns.filter(c=>(c.from===netDevId||c.to===netDevId)&&DATA_PORT_CABLES.has(c.type))
     .forEach(c=>{
       const otherId=c.from===netDevId?c.to:c.from;
       const other=devs.find(d=>d.id===otherId);
-      if(other) used+=(isCamera(other.key)?(other.qty||1):1);
+      if(!other) return;
+      if(isConcentrador(other.key)){ uplinks++; }
+      else if(needsPoE(other.key)){ poe+=(other.qty||1); }
+      else { access++; }
     });
-  return {capacity,used,available:capacity-used};
+  const used=poe+access+uplinks;
+  return {capacity,used,available:capacity-used,poe,access,uplinks};
 };
 /* ── Find connected network device(s) for a given device ── */
 export const getConnectedNetDevices = (devId, devs, conns) => {
-  const dataTypes=new Set(['cat6','cat5e','smf','mmf']);
-  return conns.filter(c=>(c.from===devId||c.to===devId)&&dataTypes.has(c.type))
+  return conns.filter(c=>(c.from===devId||c.to===devId)&&DATA_PORT_CABLES.has(c.type))
     .map(c=>{const oid=c.from===devId?c.to:c.from;return devs.find(d=>d.id===oid);})
     .filter(d=>d&&(isSwitch(d.key)||isGravador(d.key)));
 };

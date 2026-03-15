@@ -12,6 +12,7 @@ import {
   isPerifericoAlarme, isAutomatizador, isCameraMHD, isNobreak, isFonte,
   isFonteNobreak, isONT, isBateria,
   isSensorZona, needsPoE, needsACPower, needsDCPower,
+  isConcentrador, DATA_PORT_CABLES,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
   canMountInQuadro,
@@ -462,9 +463,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     if(dupExists){showConnToast('Conexão deste tipo já existe entre estes dispositivos','warn');setCableMode(null);setTool('select');return}
 
     // Port capacity check for data cables on network devices
-    const dataCableTypes=new Set(['cat6','cat5e','fibra_sm','fibra_mm']);
     const chosenCableCheck=type||cableType;
-    if(dataCableTypes.has(chosenCableCheck)){
+    if(DATA_PORT_CABLES.has(chosenCableCheck)){
       for(const nd of [fromDev,toDev]){
         if(isSwitch(nd.key)||isGravador(nd.key)){
           const pu=getPortUsage(nd.id,devices,connections);
@@ -994,7 +994,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
       const switches=qcDevs.filter(d=>isSwitch(d.key));
       switches.forEach(sw=>{
         const totalP=getSwitchPorts(sw);
-        const usedP=connections.filter(c=>c.from===sw.id||c.to===sw.id)
+        // Contar apenas conexões com cabos de dados (ethernet/fibra)
+        const usedP=connections.filter(c=>(c.from===sw.id||c.to===sw.id)&&DATA_PORT_CABLES.has(c.type))
           .map(c=>{const oid=c.from===sw.id?c.to:c.from;return devices.find(d=>d.id===oid)}).filter(Boolean)
           .reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
         if(usedP>totalP)
@@ -2083,14 +2084,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                 if(isGravador(dev.key)){const ch=getNvrChannels(dev),used=getNvrUsedChannels(dev.id,devices);
                   devTags.push({t:`${used}/${ch}ch`,c:used>ch?'#ef4444':used>0?'#22c55e':'#94a3b8'})}
                 if(isSwitch(dev.key)){const tp=getSwitchPorts(dev);
-                  let up=connections.filter(c=>c.from===dev.id||c.to===dev.id)
-                    .map(c=>{const o=c.from===dev.id?c.to:c.from;return devices.find(d=>d.id===o)}).filter(Boolean)
-                    .reduce((s,d)=>s+(needsPoE(d.key)?(d.qty||1):1),0);
-                  // Add cross-floor connections count
+                  // Contar apenas conexões com cabos de dados (ethernet/fibra)
+                  let usedPorts=0;
+                  connections.filter(c=>(c.from===dev.id||c.to===dev.id)&&DATA_PORT_CABLES.has(c.type))
+                    .forEach(c=>{const o=c.from===dev.id?c.to:c.from;const d=devices.find(dd=>dd.id===o);
+                      if(d) usedPorts+=(needsPoE(d.key)?(d.qty||1):1)});
+                  // Cross-floor connections (somente cabos de dados)
                   const xfSwConns=currentFloorCrossConns.filter(xc=>xc.fromDeviceId===dev.id||xc.toDeviceId===dev.id);
-                  xfSwConns.forEach(xc=>{const isFrom=xc.fromDeviceId===dev.id;const rfId=isFrom?xc.toFloorId:xc.fromFloorId;const rdId=isFrom?xc.toDeviceId:xc.fromDeviceId;
-                    const rf=project.floors.find(f=>f.id===rfId);const rd=rf?.devices?.find(d=>d.id===rdId);if(rd)up+=(needsPoE(rd.key)?(rd.qty||1):1)});
-                  devTags.push({t:`${up}/${tp}p`,c:up>tp?'#ef4444':up>0?'#3b82f6':'#94a3b8'})}
+                  xfSwConns.forEach(xc=>{
+                    if(!DATA_PORT_CABLES.has(xc.cableType)) return;
+                    const isFrom=xc.fromDeviceId===dev.id;const rfId=isFrom?xc.toFloorId:xc.fromFloorId;const rdId=isFrom?xc.toDeviceId:xc.fromDeviceId;
+                    const rf=project.floors.find(f=>f.id===rfId);const rd=rf?.devices?.find(d=>d.id===rdId);
+                    if(rd) usedPorts+=(needsPoE(rd.key)?(rd.qty||1):1)});
+                  devTags.push({t:`${usedPorts}/${tp}p`,c:usedPorts>tp?'#ef4444':usedPorts>0?'#3b82f6':'#94a3b8'})}
                 if(isCamera(dev.key)){
                   if((dev.qty||1)>1) devTags.push({t:`×${dev.qty}`,c:'#3b82f6'});
                   const assigns=dev.nvrAssignments||[];
