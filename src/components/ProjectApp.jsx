@@ -47,7 +47,7 @@ import CanvasSearch from './CanvasSearch';
 import DeviceListPanel from './DeviceListPanel';
 import CrossFloorConnectionModal from './CrossFloorConnectionModal';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
-import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor } from '@/lib/cable-routing';
+import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const limits = useSubscription();
@@ -1789,7 +1789,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
                   const pairIdx=pairConns.indexOf(conn);
                   const pairTotal=pairConns.length;
-                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*8:0;
+                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*6:0;
 
                   // Apply perpendicular offset for parallel cables
                   const pdx=ap2.x-ap1.x,pdy=ap2.y-ap1.y;
@@ -1804,18 +1804,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   const isSignal=ct.group==='signal';
                   const isAuto=ct.group==='automation';
                   const isWireless=conn.type==='wireless';
-                  // Enhanced visual distinction per cable type
-                  const dashArr=isWireless?'4 4':isPower?'8 4':isSignal?'3 3':isAuto?'8 3 2 3':'none';
-                  const sw=isPower?3.2:isAuto?2.6:isSignal?2.2:isWireless?1.5:2.5;
+                  const dashArr=isWireless?'6 4':isPower?'10 5':isSignal?'4 4':isAuto?'10 4 3 4':'none';
+                  const sw=isPower?2.8:isAuto?2.4:isSignal?2:isWireless?1.5:2.2;
                   const cableColor=isPower?'#dc2626':isSignal?'#16a34a':isAuto?'#7c3aed':isWireless?'#94a3b8':ct.color;
                   const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
                   const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
 
-                  // draw.io-style orthogonal routing
+                  // Orthogonal routing with exit stubs
                   const wps=conn.waypoints||[];
                   const hasWps=wps.length>0;
 
-                  // Build full points array: start → (waypoints or auto-ortho) → end
                   let allPts;
                   if(hasWps){
                     allPts=[{x:x1,y:y1},...wps,{x:x2,y:y2}];
@@ -1823,17 +1821,25 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     allPts=autoOrthoRoute(x1,y1,x2,y2,aFrom,aTo);
                   }
 
-                  // Generate SVG path with rounded corners at bends
-                  const pathD=buildOrthoPath(allPts,8);
+                  const pathD=buildOrthoPath(allPts,10);
 
-                  // Label position: midpoint of the points array
-                  const midIdx=Math.floor(allPts.length/2);
+                  // Label position: midpoint of path
+                  const totalLen=allPts.length;
+                  const midIdx=Math.floor(totalLen/2);
                   const lp=allPts[midIdx];
                   const lpPrev=allPts[Math.max(0,midIdx-1)];
                   const labelX=(lp.x+lpPrev.x)/2;
-                  const labelY=(lp.y+lpPrev.y)/2-8;
+                  const labelY=(lp.y+lpPrev.y)/2-10;
 
-                  // Click on cable to select
+                  // Direction arrow at midpoint
+                  const arrowSeg1=allPts[Math.max(0,midIdx-1)];
+                  const arrowSeg2=allPts[midIdx];
+                  const arDx=arrowSeg2.x-arrowSeg1.x,arDy=arrowSeg2.y-arrowSeg1.y;
+                  const arLen=Math.sqrt(arDx*arDx+arDy*arDy)||1;
+                  const arAngle=Math.atan2(arDy,arDx)*180/Math.PI;
+                  const arMx=(arrowSeg1.x+arrowSeg2.x)/2;
+                  const arMy=(arrowSeg1.y+arrowSeg2.y)/2;
+
                   const onConnClick=(e)=>{
                     e.stopPropagation();
                     if(cableMode) return;
@@ -1842,55 +1848,59 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   };
 
                   return <g key={conn.id} className={`conn-g${isSel?' conn-selected':''}`}>
-                    {/* Full path hit area for selection */}
+                    {/* Hit area for selection */}
                     <path d={pathD} className="conn-hit-area" onClick={onConnClick}/>
-                    {/* Visible cable path */}
+                    {/* Cable path */}
                     <path d={pathD} fill="none" className="conn-line-path"
-                      stroke={isSel?'#3b82f6':cableColor} strokeWidth={isSel?sw+1:sw}
+                      stroke={isSel?'#3b82f6':cableColor} strokeWidth={isSel?sw+1.5:sw}
                       strokeDasharray={dashArr} strokeLinejoin="round" strokeLinecap="round"
-                      style={{pointerEvents:'none'}}/>
-                    {/* Endpoint anchor dots */}
-                    <circle cx={x1} cy={y1} r={3.5} fill={isSel?'#3b82f6':cableColor} opacity={0.8} style={{pointerEvents:'none'}}/>
-                    <circle cx={x2} cy={y2} r={3.5} fill={isSel?'#3b82f6':cableColor} opacity={0.8} style={{pointerEvents:'none'}}/>
-                    {/* Cable label with background box */}
+                      style={{pointerEvents:'none',opacity:isSel?1:0.85}}/>
+                    {/* Endpoint connection dots */}
+                    <circle cx={x1} cy={y1} r={isSel?4:3} fill={isSel?'#3b82f6':cableColor}
+                      stroke="#fff" strokeWidth={1} style={{pointerEvents:'none'}}/>
+                    <circle cx={x2} cy={y2} r={isSel?4:3} fill={isSel?'#3b82f6':cableColor}
+                      stroke="#fff" strokeWidth={1} style={{pointerEvents:'none'}}/>
+                    {/* Direction arrow at midpoint (only for data cables) */}
+                    {!isPower&&!isSignal&&arLen>30&&(
+                      <polygon
+                        points="-4,-3 4,0 -4,3"
+                        fill={isSel?'#3b82f6':cableColor}
+                        opacity={0.7}
+                        transform={`translate(${arMx},${arMy}) rotate(${arAngle})`}
+                        style={{pointerEvents:'none'}}/>
+                    )}
+                    {/* Cable label */}
                     {showCableLabels&&(()=>{
                       const lt=`${purposeIcon}${ct.name} · ${conn.distance}m${portLabel}`;
-                      const estW=Math.max(lt.length*6.5+16,48);
+                      const estW=Math.max(lt.length*6.2+14,44);
                       return <g style={{pointerEvents:'none'}}>
-                        <rect x={labelX-estW/2} y={labelY-17} width={estW} height={20}
-                          rx={4} ry={4} fill="#fff" fillOpacity={0.92}
-                          stroke="#cbd5e1" strokeWidth={0.5}/>
+                        <rect x={labelX-estW/2} y={labelY-14} width={estW} height={18}
+                          rx={4} ry={4} fill="#fff" fillOpacity={0.94}
+                          stroke={isSel?'#3b82f6':'#e2e8f0'} strokeWidth={isSel?1:0.5}/>
                         <text x={labelX} y={labelY} className="cable-label-v2">{lt}</text>
                       </g>;
                     })()}
 
-                    {/* draw.io-style: segment drag handles (shown when selected) */}
+                    {/* Segment drag handles (when selected) */}
                     {isSel&&allPts.slice(0,-1).map((pt,si)=>{
                       const npt=allPts[si+1];
                       const segD=`M${pt.x},${pt.y} L${npt.x},${npt.y}`;
                       return <g key={'seg'+si}>
-                        {/* Invisible wide hit area for dragging segment */}
                         <path d={segD} className="seg-hit"
                           onMouseDown={(e)=>{
-                            if(cableMode) return; // Don't start drag during cable creation
+                            if(cableMode) return;
                             e.stopPropagation();e.preventDefault();
                             const rect=canvasRef.current?.getBoundingClientRect();
                             if(!rect) return;
                             const mx=(e.clientX-rect.left)/zoom-pan.x/zoom;
                             const my=(e.clientY-rect.top)/zoom-pan.y/zoom;
-                            // If dragging an auto-generated segment (no custom waypoints yet),
-                            // initialize waypoints from auto-route first
                             if(!hasWps){
-                              const autoWps=autoOrthoRoute(x1,y1,x2,y2);
-                              // Store inner waypoints (exclude start/end which are anchors)
+                              const autoWps=autoOrthoRoute(x1,y1,x2,y2,aFrom,aTo);
                               const innerWps=autoWps.slice(1,-1);
                               updateConnWaypoints(conn.id,innerWps);
-                              // Now drag the corresponding segment
-                              setDraggingWp({connId:conn.id,type:'seg',segIdx:si>0?si-1:0,lastX:mx,lastY:my});
+                              setDraggingWp({connId:conn.id,type:'seg',segIdx:Math.min(si,innerWps.length-2>0?si-1:0),lastX:mx,lastY:my});
                             } else {
-                              // Dragging an existing waypoint segment
                               if(si===0||si>=allPts.length-2){
-                                // First or last segment — create new bend
                                 setDraggingWp({connId:conn.id,type:'newSeg',segIdx:si,allPts,lastX:mx,lastY:my});
                               } else {
                                 setDraggingWp({connId:conn.id,type:'seg',segIdx:si-1,lastX:mx,lastY:my});
@@ -1898,16 +1908,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             }
                             setSelectedConn(conn.id);
                           }}/>
-                        {/* Hover highlight */}
                         <path d={segD} className="seg-highlight"/>
                       </g>;
                     })}
 
-                    {/* Waypoint handles — larger and easier to grab */}
+                    {/* Waypoint handles */}
                     {isSel&&wps.map((wp,wi)=>(
                       <g key={'wph'+wi}>
-                        {/* Invisible hit area (larger target for easier grab) */}
-                        <rect x={wp.x-10} y={wp.y-10} width={20} height={20}
+                        <rect x={wp.x-12} y={wp.y-12} width={24} height={24}
                           fill="transparent" style={{cursor:'move'}}
                           onMouseDown={(e)=>{
                             e.stopPropagation();e.preventDefault();
@@ -1918,19 +1926,19 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             e.stopPropagation();
                             deleteWaypoint(conn.id,wi);
                           }}/>
-                        {/* Visible handle */}
-                        <rect x={wp.x-5} y={wp.y-5} width={10} height={10}
-                          fill="#3b82f6" stroke="#fff" strokeWidth={1.5}
-                          rx={2} style={{pointerEvents:'none'}}/>
+                        <circle cx={wp.x} cy={wp.y} r={5}
+                          fill="#3b82f6" stroke="#fff" strokeWidth={2}
+                          style={{pointerEvents:'none'}}/>
                       </g>
                     ))}
 
-                    {/* Anchor change buttons — click to cycle N→E→S→W */}
+                    {/* Anchor change buttons (N/E/S/W) */}
                     {isSel&&!cableMode&&(()=>{
-                      const anchorR=6;
+                      const stubF=getStubPoint(ap1,aFrom,12);
+                      const stubT=getStubPoint(ap2,aTo,12);
                       return <>
-                        {/* From anchor */}
-                        <circle cx={x1} cy={y1} r={anchorR} fill="#046BD2" stroke="#fff" strokeWidth={2}
+                        {/* From anchor indicator */}
+                        <circle cx={ap1.x} cy={ap1.y} r={7} fill="#046BD2" stroke="#fff" strokeWidth={2}
                           style={{cursor:'pointer'}}
                           onClick={(e)=>{
                             e.stopPropagation();
@@ -1938,14 +1946,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             updateFloor(f=>({...f,connections:f.connections.map(c=>
                               c.id===conn.id?{...c,anchorFrom:nxt,waypoints:undefined}:c)}));
                           }}>
-                          <title>Mudar ponto de saída ({aFrom})</title>
+                          <title>Alterar saída: {aFrom} → {nextAnchor(aFrom)}</title>
                         </circle>
-                        <text x={x1} y={y1+1} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={8} fontWeight={700} style={{pointerEvents:'none'}}>
+                        <text x={ap1.x} y={ap1.y+1} textAnchor="middle" dominantBaseline="central"
+                          fill="#fff" fontSize={9} fontWeight={700} style={{pointerEvents:'none'}}>
                           {aFrom}
                         </text>
-                        {/* To anchor */}
-                        <circle cx={x2} cy={y2} r={anchorR} fill="#046BD2" stroke="#fff" strokeWidth={2}
+                        {/* To anchor indicator */}
+                        <circle cx={ap2.x} cy={ap2.y} r={7} fill="#046BD2" stroke="#fff" strokeWidth={2}
                           style={{cursor:'pointer'}}
                           onClick={(e)=>{
                             e.stopPropagation();
@@ -1953,10 +1961,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                             updateFloor(f=>({...f,connections:f.connections.map(c=>
                               c.id===conn.id?{...c,anchorTo:nxt,waypoints:undefined}:c)}));
                           }}>
-                          <title>Mudar ponto de chegada ({aTo})</title>
+                          <title>Alterar chegada: {aTo} → {nextAnchor(aTo)}</title>
                         </circle>
-                        <text x={x2} y={y2+1} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={8} fontWeight={700} style={{pointerEvents:'none'}}>
+                        <text x={ap2.x} y={ap2.y+1} textAnchor="middle" dominantBaseline="central"
+                          fill="#fff" fontSize={9} fontWeight={700} style={{pointerEvents:'none'}}>
                           {aTo}
                         </text>
                       </>;

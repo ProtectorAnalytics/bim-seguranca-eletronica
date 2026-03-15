@@ -188,17 +188,17 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-s
 .port-btn .pb-req{font-size:9px;color:var(--vermelho);font-weight:700}
 .port-btn .pb-opt{font-size:9px;color:var(--cinza);font-style:italic}
 
-/* Connection lines -- draw.io style */
+/* Connection lines v2 — professional cable routing */
 .conn-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:4}
-.conn-line-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.conn-hit-area{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;pointer-events:stroke}
-.conn-g:hover .conn-line-path{stroke-opacity:.85;filter:brightness(1.2)}
-.conn-selected .conn-line-path{filter:drop-shadow(0 0 3px rgba(59,130,246,.6))}
+.conn-line-path{fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s,stroke-width .1s}
+.conn-hit-area{fill:none;stroke:transparent;stroke-width:18;cursor:pointer;pointer-events:stroke}
+.conn-g:hover .conn-line-path{filter:brightness(1.15);stroke-opacity:1}
+.conn-selected .conn-line-path{filter:drop-shadow(0 0 4px rgba(59,130,246,.5))}
 .cable-label{font-size:12px;fill:#475569;text-anchor:middle;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
-.cable-label-v2{font-size:11px;fill:#334155;text-anchor:middle;font-weight:600;letter-spacing:.2px}
-.seg-hit{fill:none;stroke:transparent;stroke-width:16;cursor:grab;pointer-events:stroke}
+.cable-label-v2{font-size:10px;fill:#475569;text-anchor:middle;font-weight:600;letter-spacing:.3px;dominant-baseline:central}
+.seg-hit{fill:none;stroke:transparent;stroke-width:18;cursor:grab;pointer-events:stroke}
 .seg-hit:hover~.seg-highlight{opacity:1}
-.seg-highlight{opacity:0;fill:none;stroke:#3b82f6;stroke-width:3;stroke-dasharray:4 3;pointer-events:none;transition:opacity .12s}
+.seg-highlight{opacity:0;fill:none;stroke:#3b82f6;stroke-width:3;stroke-dasharray:5 3;pointer-events:none;transition:opacity .15s}
 
 /* Canvas controls */
 .canvas-controls{position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:4px;z-index:20}
