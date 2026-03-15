@@ -29,16 +29,10 @@ function getCategoryColor(key) {
 
 const categories = DEVICE_LIB.map(c => c.cat);
 
-export default function DeviceListPanel({ devices, environments, onFocus, onSelect, onSelectType }) {
+export default function DeviceListPanel({ devices, onFocus, onSelect, onSelectType }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
   const [sortBy, setSortBy] = useState('name');
-
-  const envMap = useMemo(() => {
-    const m = {};
-    for (const e of environments || []) m[e.id] = e;
-    return m;
-  }, [environments]);
 
   const filtered = useMemo(() => {
     let list = (devices || []).map(d => {
@@ -73,15 +67,15 @@ export default function DeviceListPanel({ devices, environments, onFocus, onSele
         return (a.key || '').localeCompare(b.key || '');
       }
       if (sortBy === 'env') {
-        const ea = envMap[a.envId]?.name || '';
-        const eb = envMap[b.envId]?.name || '';
+        const ea = a.ambiente || '';
+        const eb = b.ambiente || '';
         return ea.localeCompare(eb, 'pt-BR');
       }
       return 0;
     });
 
     return list;
-  }, [devices, search, activeCategory, sortBy, envMap]);
+  }, [devices, search, activeCategory, sortBy]);
 
   const typeGroups = useMemo(() => {
     const groups = {};

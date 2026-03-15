@@ -50,7 +50,7 @@ import { autoOrthoRoute, buildOrthoPath } from '@/lib/cable-routing';
 export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
-  const [leftTab,setLeftTab]=useState('devices'); // devices | environments | floors
+  const [leftTab,setLeftTab]=useState('devices'); // devices | floors
   const [selectedDevice,setSelectedDevice]=useState(null);
   const [tool,setTool]=useState('select'); // select | device | cable | env | measure | pan | calibrate
   const [pendingDevice,setPendingDevice]=useState(null);
@@ -102,7 +102,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Smart guides
   const [guides,setGuides]=useState([]); // [{type:'h'|'v', x1,y1,x2,y2}]
   // Layers: toggle visibility of canvas elements
-  const [layers,setLayers]=useState({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
+  const [layers,setLayers]=useState({devices:true,cables:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
   const toggleLayer=(k)=>setLayers(l=>({...l,[k]:!l[k]}));
   // Dimension annotations
   const [measureStart,setMeasureStart]=useState(null); // {x,y} - first click in measure tool
@@ -120,7 +120,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   const floor=project.floors.find(f=>f.id===project.activeFloor);
   const devices=floor?.devices||[];
   const connections=floor?.connections||[];
-  const environments=floor?.environments||[];
   const dimensions=floor?.dimensions||[];
   const racks=floor?.racks||[];
   const quadros=floor?.quadros||[];
@@ -292,9 +291,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
 
   // ── Layer Presets ──
   const applyLayerPreset=(preset)=>{
-    if(preset==='client') setLayers({devices:true,cables:false,environments:true,grid:false,bg:true,dimensions:false,fov:true,heatmap:true});
-    else if(preset==='installer') setLayers({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
-    else if(preset==='engineer') setLayers({devices:true,cables:true,environments:true,grid:true,bg:true,dimensions:true,fov:true,heatmap:false});
+    if(preset==='client') setLayers({devices:true,cables:false,grid:false,bg:true,dimensions:false,fov:true,heatmap:true});
+    else if(preset==='installer') setLayers({devices:true,cables:true,grid:true,bg:true,dimensions:true,fov:false,heatmap:false});
+    else if(preset==='engineer') setLayers({devices:true,cables:true,grid:true,bg:true,dimensions:true,fov:true,heatmap:false});
   };
 
   // All devices across all floors
@@ -639,12 +638,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
   },[draggingWp,zoom,pan,connections]);
 
-  // Add environment
-  const addEnvironment=(name,color,bg)=>{
-    const newEnv={id:uid(),name,color,bg,x:100,y:100,w:300,h:200};
-    updateFloor(f=>({...f,environments:[...f.environments,newEnv]}));
-  };
-
   // Scale calibration confirm
   const confirmCalibration=(realMeters)=>{
     if(!calibStart||!calibEnd||!realMeters||realMeters<=0) return;
@@ -661,7 +654,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
   // Add floor
   const addFloor=()=>{
     const num=project.floors.length;
-    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],environments:[],racks:[],quadros:[],bgScale:1.0};
+    const newFloor={id:uid(),name:`Pavimento ${num}`,number:num,devices:[],connections:[],racks:[],quadros:[],bgScale:1.0};
     setProject(p=>({...p,floors:[...p.floors,newFloor],activeFloor:newFloor.id}));
   };
 
@@ -1116,7 +1109,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
     if(tool!=='select') return;
     if(e.button!==0) return; // only left click
     // Only start lasso on direct canvas click (not on devices)
-    if(e.target.closest('.device-on-canvas')||e.target.closest('.env-rect')||e.target.closest('.port-popup')) return;
+    if(e.target.closest('.device-on-canvas')||e.target.closest('.port-popup')) return;
     // Must be inside canvas-area or canvas-transform
     if(e.target!==e.currentTarget&&!e.target.closest('.canvas-transform')&&!e.target.closest('.canvas-area')) return;
     const rect=canvasRef.current?.getBoundingClientRect();
@@ -1465,7 +1458,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               style={{width:28,padding:0,background:'transparent',border:'none',cursor:'pointer',
                 fontSize:14,color:'var(--cinza)',flexShrink:0}}>«</button>
             <div className={`lp-tab ${leftTab==='devices'?'active':''}`} onClick={()=>setLeftTab('devices')}>Dispositivos</div>
-            <div className={`lp-tab ${leftTab==='environments'?'active':''}`} onClick={()=>setLeftTab('environments')}>Ambientes</div>
             <div className={`lp-tab ${leftTab==='floors'?'active':''}`} onClick={()=>setLeftTab('floors')}>Piso</div>
           </div>
           <div className="lp-content">
@@ -1474,55 +1466,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               pendingDevice={pendingDevice} setPendingDevice={setPendingDevice}
               setTool={setTool} customDevices={customDevices} DEVICE_LIB={DEVICE_LIB}
               showEquipmentRepo={showEquipmentRepo} setShowEquipmentRepo={setShowEquipmentRepo} refreshKey={defRefreshKey}/>}
-            {leftTab==='environments'&&<>
-              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Adicionar ambiente:</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
-                {ENV_COLORS.map(ec=>(
-                  <div key={ec.name} style={{background:ec.bg,color:ec.color,border:`1px solid ${ec.color}30`,
-                    padding:'3px 8px',borderRadius:4,fontSize:9,cursor:'pointer',fontWeight:600}}
-                    onClick={()=>addEnvironment(ec.name,ec.color,ec.bg)}>
-                    + {ec.name}
-                  </div>
-                ))}
-              </div>
-              {environments.length>0&&<div style={{fontSize:10,color:'var(--cinza)',marginBottom:4,fontWeight:600}}>
-                Ambientes ({environments.length}):
-              </div>}
-              {environments.map(env=>{
-                const devCount=devices.filter(d=>{
-                  const r=getDevR(d);const cx=d.x+r,cy=d.y+r;
-                  return cx>=env.x&&cx<=env.x+env.w&&cy>=env.y&&cy<=env.y+env.h;
-                }).length;
-                const areaM2=((env.w/40)*(env.h/40)*(floor?.bgScale||1)**2).toFixed(1);
-                return (
-                  <div key={env.id} style={{padding:'8px 10px',margin:'4px 0',borderRadius:6,background:'#fff',
-                    border:`1px solid ${env.color}40`,fontSize:11}}>
-                    <div style={{display:'flex',alignItems:'center',gap:4,marginBottom:4}}>
-                      <span style={{width:8,height:8,borderRadius:'50%',background:env.color,flexShrink:0}}/>
-                      <input value={env.name} style={{flex:1,border:'none',background:'transparent',fontSize:11,fontWeight:600,
-                        color:env.color,outline:'none',padding:0}}
-                        onChange={e=>updateFloor(f=>({...f,environments:f.environments.map(en=>en.id===env.id?{...en,name:e.target.value}:en)}))}/>
-                      <button onClick={()=>updateFloor(f=>({...f,environments:f.environments.filter(en=>en.id!==env.id)}))}
-                        style={{background:'none',border:'none',cursor:'pointer',fontSize:10,color:'#ef4444',padding:2}}
-                        title="Excluir">✕</button>
-                    </div>
-                    <div style={{display:'flex',gap:8,fontSize:9,color:'#64748b'}}>
-                      <span>📦 {devCount} disp.</span>
-                      <span>📐 {areaM2}m²</span>
-                      <span style={{cursor:'pointer',color:'#046BD2'}} onClick={()=>{
-                        const el=document.querySelector('.canvas-viewport');
-                        if(el){el.scrollLeft=env.x-el.clientWidth/2;el.scrollTop=env.y-el.clientHeight/2;}
-                      }}>🎯 Focar</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {environments.length===0&&(
-                <div style={{textAlign:'center',padding:16,color:'#94a3b8',fontSize:10}}>
-                  Nenhum ambiente criado.<br/>Clique acima para adicionar.
-                </div>
-              )}
-            </>}
             {leftTab==='floors'&&<>
               <div style={{fontSize:11,color:'var(--cinza)',marginBottom:8}}>Pavimentos do projeto:</div>
 
@@ -1645,7 +1588,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                       }}>🗑️</button>}
                   </div>
                   <div style={{fontSize:9,color:'var(--cinza)',marginTop:2}}>
-                    {f.devices.length} dispositivos · {f.connections.length} conexões · {f.environments.length} ambientes
+                    {f.devices.length} dispositivos · {f.connections.length} conexões
                   </div>
                 </div>);
               })}
@@ -1698,14 +1641,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                     opacity:bgOpacity,pointerEvents:'none',userSelect:'none',zIndex:0}}
                   draggable={false}/>
               )}
-
-              {/* Environments */}
-              {layers.environments&&environments.map(env=>(
-                <div key={env.id} className="env-rect" style={{left:env.x,top:env.y,width:env.w,height:env.h,
-                  borderColor:env.color,background:env.bg}}>
-                  <span className="env-label" style={{background:env.color}}>{env.name}</span>
-                </div>
-              ))}
 
               {/* Connection lines */}
               <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none',zIndex:4}}>
@@ -2535,11 +2470,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
                   <rect width={mmW} height={mmH} fill="#f8fafc" rx="4"/>
                   {/* Grid hint */}
                   <rect width={mmW} height={mmH} fill="none" stroke="#E2E8F0" strokeWidth=".5"/>
-                  {/* Environments */}
-                  {environments.map(env=>(
-                    <rect key={'mm_e_'+env.id} x={env.x*sc} y={env.y*sc} width={env.w*sc} height={env.h*sc}
-                      fill={env.bg||'rgba(59,130,246,.15)'} stroke={env.color} strokeWidth=".5" rx="1"/>
-                  ))}
                   {/* Connections */}
                   {connections.map(conn=>{
                     const fd=devices.find(d=>d.id===conn.from),td=devices.find(d=>d.id===conn.to);
@@ -2893,7 +2823,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
             )}
             {/* DEVICE LIST */}
             {rightTab==='devlist'&&(
-              <DeviceListPanel devices={devices} environments={environments}
+              <DeviceListPanel devices={devices}
                 onFocus={(d)=>{
                   const el=document.querySelector('.canvas-viewport');
                   if(el){el.scrollLeft=d.x-el.clientWidth/2;el.scrollTop=d.y-el.clientHeight/2;}
@@ -2918,11 +2848,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack}){
               // Group devices by electrical circuit
               const circuits=[];
               let circNum=1;
-              // Group by environment
+              // Group by ambiente label
               const envGroups={};
               devices.forEach(d=>{
-                const env=d.envId?environments.find(e=>e.id===d.envId):null;
-                const envName=env?.name||'Geral';
+                const envName=d.ambiente||'Geral';
                 if(!envGroups[envName]) envGroups[envName]=[];
                 envGroups[envName].push(d);
               });
