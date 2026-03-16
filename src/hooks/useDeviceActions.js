@@ -43,10 +43,25 @@ export function useDeviceActions({ devices, connections, multiSelect, selectedDe
     const ids = multiSelect.size > 0 ? [...multiSelect] : (selectedDevice ? [selectedDevice] : []);
     if (!ids.length) return;
     const devs = ids.map(id => devices.find(d => d.id === id)).filter(Boolean);
+    if (!devs.length) return;
     const minX = Math.min(...devs.map(d => d.x));
     const minY = Math.min(...devs.map(d => d.y));
-    setClipboard({ devices: devs.map(d => ({ ...d, _offX: d.x - minX, _offY: d.y - minY })) });
-    pasteClipboard(minX + 40, minY + 40);
+    const baseX = minX + 40, baseY = minY + 40;
+    const idMap = {};
+    const newIds = [];
+    devs.forEach(d => { const nid = uid(); idMap[d.id] = nid; newIds.push(nid); });
+    updateFloor(f => {
+      const newDevs = devs.map(d => ({
+        ...d, id: idMap[d.id], x: snap(baseX + (d.x - minX)), y: snap(baseY + (d.y - minY)),
+        envId: null, quadroId: undefined, rackId: undefined
+      }));
+      const newConns = connections
+        .filter(c => idMap[c.from] && idMap[c.to])
+        .map(c => ({ ...c, id: uid(), from: idMap[c.from], to: idMap[c.to] }));
+      return { ...f, devices: [...f.devices, ...newDevs], connections: [...(f.connections || []), ...newConns] };
+    });
+    setMultiSelect(new Set(newIds));
+    setSelectedDevice(null);
   };
 
   const getSelectedDevs = () => {
