@@ -337,7 +337,10 @@ export default function ExportModal({project, bom, allDevices, connections, vali
                     const printWin = window.open('','_blank','width=1100,height=800');
                     if(!printWin) { alert('Popup bloqueado pelo navegador'); return; }
                     const floorName = project.floors?.find(f=>f.id===project.activeFloor)?.name || '';
-                    printWin.document.write(`<!DOCTYPE html><html><head><title>BIM Protector — ${project.name||'Projeto'}</title>
+                    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    const safeName = esc(project.name||'Projeto');
+                    const safeFloor = esc(floorName);
+                    printWin.document.write(`<!DOCTYPE html><html><head><title>BIM Protector — ${safeName}</title>
                       <style>
                         @page { size: landscape; margin: 10mm; }
                         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -355,8 +358,8 @@ export default function ExportModal({project, bom, allDevices, connections, vali
                         <button onclick="window.print()" style="background:#fff;color:#046BD2;border:none;padding:6px 16px;border-radius:4px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
                       </div>
                       <div class="print-header">
-                        <h1>${project.name||'Projeto'}</h1>
-                        <div class="info">Pavimento: ${floorName}<br>${new Date().toLocaleDateString('pt-BR')}<br>BIM Protector</div>
+                        <h1>${safeName}</h1>
+                        <div class="info">Pavimento: ${safeFloor}<br>${new Date().toLocaleDateString('pt-BR')}<br>BIM Protector</div>
                       </div>
                       <div class="print-canvas" id="print-target"></div>
                       <div class="print-footer">Gerado por BIM Protector — www.protectoranalytics.com.br</div>
@@ -367,8 +370,8 @@ export default function ExportModal({project, bom, allDevices, connections, vali
                       h2c(canvasEl,{scale:2,backgroundColor:'#ffffff',useCORS:true,allowTaint:true,logging:false}).then(canvas=>{
                         const img = canvas.toDataURL('image/png');
                         const el = printWin.document.getElementById('print-target');
-                        if(el) el.innerHTML = `<img src="${img}" alt="Planta"/>`;
-                      }).catch(err=>{ printWin.document.body.innerHTML += `<p style="color:red">Erro na captura: ${err.message}</p>`; });
+                        if(el){ const imgEl=printWin.document.createElement('img'); imgEl.src=img; imgEl.alt='Planta'; imgEl.style.maxWidth='100%'; el.appendChild(imgEl); }
+                      }).catch(err=>{ const p=printWin.document.createElement('p'); p.style.color='red'; p.textContent='Erro na captura: '+err.message; printWin.document.body.appendChild(p); });
                     });
                   },200);
                 }}
