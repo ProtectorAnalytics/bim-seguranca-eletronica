@@ -2,8 +2,8 @@
 // VERSION CONTROL
 // ====================================================================
 export const APP_VERSION = {
-  major: 3, minor: 50, build: 4,
-  date: '2026-03-16 10:27',
+  major: 3, minor: 50, build: 5,
+  date: '2026-03-16 10:29',
   commitHash: typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev', // eslint-disable-line no-undef
   buildNumber: typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '0', // eslint-disable-line no-undef
   get full(){ return `v${this.major}.${this.minor}.${this.build}`; },
