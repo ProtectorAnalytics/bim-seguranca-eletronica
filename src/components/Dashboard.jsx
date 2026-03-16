@@ -1,5 +1,4 @@
 import React from 'react';
-import { APP_VERSION } from '@/data/constants';
 import { getSavedProjects, getSavedClients, getSettings, getCustomDevices, getCachedCloudProjects } from '@/lib/helpers';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
@@ -36,7 +35,6 @@ export default function Dashboard({ onNewProject, onOpenProject, onClients, onRe
             <img src="/logo-proti.png" alt="Protector" style={{
               height: 48, flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.15))'
             }} />
-            <div className="dh-version">{APP_VERSION.label}</div>
           </div>
 
           <UserMenu
