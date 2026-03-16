@@ -26,7 +26,7 @@ export function saveSettings(settings){
 export function getCustomDevices(){
   try {
     return JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
-  }catch(e){
+  }catch(_e){
     return [];
   }
 }
@@ -258,7 +258,7 @@ export function findDevDef(key){
     const custom=JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
     const found=custom.find(c=>c.key===key);
     if(found) return found;
-  }catch(e){}
+  }catch(_e){ /* ignore */ }
   return null;
 }
 

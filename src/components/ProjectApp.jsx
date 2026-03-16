@@ -11,8 +11,8 @@ import {
   isCentralAlarme, isCentralIncendio, isDetectorIncendio, isSirene,
   isPerifericoAlarme, isAutomatizador, isCameraMHD, isNobreak, isFonte,
   isFonteNobreak, isONT, isBateria,
-  isSensorZona, needsPoE, needsACPower, needsDCPower,
-  isConcentrador, DATA_PORT_CABLES,
+  isSensorZona, needsPoE, needsDCPower,
+  DATA_PORT_CABLES,
   getNvrChannels, getNvrUsedChannels, getPortUsage,
   getConnectedNetDevices, trimNvrAssignments, autoAssignCameras,
   canMountInQuadro,
@@ -20,9 +20,8 @@ import {
 } from '@/data/device-interfaces';
 import {
   findDevDef, uid, syncUid, dedupDeviceIds, getDeviceIconKey, getDeviceColor, getCustomDevices, saveCustomDevices,
-  getDeviceInterfaces, getPortDotClass, getPortTypeName, validateConnection,
-  calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings,
-  isValidIPv4, isValidVLAN
+  getDeviceInterfaces, validateConnection,
+  calcPPSection, calcCableDistance, getDefaultCable, getSettings, saveSettings
 } from '@/lib/helpers';
 import {
   SlidersHorizontal, Server, LayoutGrid, GitBranch,
@@ -47,9 +46,8 @@ import CanvasSearch from './CanvasSearch';
 import DeviceListPanel from './DeviceListPanel';
 import CrossFloorConnectionModal from './CrossFloorConnectionModal';
 import ShareProjectModal from './ShareProjectModal';
-import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
-import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
-import { useRealtimeCollab } from '@/hooks/useRealtimeCollab';
+import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot } from '@/lib/rack-helpers';
+import { bestAnchorPair } from '@/lib/cable-routing';
 import { useCanvasInteraction } from '@/hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useDeviceActions } from '@/hooks/useDeviceActions';
@@ -60,7 +58,7 @@ import CablePickerModal from './CablePickerModal';
 import CalibrationModal from './CalibrationModal';
 import PortConnectionPopup from './PortConnectionPopup';
 
-export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId,cloudSaveStatus,cloudFallback}){
+export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken:_shareToken,storageMode,projectId,cloudSaveStatus,cloudFallback}){
   const limits = useSubscription();
   const [rightTab,setRightTab]=useState('props'); // props | topology | equipment | validation
   const [leftTab,setLeftTab]=useState('devices'); // devices | floors
@@ -122,9 +120,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   const [calibStart,setCalibStart]=useState(null); // {x,y} first calibration point
   const [calibEnd,setCalibEnd]=useState(null); // {x,y} second calibration point
   const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
-  const calibInputRef=useRef(null);
+  const _calibInputRef=useRef(null);
   const canvasRef=useRef(null);
-  const {zoom,setZoom,pan,setPan,isPanning,setIsPanning,isPanningRef,panStartRef,handleWheel,startPan,resetView}=useCanvasInteraction();
+  const {zoom,setZoom,pan,setPan,isPanning,setIsPanning:_setIsPanning,isPanningRef:_isPanningRef,panStartRef:_panStartRef,handleWheel,startPan,resetView}=useCanvasInteraction();
   const [dragging,setDragging]=useState(null);
   const snap=(v)=>snapToGrid?Math.round(v/gridSize)*gridSize:v;
 
@@ -159,6 +157,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     return()=>mq.removeEventListener('change',handler);
   },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Update floor data helper
+  const updateFloor=(updater)=>{
+    setProject(p=>({...p,floors:p.floors.map(f=>f.id===p.activeFloor?updater(f):f)}));
+  };
+
   // Migrate legacy rack devices → floor.racks[]
   useEffect(()=>{
     if(!floor) return;
@@ -169,11 +172,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
       }
     }
   },[project.activeFloor]);
-
-  // Update floor data helper
-  const updateFloor=(updater)=>{
-    setProject(p=>({...p,floors:p.floors.map(f=>f.id===p.activeFloor?updater(f):f)}));
-  };
 
   // Comments on floor
   const comments=floor?.comments||[];
@@ -223,7 +221,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     const catalogMap={nobreak_ac:'nobreak_ac',nobreak_dc:'nobreak_dc',bateria_ext:'bateria',modulo_bat:'modulo_bat'};
     const hasCatalog=MODEL_CATALOG[catalogMap[deviceKey]];
     if(def.configurable && !selectedModel && hasCatalog){
-      setModelSelectorModal({deviceKey,x:x||200+Math.random()*400,y:y||150+Math.random()*300});
+      setModelSelectorModal({deviceKey,x:x||200+Math.random()*400,y:y||150+Math.random()*300}); // eslint-disable-line react-hooks/purity
       return;
     }
 
@@ -235,14 +233,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
     // For custom devices, store custom specs and inherit icon/interfaces from base device
     const isCustom=deviceKey.startsWith('custom_');
-    const baseKey=isCustom?def.deviceType:deviceKey;
+    const _baseKey=isCustom?def.deviceType:deviceKey;
     if(isCustom){
       config.customSpecs=def.specs||{};
       config.brand=def.brand;
       config.model=def.model;
     }
 
-    const newDev={id:uid(),key:deviceKey,name:def.name,x:snap(x||200+Math.random()*400),y:snap(y||150+Math.random()*300),
+    const newDev={id:uid(),key:deviceKey,name:def.name,x:snap(x||200+Math.random()*400),y:snap(y||150+Math.random()*300), // eslint-disable-line react-hooks/purity
       model:selectedModel?.model||'',envId:null,config,props:{...def.props}};
     updateFloor(f=>({...f,devices:[...f.devices,newDev]}));
     setSelectedDevice(newDev.id);
@@ -515,7 +513,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
       })};
     });
   };
-  const deleteWaypoint=(connId,wpIdx)=>{
+  const _deleteWaypoint=(connId,wpIdx)=>{
     const conn=connections.find(c=>c.id===connId);
     if(!conn||!conn.waypoints) return;
     const wps=[...(conn.waypoints)];
@@ -919,7 +917,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     });
 
     // Add batteries if configured on nobreak_ac (external battery support)
-    allDevices.filter(d=>d.key==='nobreak_ac'&&d.config?.batExterna).forEach(nb=>{
+    allDevices.filter(d=>d.key==='nobreak_ac'&&d.config?.batExterna).forEach(_nb=>{
       if(!counts['bateria_ext']) counts['bateria_ext']={key:'bateria_ext',name:'Bateria Externa',qty:0,unit:'pç',model:''};
       counts['bateria_ext'].qty++;
     });
@@ -1116,7 +1114,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         try{
           const result=validateConnection(fromDev.key,dev.key,null);
           map[dev.id]=result?.valid && result?.cables?.length>0 ? 'valid' : 'invalid';
-        }catch(e){map[dev.id]='invalid';}
+        }catch(_e){map[dev.id]='invalid';}
       });
       return map;
     }catch(e){console.error('validTargets error',e);return {};}
@@ -1206,7 +1204,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         setGuides(newGuides);
       }
     };
-    const onUp=(e)=>{
+    const onUp=(_e)=>{
       // Check if device was dropped onto a QC entity on canvas
       if(dragging&&!dragging.isQuadro){
         const draggedDev=devices.find(d=>d.id===dragging.id);
@@ -1696,7 +1694,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                       display:'flex',justifyContent:'space-between',gap:4}}>
                       <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{qc.name}</span>
                       {qcDevices.length>0&&<span style={{color:'#4ade80',fontWeight:600,flexShrink:0}}>
-                        {qcDevices.reduce((s,d)=>{const i=getDeviceInterfaces(d);const pConns=connections.filter(c=>c.from===d.id||c.to===d.id);return s+pConns.length},0)}cx
+                        {qcDevices.reduce((s,d)=>{const _i=getDeviceInterfaces(d);const pConns=connections.filter(c=>c.from===d.id||c.to===d.id);return s+pConns.length},0)}cx
                       </span>}
                     </div>
                     {/* Delete button when selected */}
@@ -1714,7 +1712,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
               {/* Device nodes — hide devices that are inside a quadro (rack devices stay visible) */}
               {layers.devices&&devices.filter(d=>!d.quadroId).map(dev=>{
-                const def=findDevDef(dev.key);
+                const _def=findDevDef(dev.key);
                 const catInfo=DEVICE_LIB.find(c=>c.items.some(i=>i.key===dev.key));
                 const color=getDeviceColor(dev.key)||catInfo?.color||'#6b7280';
                 const targetStatus=cableMode?validTargets[dev.id]:null;
@@ -1936,7 +1934,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                     const dist=Math.sqrt(dx*dx+dy*dy);
                     const meters=(dist/40).toFixed(2); // 40px = 1m
                     const mx=(dim.x1+dim.x2)/2,my=(dim.y1+dim.y2)/2;
-                    const angle=Math.atan2(dy,dx)*180/Math.PI;
+                    const _angle=Math.atan2(dy,dx)*180/Math.PI;
                     // offset perpendicular for the text
                     const perpX=-dy/dist*12,perpY=dx/dist*12;
                     // extension lines (small lines at endpoints)

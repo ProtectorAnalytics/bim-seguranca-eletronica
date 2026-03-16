@@ -45,7 +45,7 @@ const itemStyle = {
   color: 'inherit',
 };
 
-const itemHoverStyle = {
+const _itemHoverStyle = {
   ...itemStyle,
   background: '#F0F5FA',
 };

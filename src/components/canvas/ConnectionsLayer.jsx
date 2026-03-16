@@ -1,6 +1,6 @@
 import React from 'react';
 import { CABLE_TYPES } from '@/data/cable-types';
-import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
+import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor } from '@/lib/cable-routing';
 
 /**
  * SVG layer rendering all cable connections between devices.
@@ -8,7 +8,7 @@ import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnc
 export default function ConnectionsLayer({
   connections, devices, quadros, cableMode, validTargets, selectedConn, setSelectedConn,
   setSelectedDevice, showCableLabels, getDevR, zoom, pan, canvasRef,
-  updateFloor, updateConnWaypoints, setDraggingWp, snapToGrid
+  updateFloor, updateConnWaypoints, setDraggingWp, snapToGrid: _snapToGrid
 }) {
   return (
     <>

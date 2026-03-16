@@ -63,16 +63,17 @@ export default function CanvasSearch({ devices, show, onClose, onFocus, onHighli
     }).slice(0, MAX_RESULTS);
   }, [query, devices]);
 
-  // Auto-focus input when shown
+  // Auto-focus input when shown, reset on close
   useEffect(() => {
     if (show && inputRef.current) {
       inputRef.current.focus();
     }
     if (!show) {
-      setQuery('');
-      setActiveIndex(0);
+      setQuery(''); // eslint-disable-line react-hooks/set-state-in-effect
+      setActiveIndex(0); // eslint-disable-line react-hooks/set-state-in-effect
+      onHighlight(null);
     }
-  }, [show]);
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Highlight matching devices on canvas
   useEffect(() => {
@@ -84,18 +85,18 @@ export default function CanvasSearch({ devices, show, onClose, onFocus, onHighli
     } else {
       onHighlight(null);
     }
-  }, [results, query, show]);
+  }, [results, query, show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clean up highlight on close
   useEffect(() => {
     if (!show) {
       onHighlight(null);
     }
-  }, [show]);
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset active index when results change
   useEffect(() => {
-    setActiveIndex(0);
+    setActiveIndex(0); // eslint-disable-line react-hooks/set-state-in-effect
   }, [results.length, query]);
 
   // Scroll active item into view

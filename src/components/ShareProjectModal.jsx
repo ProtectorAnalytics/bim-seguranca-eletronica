@@ -57,7 +57,7 @@ export default function ShareProjectModal({ projectId, projectName, onClose }) {
   const [createdShare, setCreatedShare] = useState(null);
   const [copied, setCopied] = useState(false);
   const [shares, setShares] = useState([]);
-  const [loadingShares, setLoadingShares] = useState(false);
+  const [_loadingShares, setLoadingShares] = useState(false);
   const [showExisting, setShowExisting] = useState(false);
   const [error, setError] = useState('');
 

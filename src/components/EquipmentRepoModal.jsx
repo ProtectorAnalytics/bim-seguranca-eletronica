@@ -53,7 +53,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
       camera:i=>i.key.startsWith('cam_'),
       acesso:i=>['leitor_facial','leitor_biometrico','leitor_rfid','controladora','leitor_tag'].includes(i.key),
       fechadura:i=>['fechadura','eletroima'].includes(i.key),
-      alarme:i=>false, // kept for custom devices (no standard alarm devices in v3.19)
+      alarme:()=>false, // kept for custom devices (no standard alarm devices in v3.19)
       sensor:i=>i.key.startsWith('barreira_'),
       switch_rede:i=>i.key.startsWith('sw_')||i.key==='router',
       gravador:i=>i.key.startsWith('nvr_'),
@@ -102,11 +102,11 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
 
   const parseDatasheet=()=>{
     const text=formState.datasheetText;const specs={...formState.specs};
-    const vm=text.match(/(\d+[\.,]?\d*)\s*(V|Vcc|VDC|VAC|volts?)/gi);
+    const vm=text.match(/(\d+[.,]?\d*)\s*(V|Vcc|VDC|VAC|volts?)/gi);
     if(vm&&formState.category==='fechadura') specs.tensao=vm[0].replace(/[^\d.,]/g,'').replace(',','.').substring(0,5)+' V';
-    const cm=text.match(/(\d+[\.,]?\d*)\s*(A|mA|ampere)/gi);
+    const cm=text.match(/(\d+[.,]?\d*)\s*(A|mA|ampere)/gi);
     if(cm&&formState.category==='fechadura') specs.corrente=cm[0].replace(/[^\d.,]/g,'').replace(',','.')+' A';
-    const pm=text.match(/(\d+[\.,]?\d*)\s*(W|VA|watts?)/gi);
+    const pm=text.match(/(\d+[.,]?\d*)\s*(W|VA|watts?)/gi);
     if(pm){const v=pm[0].replace(/[^\d.,]/g,'').replace(',','.');
       if(formState.category==='fonte_energia')specs.potencia=v+' W';
       if(formState.category==='nobreak')specs.potencia_w=parseInt(v)||0;}
@@ -219,7 +219,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   };
 
   // ── STEP INDICATOR BAR ──
-  const StepBar=()=>{
+  const renderStepBar=()=>{
     if(step<1)return null;
     return <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:20,padding:'0 4px'}}>
       {WIZARD_STEPS.map((s,i)=>{
@@ -241,7 +241,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
     </div>;
   };
 
-  const NavButtons=({canNext=true,nextLabel='Próximo →'})=>(
+  const renderNavButtons=(canNext=true,nextLabel='Próximo →')=>(
     <div style={{display:'flex',gap:8,marginTop:16,borderTop:'1px solid #e5e8eb',paddingTop:12}}>
       <button className="mc-btn mc-btn-secondary" style={{flex:1,fontSize:12}} onClick={()=>setStep(step<=1?0:step-1)}>
         ← {step<=1?'Lista':'Voltar'}
@@ -385,7 +385,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
                       {isHidden&&<span style={{fontSize:8,background:'#fee2e2',color:'#dc2626',padding:'1px 5px',borderRadius:3}}>oculto</span>}
                     </div>
                     <div style={{fontSize:9,color:'var(--cinza)',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                      {item._cat.cat} {item.ref?`• ${item.ref}`:''} {Object.entries(item.props||{}).slice(0,3).map(([k,v])=>`• ${v}`).join(' ')}
+                      {item._cat.cat} {item.ref?`• ${item.ref}`:''} {Object.entries(item.props||{}).slice(0,3).map(([_k,v])=>`• ${v}`).join(' ')}
                     </div>
                   </div>
                   <div style={{display:'flex',gap:4,flexShrink:0}}>
@@ -418,7 +418,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
   // ── WIZARD CONTAINER ──
   return <div className="modal-overlay" onClick={onClose}>
     <div className="modal-card" onClick={e=>e.stopPropagation()} style={{maxWidth:'min(620px, calc(100vw - 24px))',maxHeight:'88vh',overflow:'auto'}}>
-      <StepBar/>
+      {renderStepBar()}
 
       {/* STEP 1: CATEGORY */}
       {step===1&&<>
@@ -434,7 +434,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
             </button>;
           })}
         </div>
-        <NavButtons canNext={!!formState.category}/>
+        {renderNavButtons(!!formState.category)}
       </>}
 
       {/* STEP 2: BASE DEVICE */}
@@ -461,7 +461,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
             </button>;
           })}
         </div>
-        <NavButtons canNext={!!formState.baseDeviceType}/>
+        {renderNavButtons(!!formState.baseDeviceType)}
       </>}
 
       {/* STEP 3: GENERAL DATA + ICON/COLOR */}
@@ -553,7 +553,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
               🔍 Extrair specs</button>}
           </div>
         </div>
-        <NavButtons canNext={!!(formState.brand&&formState.model)}/>
+        {renderNavButtons(!!(formState.brand&&formState.model))}
       </>}
 
       {/* STEP 4: INTERFACES (Painel de Recursos) */}
@@ -627,7 +627,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
             </div>;
           })}
         </div>
-        <NavButtons/>
+        {renderNavButtons()}
       </>}
 
       {/* STEP 5: SPECS */}
@@ -650,7 +650,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
           ))}
           {(EQUIPMENT_SCHEMAS[formState.category]||[]).length===0&&<div style={{textAlign:'center',padding:20,color:'#9ca3af',fontSize:11}}>Sem especificações padrão para esta categoria.</div>}
         </div>
-        <NavButtons/>
+        {renderNavButtons()}
       </>}
 
       {/* STEP 6: REVIEW */}
@@ -698,7 +698,7 @@ export default function EquipmentRepoModal({customDevices,onSave,onDelete,onClos
               <span key={k} style={{fontSize:8,background:'#e5e8eb',color:'#374151',padding:'2px 6px',borderRadius:3}}>{k}: {String(v)}</span>)}
           </div>
         </div>}
-        <NavButtons/>
+        {renderNavButtons()}
       </>}
     </div>
   </div>;

@@ -144,7 +144,7 @@ export default function App(){
   const [limitMsg,setLimitMsg]=useState('');
   const onStartNewProject=()=>{
     const projects=getSavedProjects();
-    const localCount = projects.filter(p => !p.storageMode || p.storageMode === 'local').length;
+    const _localCount = projects.filter(p => !p.storageMode || p.storageMode === 'local').length;
     // For cloud projects, the limit is enforced by the DB trigger
     // For local projects, enforce client-side
     if(limits.maxProjects !== -1 && projects.length >= limits.maxProjects){

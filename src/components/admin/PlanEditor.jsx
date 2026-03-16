@@ -75,7 +75,7 @@ function PlanCard({ plan, isEditing, onEdit, onSave, onCancel, onDelete, saveErr
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [form, setForm] = useState({ ...plan })
 
-  // Reset form when plan data changes or editing state changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setForm({ ...plan }) }, [plan, isEditing])
 
   const color = slugColor(plan.slug)
@@ -218,7 +218,7 @@ export default function PlanEditor() {
     setSaveError(null)
     try {
       if (!supabase) throw new Error('Supabase nao configurado')
-      const { id, created_at, ...updates } = formData
+      const { id, created_at: _created_at, ...updates } = formData
       const { error: updateErr } = await supabase.from('plans').update(updates).eq('id', id)
       if (updateErr) throw new Error(updateErr.message)
       setEditing(null)

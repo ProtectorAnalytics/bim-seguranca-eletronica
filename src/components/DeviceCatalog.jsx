@@ -41,7 +41,7 @@ function SubcategoryGroup({name, items, cat, overrides, pendingDevice, setPendin
   );
 }
 
-export default function DeviceCatalog({search, setSearch, collapsedCats, toggleCat, pendingDevice, setPendingDevice, setTool, customDevices, DEVICE_LIB, showEquipmentRepo, setShowEquipmentRepo, refreshKey}){
+export default function DeviceCatalog({search, setSearch, collapsedCats, toggleCat, pendingDevice, setPendingDevice, setTool, customDevices, DEVICE_LIB, showEquipmentRepo: _showEquipmentRepo, setShowEquipmentRepo, refreshKey: _refreshKey}){
   const hiddenSet=new Set(getHiddenDevices());
   const overrides=getDeviceOverrides();
   const [hiddenFamilies,setHiddenFamilies]=useState(()=>getHiddenFamilies());

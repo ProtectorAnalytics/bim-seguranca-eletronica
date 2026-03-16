@@ -88,7 +88,7 @@ export default function SharedProjectView({ shareToken, onExit }) {
   }, [shareToken, user, getAccessToken]);
 
   useEffect(() => {
-    if (!authLoading) loadProject();
+    if (!authLoading) loadProject(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [authLoading, user]);
 
   // Auto-save for edit permission (debounced)
@@ -108,7 +108,7 @@ export default function SharedProjectView({ shareToken, onExit }) {
       return;
     }
 
-    setSaveStatus('saving');
+    setSaveStatus('saving'); // eslint-disable-line react-hooks/set-state-in-effect
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
