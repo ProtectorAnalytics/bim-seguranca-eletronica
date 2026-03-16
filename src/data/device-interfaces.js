@@ -85,7 +85,8 @@ export const DEVICE_INTERFACES = {
                  {type:'automation_in',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Entrada automação (botoeira/contato)',required:false}],
   // Rede
   sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas de rede (uplink + PoE)',required:true},
-                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true}],
+                 {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
+                 {type:'power_in',cables:['pp2v_25','pp2v_15'],label:'Alimentação DC 48-54V (via conversor DC-DC)',required:false}],
   sw_normal:    [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas de rede',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
                  {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação DC 12-30V (fonte/nobreak)',required:false},
@@ -126,6 +127,8 @@ export const DEVICE_INTERFACES = {
   fonte:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC',required:true},
                  {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída 12VDC',required:true},
                  {type:'signal_in',cables:['pp2v_05'],label:'Entrada sensor porta',required:false}],
+  conversor_dc_dc:[{type:'power_in',cables:['pp2v_10','pp2v_15'],label:'Entrada 12VDC (da fonte nobreak)',required:true},
+                   {type:'power_out',cables:['pp2v_25','pp2v_15'],label:'Saída 54VDC (p/ Switch PoE)',required:true}],
   dio:          [{type:'data_io',cables:['smf','mmf'],label:'Terminação fibra óptica (entrada/saída)',required:true},
                  {type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Saída LAN (conversor integrado)',required:false}],
   borne_sak:    [{type:'passthrough',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Emenda / passagem cabos (trilho DIN)'}],
@@ -180,11 +183,11 @@ export const isComunicador = k => k.startsWith('comunicador_');
 export const isExpansor = k => k.startsWith('expansor_') || k.startsWith('receptor_');
 export const isPerifericoAlarme = k => isTeclado(k) || isComunicador(k) || isExpansor(k) || k.startsWith('controle_');
 export const isNobreak = k => k === 'nobreak_ac' || k === 'nobreak_dc';
-export const isFonte = k => k === 'fonte' || k.startsWith('fonte_nb_');
-export const isFonteNobreak = k => k.startsWith('fonte_nb_');
+export const isFonte = k => k === 'fonte' || k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_');
+export const isFonteNobreak = k => k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_');
 export const isONT = k => k === 'ont_gpon' || k.startsWith('ont_');
 export const isBateria = k => k === 'bateria_ext' || k.startsWith('bat_12v_');
-export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('bat_12v_');
+export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_') || k.startsWith('bat_12v_') || k.startsWith('conversor_dc_dc_');
 export const needsPoE = k => isCameraIP(k) || isAP(k);
 export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
 /** Concentradores de rede — conexão entre eles = uplink (não ocupa porta de acesso) */
@@ -320,13 +323,13 @@ export function canMountInRack(key){
   return isSwitch(key)||isGravador(key)||isNobreak(key)||isFonte(key)||
     key==='router'||key==='dio'||key==='borne_sak'||isBateria(key)||
     key==='modulo_bat'||key==='controladora'||key==='cabo_engate'||
-    key==='patch_panel'||isONT(key);
+    key==='patch_panel'||isONT(key)||key.startsWith('conversor_dc_dc_');
 }
 // Can this device go inside a quadro conectividade (QC)?
 export function canMountInQuadro(key){
   return isSwitchPoE(key)||isSwitch(key)||isONT(key)||isFonteNobreak(key)||isBateria(key)||
     key==='dps_rede'||key==='tomada_dupla'||key==='conversor_midia'||key==='borne_sak'||
-    key==='dio'||key==='nobreak_dc'||isFonte(key);
+    key==='dio'||key==='nobreak_dc'||isFonte(key)||key.startsWith('conversor_dc_dc_');
 }
 
 // Rack U size per device type
@@ -422,6 +425,9 @@ export function resolveInterfacesByKey(key) {
 
   // ── ONT GPON ──
   if (isONT(key)) return DEVICE_INTERFACES.ont_gpon;
+
+  // ── Conversor DC-DC ──
+  if (key.startsWith('conversor_dc_dc_')) return DEVICE_INTERFACES.conversor_dc_dc;
 
   // ── Fonte Nobreak 12V ──
   if (isFonteNobreak(key)) return DEVICE_INTERFACES.fonte_nb;
