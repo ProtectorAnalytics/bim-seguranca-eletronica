@@ -412,6 +412,9 @@ export const validateConnection = (fromKey, toKey, cableId) => {
         // power_out connects to power_in
         (fi.type === 'power_out' && ti.type === 'power_in') ||
         (ti.type === 'power_out' && fi.type === 'power_in') ||
+        // power_io connects to power_out, power_in, or another power_io (bateria ↔ fonte/nobreak)
+        (fi.type === 'power_io' && (ti.type === 'power_out' || ti.type === 'power_in' || ti.type === 'power_io')) ||
+        (ti.type === 'power_io' && (fi.type === 'power_out' || fi.type === 'power_in' || fi.type === 'power_io')) ||
         // signal_out connects to signal_in or alarm_zone
         (fi.type === 'signal_out' && (ti.type === 'signal_in' || ti.type === 'alarm_zone')) ||
         (ti.type === 'signal_out' && (fi.type === 'signal_in' || fi.type === 'alarm_zone')) ||
