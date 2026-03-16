@@ -131,6 +131,8 @@ export const DEVICE_LIB = [
     {key:'fonte_nb_5a',name:'Fonte Nobreak 12V 5A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 5A (60W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
     {key:'fonte_nb_6a',name:'Fonte Nobreak 12V 6A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 6A (72W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
     {key:'fonte_nb_10a',name:'Fonte Nobreak 12V 10A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 10A (120W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
+    {key:'fonte_idpower_3a',name:'Fonte IDPower 12V 3A',icon:'fonte',poe:false,ports:1,manufacturer:'IDPower',props:{saida:'12V 3A (36W)',entrada:'90-264Vac 50/60Hz',bateria:'12V 7Ah compatível',tipo:'Nobreak DC',protecao:'Curto-circuito / Sobrecarga'},ref:''},
+    {key:'conversor_dc_dc_54v',name:'Conversor DC-DC 12V→54V 3A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{entrada:'10-16VDC (fonte nobreak 12V)',saida:'54VDC 3A (162W)',uso:'Alimentar Switch PoE até 8 portas',tipo:'Step-Up DC-DC'},ref:''},
     {key:'bat_12v_1_2ah',name:'Bateria 12V 1.2Ah',icon:'bateria_ext',poe:false,ports:1,manufacturer:'Genérico',props:{tensao:'12V',capacidade:'1.2Ah',tipo:'VRLA Selada'},ref:''},
     {key:'bat_12v_3ah',name:'Bateria 12V 3Ah',icon:'bateria_ext',poe:false,ports:1,manufacturer:'Genérico',props:{tensao:'12V',capacidade:'3Ah',tipo:'VRLA Selada'},ref:''},
     {key:'bat_12v_4ah',name:'Bateria 12V 4Ah',icon:'bateria_ext',poe:false,ports:1,manufacturer:'Genérico',props:{tensao:'12V',capacidade:'4Ah',tipo:'VRLA Selada'},ref:''},
