@@ -50,8 +50,11 @@ function saveSessionState(screen, projectId, storageMode) {
 export default function App(){
   const { user, loading: authLoading, isAdmin, configError, getAccessToken } = useAuth();
   const limits = useSubscription();
-  const sessionState = useRef(getSessionState()).current;
-  const [screen,setScreenRaw]=useState(sessionState.screen);
+  const _initSession = useRef(getSessionState());
+  const initScreen = _initSession.current.screen;
+  const initProjectId = _initSession.current.projectId;
+  const initStorageMode = _initSession.current.storageMode;
+  const [screen,setScreenRaw]=useState(initScreen);
   const [project,_setProject]=useState(null);
   const { pushSnapshot, undo, redo, clearHistory, skipNext } = useProjectHistory(_setProject);
   const setProject=(updaterOrVal)=>{
@@ -69,8 +72,8 @@ export default function App(){
       }catch(e){console.error('setProject error',e);skipNext.current=false;return prev;}
     });
   };
-  const [editingProjectId,setEditingProjectId]=useState(sessionState.projectId);
-  const [storageMode,setStorageMode]=useState(sessionState.storageMode);
+  const [editingProjectId,setEditingProjectId]=useState(initProjectId);
+  const [storageMode,setStorageMode]=useState(initStorageMode);
 
   // Wrap setScreen to persist to sessionStorage
   const setScreen = useCallback((s) => {
@@ -141,7 +144,7 @@ export default function App(){
   const [limitMsg,setLimitMsg]=useState('');
   const onStartNewProject=()=>{
     const projects=getSavedProjects();
-    const localCount = projects.filter(p => !p.storageMode || p.storageMode === 'local').length;
+    const _localCount = projects.filter(p => !p.storageMode || p.storageMode === 'local').length;
     // For cloud projects, the limit is enforced by the DB trigger
     // For local projects, enforce client-side
     if(limits.maxProjects !== -1 && projects.length >= limits.maxProjects){
@@ -238,6 +241,12 @@ export default function App(){
   const inviteToken = urlParams.get('invite')
   const shareTokenParam = urlParams.get('share')
   const urlType = urlParams.get('type')
+
+  // Health check endpoint — /?health=1
+  if(urlParams.get('health') === '1') {
+    const HealthCheck = lazy(() => import('./HealthCheck'));
+    return <Suspense fallback={<LoadingScreen/>}><HealthCheck /></Suspense>;
+  }
 
   // Auth guard
   if(authLoading) return <LoadingScreen/>;

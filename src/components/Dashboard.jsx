@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSavedProjects, getSavedClients, getSettings, getCustomDevices, getCachedCloudProjects } from '@/lib/helpers';
+import { getSavedProjects, getSavedClients, getCustomDevices, getCachedCloudProjects } from '@/lib/helpers';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import UpgradeBanner from './UpgradeBanner';
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard({ onNewProject, onOpenProject, onClients, onRepo, onSettings, onSubscription, onAdmin, onProfile, limitMsg, onDismissLimit }) {
-  const { isAdmin, authDebug, profile } = useAuth();
+  const { isAdmin, authDebug } = useAuth();
   const limits = useSubscription();
   const localProjects = getSavedProjects();
   const cloudProjects = getCachedCloudProjects();

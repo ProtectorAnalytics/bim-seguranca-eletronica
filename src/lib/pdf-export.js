@@ -72,7 +72,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       import('jspdf-autotable'),
     ]);
   } catch (loadErr) {
-    throw new Error('Falha ao carregar bibliotecas de PDF: ' + loadErr.message);
+    throw new Error('Falha ao carregar bibliotecas de PDF: ' + loadErr.message, { cause: loadErr });
   }
   // jsPDF 2.x+ uses named export, fallback to default for compatibility
   const jsPDF = jspdfModule.jsPDF || jspdfModule.default;

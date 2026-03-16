@@ -1,7 +1,7 @@
 // ====================================================================
 // RACK HELPERS — Rack como entidade de dados (não mais device no canvas)
 // ====================================================================
-import { canMountInRack, getDeviceUSize, isSwitch, isGravador, isNobreak, isCentralAlarme, isCentralIncendio } from '@/data/device-interfaces';
+import { getDeviceUSize, isSwitch, isGravador, isNobreak, isCentralAlarme, isCentralIncendio } from '@/data/device-interfaces';
 import { uid } from './helpers';
 
 // ── Tag auto-gerada ─────────────────────────────────────────────────

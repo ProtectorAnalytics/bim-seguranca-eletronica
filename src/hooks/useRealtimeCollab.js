@@ -21,9 +21,11 @@ export function useRealtimeCollab(projectId, userInfo, onRemoteChange, enabled =
   const isSelf = useRef(false);
 
   // Generate a unique session ID for this tab
-  const sessionId = useRef(
-    `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-  ).current;
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current) {
+    sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; // eslint-disable-line react-hooks/purity
+  }
+  const sessionId = sessionIdRef.current;
 
   useEffect(() => {
     if (!enabled || !projectId || !supabase) return;

@@ -30,7 +30,7 @@ export function exportBomCSV({
   projectName = 'projeto',
   bom = [],
   allDevices = [],
-  connections = [],
+  connections: _connections = [],
   floors = [],
   separator = ';',
 } = {}) {

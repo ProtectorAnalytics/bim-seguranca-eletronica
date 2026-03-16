@@ -8,7 +8,7 @@ export function useKeyboardShortcuts({
   undo, redo, deleteDevice, deleteConnection, updateConnWaypoints,
   setTool, setPendingDevice, setCableMode, setPortPopup, setSelectedConn,
   setMeasureStart, setMultiSelect, setCalibStart, setCalibEnd, setShowCalibModal,
-  setSelectedQuadroId, setSelectedDevice,
+  setSelectedQuadroId, setSelectedDevice: _setSelectedDevice,
   copySelected, pasteClipboard, duplicateSelected, setShowSearch,
   prevToolRef
 }) {

@@ -1,14 +1,12 @@
 import React from 'react';
 import { DEVICE_LIB } from '@/data/device-lib';
-import { findDevDef } from '@/lib/helpers';
-import { getDeviceInterfaces } from '@/lib/helpers';
-import { canMountInQuadro, isSwitch, isSwitchPoE, isFonteNobreak, isBateria, isONT } from '@/data/device-interfaces';
+import { canMountInQuadro, isSwitchPoE, isFonteNobreak, isONT } from '@/data/device-interfaces';
 
 /**
  * Right panel tab for Quadro de Conectividade management.
  */
 export default function QuadroDetailPanel({
-  quadros, devices, connections, selectedQuadroId, setSelectedQuadroId,
+  quadros, devices, connections: _connections, selectedQuadroId, setSelectedQuadroId,
   addQuadro, updateQuadro, deleteQuadro,
   assignDeviceToQuadro, unassignDeviceFromQuadro,
   setSelectedDevice, setRightTab

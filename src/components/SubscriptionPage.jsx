@@ -6,7 +6,7 @@ import LicenseRedeemForm from './LicenseRedeemForm';
 import { CreditCard, Clock, XCircle, Lock, User, Mail, LayoutGrid } from 'lucide-react';
 
 export default function SubscriptionPage({ onBack, onProfile }) {
-  const { profile, subscription, refreshUserData } = useAuth();
+  const { subscription, refreshUserData } = useAuth();
   const limits = useSubscription();
   const [plans, setPlans] = useState([]);
   const [showRedeem, setShowRedeem] = useState(false);

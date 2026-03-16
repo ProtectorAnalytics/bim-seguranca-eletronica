@@ -1,7 +1,7 @@
 import React from 'react';
 import { REGRAS } from '@/data/validation-rules';
 
-export default function ValidationPanel({validations, devices, setSelectedDevice, setRightTab}){
+export default function ValidationPanel({validations, devices, setSelectedDevice: _setSelectedDevice, setRightTab: _setRightTab}){
   return (
     <div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>

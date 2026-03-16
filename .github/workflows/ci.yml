@@ -25,9 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint (warnings only — to be enforced later)
-        run: npm run lint || echo "::warning::ESLint found issues. Fix these before enforcing lint in CI."
-        continue-on-error: true
+      - name: Lint
+        run: npm run lint
 
       - name: Run tests
         run: npm test

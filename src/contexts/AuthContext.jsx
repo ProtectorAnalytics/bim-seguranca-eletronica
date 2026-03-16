@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 
@@ -57,7 +58,7 @@ export function AuthProvider({ children }) {
   const [subscription, setSubscription] = useState(null)
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [configError, setConfigError] = useState(!supabase)
+  const [configError, _setConfigError] = useState(!supabase)
   const [authDebug, setAuthDebug] = useState(null)
   const fetchInProgress = useRef(false) // prevent concurrent fetches
 

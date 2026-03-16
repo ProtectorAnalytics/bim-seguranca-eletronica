@@ -52,7 +52,7 @@ export default function MigrationWizard({ devices, onReplace, onClose }) {
   const [applied, setApplied] = useState(new Set());
 
   // Build flat list of all available devices for replacement picker
-  const allDevices = useMemo(() => {
+  const _allDevices = useMemo(() => {
     const items = [];
     DEVICE_LIB.forEach(cat => {
       cat.items.forEach(item => {

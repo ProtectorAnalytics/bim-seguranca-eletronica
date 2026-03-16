@@ -21,7 +21,7 @@ const LinkIcon = () => (
   </svg>
 );
 
-export default function UserTable({ onNavigateInvites }) {
+export default function UserTable({ onNavigateInvites: _onNavigateInvites }) {
   const { profile: adminProfile } = useAuth()
   const [users, setUsers] = useState([])
   const [plans, setPlans] = useState([])

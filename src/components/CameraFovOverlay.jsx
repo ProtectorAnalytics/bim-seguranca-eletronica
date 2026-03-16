@@ -60,11 +60,10 @@ function buildWedgePath(cx, cy, angle, range, rotation) {
  * Hikvision-style: cyan fill, solid border, interactive rotation handle.
  */
 export default function CameraFovOverlay({ devices, show, heatmap, updateDevice, zoom, pan, canvasRef, globalIconSize }) {
-  if (!show) return null;
-
-  const cameras = devices.filter(d => isCamera(d.key) && !d.quadroId);
   const [dragging, setDragging] = useState(null);
   const dragRef = useRef(null);
+
+  const cameras = devices.filter(d => isCamera(d.key) && !d.quadroId);
 
   // FOV color scheme — Hikvision cyan style
   const fovFill = '#00d4d4';
@@ -108,7 +107,9 @@ export default function CameraFovOverlay({ devices, show, heatmap, updateDevice,
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, [devices, updateDevice, zoom, pan, canvasRef]);
+  }, [devices, updateDevice, zoom, pan, canvasRef, globalIconSize]);
+
+  if (!show) return null;
 
   // Heatmap mode
   if (heatmap && cameras.length > 0) {

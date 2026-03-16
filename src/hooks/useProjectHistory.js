@@ -49,7 +49,7 @@ export function useProjectHistory(_setProject) {
     try {
       set(PAST_KEY, past.current.slice(), historyStore).catch(() => {});
       set(FUTURE_KEY, future.current.slice(), historyStore).catch(() => {});
-    } catch (e) {
+    } catch (_e) {
       // IndexedDB unavailable — fallback to in-memory only
     }
   }, []);

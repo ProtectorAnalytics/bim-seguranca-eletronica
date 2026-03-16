@@ -82,14 +82,14 @@ export function findDevDef(key){
     const custom=JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
     const found=custom.find(c=>c.key===key);
     if(found) return found;
-  }catch(e){}
+  }catch(_e){ /* ignore */ }
   return null;
 }
 
 export function getCustomDevices(){
   try {
     return JSON.parse(localStorage.getItem('bim_custom_devices')||'[]');
-  }catch(e){
+  }catch(_e){
     return [];
   }
 }
@@ -198,7 +198,7 @@ export const REGRAS=[
       const issues=[];
       devices.filter(d=>needsACPower(d.key)).forEach(dev=>{
         const hasPowerConn=connections?.some(c=>{
-          const otherId=c.from===dev.id?c.to:c.from;
+          const _otherId=c.from===dev.id?c.to:c.from;
           const ct=CABLE_TYPES.find(t=>t.id===c.type);
           return ct?.group==='power';
         });
@@ -208,7 +208,7 @@ export const REGRAS=[
       return null;
     }},
   {cat:'Alimentação',regra:'Dispositivo DC sem fonte 12V',sev:'ALTA',
-    check:(devices,connections)=>{
+    check:(devices,_connections)=>{
       const fontes=devices.filter(d=>isFonte(d.key));
       if(!fontes.length){
         const dcDevs=devices.filter(d=>needsDCPower(d.key));
