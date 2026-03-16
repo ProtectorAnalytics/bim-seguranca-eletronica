@@ -382,11 +382,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
     const dist=calcCableDistance(fromDev.x,fromDev.y,toDev.x,toDev.y,[],40,floor?.bgScale);
 
-    // Validate connection (use base device keys for custom devices)
+    // Validate connection (pass device objects so getDeviceInterfaces resolves correctly)
     const chosenCable=type||cableType;
-    const fromKey=getDeviceIconKey(fromDev.key);
-    const toKey=getDeviceIconKey(toDev.key);
-    const validation=validateConnection(fromKey,toKey,chosenCable);
+    const validation=validateConnection(fromDev,toDev,chosenCable);
 
     if(!validation.valid && validation.cables.length===0){
       showConnToast(`✕ ${validation.reason}`,'error');
@@ -443,7 +441,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     const {fromId,toId,dist,ifaceType,ifaceLabel}=cablePicker;
     const fromDev=devices.find(d=>d.id===fromId);
     const toDev=devices.find(d=>d.id===toId);
-    const validation=validateConnection(fromDev.key,toDev.key,cableId);
+    const validation=validateConnection(fromDev,toDev,cableId);
     // Auto-calc PP section for picker too
     let pickCable=cableId;
     const pickCT=CABLE_TYPES.find(c=>c.id===cableId);
@@ -482,9 +480,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     const fromDev=project.floors.find(f=>f.id===data.fromFloorId)?.devices?.find(d=>d.id===data.fromDeviceId);
     const toDev=project.floors.find(f=>f.id===data.toFloorId)?.devices?.find(d=>d.id===data.toDeviceId);
     if(!fromDev||!toDev) return;
-    const fromKey=getDeviceIconKey(fromDev.key);
-    const toKey=getDeviceIconKey(toDev.key);
-    const validation=validateConnection(fromKey,toKey,data.type);
+    const validation=validateConnection(fromDev,toDev,data.type);
     const purpose=validation?.purpose||'dados';
     const newConn={
       id:uid(),
@@ -1112,7 +1108,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
       devices.forEach(dev=>{
         if(dev.id===cableMode.from) return;
         try{
-          const result=validateConnection(fromDev.key,dev.key,null);
+          const result=validateConnection(fromDev,dev,null);
           map[dev.id]=result?.valid && result?.cables?.length>0 ? 'valid' : 'invalid';
         }catch(_e){map[dev.id]='invalid';}
       });
