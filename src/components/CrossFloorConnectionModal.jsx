@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CABLE_TYPES } from '@/data/cable-types';
 import {
-  findDevDef, getDeviceIconKey, validateConnection, calcPPSection
+  findDevDef, validateConnection, calcPPSection
 } from '@/lib/helpers';
 import { Layers, Cable, Search, X } from 'lucide-react';
 
@@ -25,9 +25,7 @@ export default function CrossFloorConnectionModal({
     const floor = project.floors.find(f => f.id === selectedFloorId);
     if (!floor) return [];
     return floor.devices.map(dev => {
-      const fromKey = getDeviceIconKey(sourceDev.key);
-      const toKey = getDeviceIconKey(dev.key);
-      const validation = validateConnection(fromKey, toKey, null);
+      const validation = validateConnection(sourceDev, dev, null);
       const compatible = validation?.valid || (validation?.cables?.length > 0);
       return { ...dev, compatible, validCables: validation?.cables || [] };
     }).filter(dev => {
@@ -43,9 +41,7 @@ export default function CrossFloorConnectionModal({
     if (!selectedTargetId || !sourceDev) return CABLE_TYPES;
     const targetDev = targetDevices.find(d => d.id === selectedTargetId);
     if (!targetDev) return CABLE_TYPES;
-    const fromKey = getDeviceIconKey(sourceDev.key);
-    const toKey = getDeviceIconKey(targetDev.key);
-    const validation = validateConnection(fromKey, toKey, null);
+    const validation = validateConnection(sourceDev, targetDev, null);
     if (validation?.cables?.length > 0) return CABLE_TYPES.filter(ct => validation.cables.includes(ct.id));
     return CABLE_TYPES;
   }, [selectedTargetId, sourceDev, targetDevices]);
