@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (warnings only — to be enforced later)
+        run: npm run lint || echo "::warning::ESLint found issues. Fix these before enforcing lint in CI."
+        continue-on-error: true
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+
+      - name: Check bundle size
+        run: |
+          MAIN_SIZE=$(du -sk dist/assets/index-*.js | cut -f1)
+          echo "Main bundle: ${MAIN_SIZE}KB"
+          if [ "$MAIN_SIZE" -gt 1024 ]; then
+            echo "::warning::Main bundle exceeds 1MB (${MAIN_SIZE}KB)"
+          fi

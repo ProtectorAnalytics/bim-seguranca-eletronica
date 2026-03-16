@@ -49,6 +49,9 @@ export default function UserMenu({ onProfile, onSubscription, onSettings, onAdmi
     <div ref={menuRef} style={{ position: 'relative' }}>
       {/* Trigger button */}
       <button
+        aria-label="Menu do usuario"
+        aria-expanded={open}
+        aria-haspopup="true"
         onClick={() => setOpen(!open)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -88,7 +91,7 @@ export default function UserMenu({ onProfile, onSubscription, onSettings, onAdmi
 
       {/* Dropdown menu */}
       {open && (
-        <div style={{
+        <div role="menu" aria-label="Menu do usuario" style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 1000,
           background: '#ffffff', border: '1px solid #E2E8F0',
           borderRadius: 12, padding: 6, minWidth: 'min(260px, calc(100vw - 24px))',
@@ -174,6 +177,8 @@ export default function UserMenu({ onProfile, onSubscription, onSettings, onAdmi
 function MenuItem({ icon: Icon, label, desc, onClick, accent }) {
   return (
     <button
+      role="menuitem"
+      aria-label={label}
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 10, width: '100%',

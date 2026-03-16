@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { getSavedProjects, saveProjects, getSavedClients, saveClients, syncUid, dedupDeviceIds, migrateProjectKeys, setCachedProject } from '@/lib/helpers';
 import { debouncedSaveCloud, cancelPendingSave, loadCloudProject } from '@/lib/projectStorage';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
 import LoginPage from './LoginPage';
 import Dashboard from './Dashboard';
-import ProjectListPage from './ProjectListPage';
-import ClientForm from './ClientForm';
-// ScenarioSelect merged into ClientForm
-import ClientListPage from './ClientListPage';
-import EquipmentRepoPage from './EquipmentRepoPage';
-import SettingsPage from './SettingsPage';
-import SubscriptionPage from './SubscriptionPage';
-import ProfilePage from './ProfilePage';
-import AdminPage from './AdminPage';
-import InviteRegisterPage from './InviteRegisterPage';
-import ResetPasswordPage from './ResetPasswordPage';
 import UpgradeBanner from './UpgradeBanner';
 
-import ProjectApp from './ProjectApp';
-import SharedProjectView from './SharedProjectView';
+// Lazy-loaded routes (code splitting — reduces initial bundle)
+const ProjectApp = lazy(() => import('./ProjectApp'));
+const ProjectListPage = lazy(() => import('./ProjectListPage'));
+const ClientForm = lazy(() => import('./ClientForm'));
+const ClientListPage = lazy(() => import('./ClientListPage'));
+const EquipmentRepoPage = lazy(() => import('./EquipmentRepoPage'));
+const SettingsPage = lazy(() => import('./SettingsPage'));
+const SubscriptionPage = lazy(() => import('./SubscriptionPage'));
+const ProfilePage = lazy(() => import('./ProfilePage'));
+const AdminPage = lazy(() => import('./AdminPage'));
+const InviteRegisterPage = lazy(() => import('./InviteRegisterPage'));
+const ResetPasswordPage = lazy(() => import('./ResetPasswordPage'));
+const SharedProjectView = lazy(() => import('./SharedProjectView'));
 import { useSubscription } from '../hooks/useSubscription';
 import { useProjectHistory } from '../hooks/useProjectHistory';
 
@@ -244,19 +244,19 @@ export default function App(){
 
   // Shared project link (can be accessed without auth)
   if(shareTokenParam) return (
-    <>
+    <Suspense fallback={<LoadingScreen/>}>
       <SharedProjectView
         shareToken={shareTokenParam}
         onExit={() => { window.history.replaceState({}, '', '/'); window.location.reload() }}
       />
-    </>
+    </Suspense>
   );
 
   // Invite registration (no auth required)
-  if(inviteToken) return <InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+  if(inviteToken) return <Suspense fallback={<LoadingScreen/>}><InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /></Suspense>;
 
   // Password recovery (user arrives authenticated via Supabase recovery link)
-  if(urlType === 'recovery' && user) return <ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
+  if(urlType === 'recovery' && user) return <Suspense fallback={<LoadingScreen/>}><ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /></Suspense>;
 
   if(!user) return <LoginPage/>;
 
@@ -313,5 +313,5 @@ export default function App(){
 
   else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} cloudFallback={cloudFallback} storageMode={storageMode} projectId={editingProjectId} onBack={()=>setScreen('dashboard')}/>;
 
-  return <>{content}</>;
+  return <Suspense fallback={<LoadingScreen/>}>{content}</Suspense>;
 }

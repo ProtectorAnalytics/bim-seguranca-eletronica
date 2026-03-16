@@ -139,22 +139,22 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           {tab === 'register' && (
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Nome completo</label>
-              <input style={inputStyle} type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Seu nome"
+              <label htmlFor="login-name" style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Nome completo</label>
+              <input id="login-name" aria-label="Nome completo" autoComplete="name" style={inputStyle} type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Seu nome"
                 onFocus={focusHandler} onBlur={blurHandler} />
             </div>
           )}
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Email</label>
-            <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required
+            <label htmlFor="login-email" style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Email</label>
+            <input id="login-email" aria-label="Email" autoComplete="email" style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required
               onFocus={focusHandler} onBlur={blurHandler} />
           </div>
 
           {tab !== 'forgot' && (
             <div style={{ marginBottom: tab === 'register' ? 4 : 18 }}>
-              <label style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Senha</label>
-              <input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
+              <label htmlFor="login-password" style={{ fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block', fontWeight: 600 }}>Senha</label>
+              <input id="login-password" aria-label="Senha" autoComplete="current-password" style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
                 onFocus={focusHandler} onBlur={blurHandler} />
             </div>
           )}
