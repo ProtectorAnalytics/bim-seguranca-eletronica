@@ -188,7 +188,7 @@ function OverviewPanel({ onNav }) {
     try {
       if (!supabase) throw new Error('Supabase nao configurado');
 
-      const [usersRes, subsRes, keysRes, plansRes] = await Promise.all([
+      const [usersRes, subsRes, keysRes, _plansRes] = await Promise.all([
         supabase.from('profiles').select('id, role, created_at'),
         supabase.from('subscriptions').select('id, status, plan_id, plans(price_brl)'),
         supabase.from('license_keys').select('id, status'),
