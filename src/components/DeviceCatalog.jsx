@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ICONS } from '@/icons';
-import { getHiddenDevices, getDeviceOverrides, getHiddenFamilies, saveHiddenFamilies } from '@/lib/helpers';
+import { getHiddenDevices, getDeviceOverrides, getHiddenFamilies, saveHiddenFamilies, getDeviceIconKey } from '@/lib/helpers';
 
 function DeviceItem({item, cat, overrides, pendingDevice, setPendingDevice, setTool}){
   return (
@@ -201,26 +201,39 @@ export default function DeviceCatalog({search, setSearch, collapsedCats, toggleC
           </button>
         </div>
       )}
-      {customDevices.length>0&&(
-        <div className="dev-category">
-          <div className="dev-cat-title" style={{color:'#f39c12'}}>
-            📦 Customizados <span className="cnt">{customDevices.length}</span>
+      {customDevices.length>0&&(()=>{
+        const customFiltered=customDevices.filter(item=>{
+          if(!search) return true;
+          const s=search.toLowerCase();
+          return item.name?.toLowerCase().includes(s)||item.key.toLowerCase().includes(s)||
+            item.brand?.toLowerCase().includes(s)||item.model?.toLowerCase().includes(s);
+        });
+        if(!customFiltered.length) return null;
+        const isOpen=search||!collapsedCats['__custom__'];
+        return <div className="dev-category">
+          <div className="dev-cat-title" style={{color:'#f39c12',cursor:'pointer',userSelect:'none',display:'flex',alignItems:'center',gap:4}}
+            onClick={()=>toggleCat('__custom__')}>
+            <span style={{fontSize:9,transition:'.15s',transform:isOpen?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>
+            Customizados <span className="cnt">{customFiltered.length}</span>
           </div>
-          {customDevices.map(item=>(
-            <div key={item.key} className="dev-item"
+          {isOpen&&customFiltered.map(item=>{
+            const iconKey=getDeviceIconKey(item.key);
+            const cc=item.customColor||'#f39c12';
+            return <div key={item.key} className="dev-item"
               draggable
               onDragStart={(e)=>{e.dataTransfer.setData('deviceKey',item.key);e.dataTransfer.effectAllowed='copy'}}
               onClick={()=>{setPendingDevice(item.key);setTool('device')}}
-              style={pendingDevice===item.key?{background:'#fef9e7',borderColor:'#f39c12'}:{cursor:'grab'}}>
-              <div className="di-icon" style={{color:'#f39c12'}}>⚙️</div>
+              style={pendingDevice===item.key?{background:'#fef9e7',borderColor:cc}:{cursor:'grab'}}>
+              <div className="di-icon">{ICONS[iconKey]?.(cc)||ICONS[item.deviceType]?.(cc)||'⚙️'}</div>
               <div className="di-info">
                 <div className="di-name">{item.name}</div>
-                <div className="di-spec">{item.deviceType}</div>
+                <div className="di-spec">{item.brand&&item.model?`${item.brand} ${item.model}`:item.deviceType}</div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+              {item.customIfaces?.length>0&&<span className="di-tag" style={{background:'#fef3c7',color:'#92400e',fontSize:8,padding:'1px 5px',borderRadius:3}}>+{item.customIfaces.length}</span>}
+            </div>;
+          })}
+        </div>;
+      })()}
     </>
   );
 }
