@@ -13,6 +13,7 @@ export const INTERFACE_CARDINALITY = {
   data_io:        '1:1',  // Switch port — one cable per port (but device has N ports)
   power_in:       '1:1',  // Device has one power input
   power_out:      '1:N',  // One source feeds multiple devices (fonte, nobreak)
+  power_io:       '1:1',  // Bidirectional power (bateria ↔ fonte/nobreak)
   signal_in:      'N:1',  // Multiple sensors on same zone (botoeira → facial)
   signal_out:     '1:1',  // Relay output — one target
   automation_in:  'N:1',  // Multiple triggers (botoeiras → motor)
@@ -114,12 +115,14 @@ export const DEVICE_INTERFACES = {
   bat_12v:      [{type:'power_out',cables:['pp2v_10'],label:'Saída DC 12V (p/ fonte nobreak)',required:true}],
   rack:         [{type:'passthrough',cables:['cat5e','cat6','cat6a','pp2v_05','pp2v_10','ac_power','smf','mmf'],label:'Passagem de cabos (rack)'}],
   nobreak_ac:   [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (rede elétrica)',required:true},
-                 {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC (tomadas)',required:true}],
+                 {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída AC (tomadas)',required:true},
+                 {type:'power_io',cables:['sb50_48v','sb50_12v'],label:'Conector engate rápido (bateria externa)',required:false}],
   nobreak_dc:   [{type:'power_in',cables:['ac_power'],label:'Entrada AC',required:true},
                  {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída DC 12V',required:true}],
-  bateria_ext:  [{type:'power_out',cables:['pp2v_10'],label:'Saída DC (energia)',required:true}],
-  modulo_bat:   [{type:'power_out',cables:['pp2v_10','ac_power'],label:'Saída energia',required:true}],
-  cabo_engate:  [{type:'passthrough',cables:['pp2v_10','ac_power'],label:'Conexão nobreak / bateria'}],
+  bateria_ext:  [{type:'power_out',cables:['pp2v_10'],label:'Saída DC 12V (p/ fonte nobreak — chicote direto)',required:true},
+                 {type:'power_io',cables:['sb50_48v','sb50_12v'],label:'Conector engate rápido (p/ nobreak AC)',required:false}],
+  modulo_bat:   [{type:'power_io',cables:['sb50_48v','sb50_12v'],label:'Conector engate rápido (p/ nobreak AC)',required:true}],
+  cabo_engate:  [{type:'passthrough',cables:['sb50_48v','sb50_12v'],label:'Conexão engate rápido (nobreak ↔ bateria)'}],
   fonte:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC',required:true},
                  {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída 12VDC',required:true},
                  {type:'signal_in',cables:['pp2v_05'],label:'Entrada sensor porta',required:false}],

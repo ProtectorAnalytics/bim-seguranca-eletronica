@@ -1,5 +1,5 @@
 // ====================================================================
-// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (96 dispositivos)
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (97 dispositivos)
 // Fabricante: Genérico | v3.19.1
 // ====================================================================
 export const DEVICE_LIB = [
@@ -127,6 +127,7 @@ export const DEVICE_LIB = [
   // ================================================================
   {cat:'Infraestrutura',color:'#6b7280',items:[
     {key:'ont_gpon',name:'ONT GPON',icon:'dio',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'GPON',conector:'SC/APC',portas_lan:'1 GE',alimentacao:'PoE Reverso ou 12VDC'},ref:''},
+    {key:'fonte_nb_3a',name:'Fonte Nobreak 12V 3A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 3A (42W)',entrada:'127/220Vac 50/60Hz',bateria:'12V 7Ah compatível',tipo:'Nobreak DC'},ref:''},
     {key:'fonte_nb_5a',name:'Fonte Nobreak 12V 5A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 5A (60W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
     {key:'fonte_nb_6a',name:'Fonte Nobreak 12V 6A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 6A (72W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
     {key:'fonte_nb_10a',name:'Fonte Nobreak 12V 10A',icon:'fonte',poe:false,ports:1,manufacturer:'Genérico',props:{saida:'12V 10A (120W)',entrada:'90-240Vac',bateria:'12V compatível',tipo:'Nobreak DC'},ref:''},
