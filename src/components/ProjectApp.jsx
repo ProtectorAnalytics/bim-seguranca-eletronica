@@ -50,6 +50,15 @@ import ShareProjectModal from './ShareProjectModal';
 import { createRack, migrateRackDevices, assignDeviceToRack as calcSlot, getRackOccupancy } from '@/lib/rack-helpers';
 import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor, getStubPoint } from '@/lib/cable-routing';
 import { useRealtimeCollab } from '@/hooks/useRealtimeCollab';
+import { useCanvasInteraction } from '@/hooks/useCanvasInteraction';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useDeviceActions } from '@/hooks/useDeviceActions';
+import ConnectionsLayer from './canvas/ConnectionsLayer';
+import UnifilarPanel from './UnifilarPanel';
+import QuadroDetailPanel from './QuadroDetailPanel';
+import CablePickerModal from './CablePickerModal';
+import CalibrationModal from './CalibrationModal';
+import PortConnectionPopup from './PortConnectionPopup';
 
 export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly,shareToken,storageMode,projectId,cloudSaveStatus,cloudFallback}){
   const limits = useSubscription();
@@ -92,12 +101,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   const [rightPanelOpen,setRightPanelOpen]=useState(()=>getSettings().rightPanelOpen!==false);
   const bgFileRef=useRef(null);
   const lassoEndedRef=useRef(false); // prevents click from clearing lasso selection
-  const [isPanning,setIsPanning]=useState(false); // for cursor styling
-  const isPanningRef=useRef(false);
-  const panStartRef=useRef({x:0,y:0,panX:0,panY:0});
   const prevToolRef=useRef(null); // for space-held temporary pan
-  // Clipboard for copy/paste
-  const [clipboard,setClipboard]=useState(null); // {devices:[{key,name,model,...}], offset:{x,y}}
   // Canvas search
   const [showSearch,setShowSearch]=useState(false);
   const [searchHighlight,setSearchHighlight]=useState(null); // Set of device IDs to highlight
@@ -120,8 +124,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
   const calibInputRef=useRef(null);
   const canvasRef=useRef(null);
-  const [zoom,setZoom]=useState(1);
-  const [pan,setPan]=useState({x:0,y:0});
+  const {zoom,setZoom,pan,setPan,isPanning,setIsPanning,isPanningRef,panStartRef,handleWheel,startPan,resetView}=useCanvasInteraction();
   const [dragging,setDragging]=useState(null);
   const snap=(v)=>snapToGrid?Math.round(v/gridSize)*gridSize:v;
 
@@ -189,116 +192,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     updateFloor(f=>({...f,comments:(f.comments||[]).map(c=>c.id===id?{...c,text:newText}:c)}));
   };
 
-  // ── Copy / Paste / Duplicate ──
-  const copySelected=()=>{
-    const ids=multiSelect.size>0?[...multiSelect]:(selectedDevice?[selectedDevice]:[]);
-    if(!ids.length) return;
-    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
-    const minX=Math.min(...devs.map(d=>d.x)),minY=Math.min(...devs.map(d=>d.y));
-    setClipboard({devices:devs.map(d=>({...d,_offX:d.x-minX,_offY:d.y-minY}))});
-  };
-  const pasteClipboard=(px,py)=>{
-    if(!clipboard?.devices?.length) return;
-    const baseX=px||200,baseY=py||200;
-    const newIds=[];
-    const idMap={};
-    clipboard.devices.forEach(d=>{
-      const nid=uid();
-      idMap[d.id]=nid;
-      newIds.push(nid);
-    });
-    updateFloor(f=>{
-      const newDevs=clipboard.devices.map(d=>({
-        ...d,id:idMap[d.id],x:snap(baseX+d._offX),y:snap(baseY+d._offY),
-        envId:null,quadroId:undefined,rackId:undefined
-      }));
-      // Also copy connections between copied devices
-      const newConns=connections
-        .filter(c=>idMap[c.from]&&idMap[c.to])
-        .map(c=>({...c,id:uid(),from:idMap[c.from],to:idMap[c.to]}));
-      return {...f,devices:[...f.devices,...newDevs],connections:[...(f.connections||[]),...newConns]};
-    });
-    setMultiSelect(new Set(newIds));
-    setSelectedDevice(null);
-  };
-  const duplicateSelected=()=>{
-    const ids=multiSelect.size>0?[...multiSelect]:(selectedDevice?[selectedDevice]:[]);
-    if(!ids.length) return;
-    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
-    const minX=Math.min(...devs.map(d=>d.x));
-    const minY=Math.min(...devs.map(d=>d.y));
-    setClipboard({devices:devs.map(d=>({...d,_offX:d.x-minX,_offY:d.y-minY}))});
-    pasteClipboard(minX+40,minY+40);
-  };
-
-  // ── Align & Distribute (multi-select) ──
-  const getSelectedDevs=()=>{
-    const ids=[...multiSelect];
-    return ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
-  };
-  const alignDevices=(axis)=>{
-    const devs=getSelectedDevs();if(devs.length<2) return;
-    const centers=devs.map(d=>({id:d.id,cx:d.x+getDevR(d),cy:d.y+getDevR(d),r:getDevR(d)}));
-    let target;
-    if(axis==='left') target=Math.min(...centers.map(c=>c.cx-c.r));
-    else if(axis==='right') target=Math.max(...centers.map(c=>c.cx+c.r));
-    else if(axis==='centerH'){const s=centers.reduce((a,c)=>a+c.cx,0)/centers.length;target=s;}
-    else if(axis==='top') target=Math.min(...centers.map(c=>c.cy-c.r));
-    else if(axis==='bottom') target=Math.max(...centers.map(c=>c.cy+c.r));
-    else if(axis==='centerV'){const s=centers.reduce((a,c)=>a+c.cy,0)/centers.length;target=s;}
-    updateFloor(f=>({...f,devices:f.devices.map(d=>{
-      if(!multiSelect.has(d.id)) return d;
-      const r=getDevR(d);
-      if(axis==='left') return {...d,x:target};
-      if(axis==='right') return {...d,x:target-2*r};
-      if(axis==='centerH') return {...d,x:target-r};
-      if(axis==='top') return {...d,y:target};
-      if(axis==='bottom') return {...d,y:target-2*r};
-      if(axis==='centerV') return {...d,y:target-r};
-      return d;
-    })}));
-  };
-  const distributeDevices=(dir)=>{
-    const devs=getSelectedDevs();if(devs.length<3) return;
-    const sorted=[...devs].sort((a,b)=>dir==='h'?a.x-b.x:a.y-b.y);
-    const first=sorted[0],last=sorted[sorted.length-1];
-    const totalSpan=dir==='h'?(last.x-first.x):(last.y-first.y);
-    const step=totalSpan/(sorted.length-1);
-    const updates={};
-    sorted.forEach((d,i)=>{
-      if(dir==='h') updates[d.id]={x:snap(first.x+step*i)};
-      else updates[d.id]={y:snap(first.y+step*i)};
-    });
-    updateFloor(f=>({...f,devices:f.devices.map(d=>updates[d.id]?{...d,...updates[d.id]}:d)}));
-  };
-
-  // ── Spread overlapping devices (explode cluster) ──
-  const spreadDevices=()=>{
-    const ids=multiSelect.size>1?[...multiSelect]:(selectedDevice?devices.filter(d=>{
-      const sel=devices.find(dd=>dd.id===selectedDevice);
-      if(!sel) return false;
-      const dist=Math.sqrt((d.x-sel.x)**2+(d.y-sel.y)**2);
-      return dist<60&&d.id!==selectedDevice;
-    }).map(d=>d.id).concat([selectedDevice]):[]);
-    if(ids.length<2) return;
-    const devs=ids.map(id=>devices.find(d=>d.id===id)).filter(Boolean);
-    const cx=devs.reduce((s,d)=>s+d.x,0)/devs.length;
-    const cy=devs.reduce((s,d)=>s+d.y,0)/devs.length;
-    const radius=Math.max(60,devs.length*25);
-    const updates={};
-    devs.forEach((d,i)=>{
-      const angle=(i/devs.length)*2*Math.PI-Math.PI/2;
-      updates[d.id]={x:snap(cx+radius*Math.cos(angle)),y:snap(cy+radius*Math.sin(angle))};
-    });
-    updateFloor(f=>({...f,devices:f.devices.map(d=>updates[d.id]?{...d,...updates[d.id]}:d)}));
-  };
-
-  // ── Select by Type ──
-  const selectByType=(deviceKey)=>{
-    const ids=devices.filter(d=>d.key===deviceKey).map(d=>d.id);
-    setMultiSelect(new Set(ids));
-    setSelectedDevice(null);
-  };
+  // ── Copy / Paste / Duplicate / Align / Distribute (extracted hook) ──
+  const {clipboard,copySelected,pasteClipboard,duplicateSelected,alignDevices,distributeDevices,spreadDevices,selectByType}=useDeviceActions({
+    devices,connections,multiSelect,selectedDevice,setMultiSelect,setSelectedDevice,updateFloor,snap,getDevR
+  });
 
   // ── Layer Presets ──
   const applyLayerPreset=(preset)=>{
@@ -796,37 +693,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     updateDevice(deviceId,{quadroId:null});
     showConnToast('Dispositivo removido do quadro','info');
   };
-  // Quadro BOM auto-generation
-  const getQuadroBom=(qc)=>{
-    const qcDevices=devices.filter(d=>d.quadroId===qc.id);
-    const bom=[];
-    // Always
-    bom.push({name:`Caixa hermética ${qc.caixa||'50x40x20'}cm`,qty:1});
-    bom.push({name:'Canaleta vazada 30×50mm',qty:2});
-    bom.push({name:`Disjuntor ${qc.disjuntor?.tipo||'bipolar'} ${qc.disjuntor?.amperagem||16}A`,qty:1});
-    // Conversor DC/DC if has SwitchPoE + FonteNobreak
-    const hasSwitchPoE=qcDevices.some(d=>isSwitchPoE(d.key));
-    const hasFonteNB=qcDevices.some(d=>isFonteNobreak(d.key));
-    if(hasSwitchPoE&&hasFonteNB) bom.push({name:'Conversor DC/DC 12V 3A',qty:1});
-    // Fibra optica if has ONT
-    const hasONT=qcDevices.some(d=>isONT(d.key));
-    if(hasONT){
-      bom.push({name:'Roseta óptica',qty:1});
-      bom.push({name:'Acoplador (emenda óptica)',qty:1});
-      bom.push({name:'Cordão óptico SC/APC',qty:1});
-    }
-    // Aterramento
-    if(qc.aterramento==='individual'){
-      bom.push({name:'Haste de aterramento',qty:1});
-      bom.push({name:'Barramento de terra',qty:1});
-      bom.push({name:'Caixa de aterramento',qty:1});
-      bom.push({name:'Conector GTDU',qty:1});
-    }
-    // Prensa-cabo
-    if((qc.prensaCabo||0)>0) bom.push({name:'Prensa-cabo',qty:qc.prensaCabo});
-    return bom;
-  };
-
   // Smart Auto Cable — uses CONNECTION_RULES engine + device classification helpers
   const autoCable=()=>{
     const newConns=[...connections];
@@ -1185,8 +1051,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     // Pan tool: left-click starts panning
     if(tool==='pan'&&e.button===0){
       e.preventDefault();
-      isPanningRef.current=true;setIsPanning(true);
-      panStartRef.current={x:e.clientX,y:e.clientY,panX:pan.x,panY:pan.y};
+      startPan(e.clientX,e.clientY);
       return;
     }
     if(tool!=='select') return;
@@ -1380,64 +1245,16 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
   },[groupDragging,zoom,snapToGrid]);
 
-  // Keyboard shortcuts
-  useEffect(()=>{
-    const handler=(e)=>{
-      const tag=e.target.tagName;
-      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable) return;
-
-      // Delete: remove selected device(s) or connection
-      if(e.key==='Delete'){
-        if(multiSelect.size>0){
-          multiSelect.forEach(id=>deleteDevice(id));
-          setMultiSelect(new Set());
-        } else if(selectedDevice) deleteDevice(selectedDevice);
-        else if(selectedConn){
-          const sc=connections.find(c=>c.id===selectedConn);
-          if(sc?.waypoints?.length){
-            updateConnWaypoints(selectedConn,undefined);
-          } else {
-            deleteConnection(selectedConn);
-          }
-        }
-      }
-      // Escape: cancel current action
-      if(e.key==='Escape'){if(prevToolRef.current!==null)prevToolRef.current=null;setTool('select');setPendingDevice(null);setCableMode(null);setPortPopup(null);setSelectedConn(null);setMeasureStart(null);setMultiSelect(new Set());setCalibStart(null);setCalibEnd(null);setShowCalibModal(false);setSelectedQuadroId(null)}
-
-      // Tool shortcuts
-      if(!e.ctrlKey&&!e.metaKey){
-        if(e.key==='v'||e.key==='V'){setTool('select');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
-        if(e.key==='h'||e.key==='H'){setTool('pan');setPendingDevice(null);setCableMode(null);setMeasureStart(null)}
-        // Space → temporary pan (hold to pan, release to restore previous tool)
-        if(e.key===' '&&!e.repeat&&tool!=='pan'){
-          e.preventDefault();
-          prevToolRef.current=tool;
-          setTool('pan');
-        }
-      }
-
-      // Ctrl shortcuts only
-      if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
-      if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
-      if((e.ctrlKey||e.metaKey)&&e.key==='a'){e.preventDefault();setMultiSelect(new Set(devices.map(d=>d.id)));setTool('select')}
-      if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();window.print()}
-      // Copy/Paste/Duplicate/Search
-      if((e.ctrlKey||e.metaKey)&&e.key==='c'){e.preventDefault();copySelected()}
-      if((e.ctrlKey||e.metaKey)&&e.key==='v'){e.preventDefault();pasteClipboard()}
-      if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();duplicateSelected()}
-      if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();setShowSearch(s=>!s)}
-    };
-    const keyupHandler=(e)=>{
-      // Release Space → restore previous tool
-      if(e.key===' '&&prevToolRef.current!==null){
-        setTool(prevToolRef.current);
-        prevToolRef.current=null;
-      }
-    };
-    window.addEventListener('keydown',handler);
-    window.addEventListener('keyup',keyupHandler);
-    return ()=>{window.removeEventListener('keydown',handler);window.removeEventListener('keyup',keyupHandler)};
-  },[selectedDevice,selectedConn,connections,devices,multiSelect,tool]);
+  // Keyboard shortcuts (extracted hook)
+  useKeyboardShortcuts({
+    selectedDevice,selectedConn,connections,devices,multiSelect,tool,
+    undo,redo,deleteDevice,deleteConnection,updateConnWaypoints,
+    setTool,setPendingDevice,setCableMode,setPortPopup,setSelectedConn,
+    setMeasureStart,setMultiSelect,setCalibStart,setCalibEnd,setShowCalibModal,
+    setSelectedQuadroId,setSelectedDevice,
+    copySelected,pasteClipboard,duplicateSelected,setShowSearch,
+    prevToolRef
+  });
 
   // Right-click context menu
   const handleContextMenu=(e)=>{
@@ -1448,31 +1265,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     setContextMenu({x:e.clientX,y:e.clientY,target});
   };
 
-  // Wheel zoom
-  const handleWheel=(e)=>{
-    e.preventDefault();
-    const delta=e.deltaY>0?-0.1:0.1;
-    setZoom(z=>Math.max(0.3,Math.min(3,z+delta)));
-  };
-
-  // Pan drag handlers (middle-click, hand tool, space+drag)
-  useEffect(()=>{
-    const onMove=(e)=>{
-      if(!isPanningRef.current) return;
-      const dx=e.clientX-panStartRef.current.x;
-      const dy=e.clientY-panStartRef.current.y;
-      setPan({x:panStartRef.current.panX+dx,y:panStartRef.current.panY+dy});
-    };
-    const onUp=()=>{
-      if(isPanningRef.current){
-        isPanningRef.current=false;
-        setIsPanning(false);
-      }
-    };
-    window.addEventListener('mousemove',onMove);
-    window.addEventListener('mouseup',onUp);
-    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
-  },[]);
+  // Wheel zoom + pan drag handled by useCanvasInteraction hook
 
   const selectedDev=devices.find(d=>d.id===selectedDevice);
 
@@ -1705,8 +1498,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
           onMouseDownCapture={(e)=>{
             // Middle-click → pan from anywhere (capture phase fires before device handlers)
             if(e.button===1){e.preventDefault();e.stopPropagation();
-              isPanningRef.current=true;setIsPanning(true);
-              panStartRef.current={x:e.clientX,y:e.clientY,panX:pan.x,panY:pan.y}}
+              startPan(e.clientX,e.clientY)}
           }}
           style={{cursor:isPanning?'grabbing':tool==='pan'?'grab':undefined}}
           onDragOver={(e)=>{e.preventDefault();e.dataTransfer.dropEffect='copy'}}
@@ -1748,255 +1540,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
               {/* Connection lines */}
               <svg className="conn-svg" width="2000" height="2000" style={{display:layers.cables?'block':'none',zIndex:4}}>
-                {/* Connection anchor dot indicators on devices in cable mode */}
-                {cableMode&&devices.filter(d=>!d.quadroId).map(dev=>{
-                  const R=getDevR(dev);
-                  const cx=dev.x+R,cy=dev.y+R;
-                  const anchors=[[0,-1],[1,0],[0,1],[-1,0]];
-                  const ts=validTargets[dev.id];
-                  if(ts!=='valid'&&dev.id!==cableMode?.from) return null;
-                  const dotColor=dev.id===cableMode?.from?'#f59e0b':'#22c55e';
-                  return <g key={'anc_'+dev.id}>
-                    {anchors.map(([ax,ay],i)=>(
-                      <circle key={i} cx={cx+ax*(R+1)} cy={cy+ay*(R+1)} r={4}
-                        fill={dotColor} stroke="#fff" strokeWidth={1.5} opacity={0.85}
-                        style={{pointerEvents:'none'}}/>
-                    ))}
-                  </g>;
-                })}
-                {/* Anchor dots on Quadros when they contain valid cable targets */}
-                {cableMode&&quadros.map(qc=>{
-                  const qcDevs=devices.filter(d=>d.quadroId===qc.id);
-                  const hasValidTarget=qcDevs.some(d=>validTargets[d.id]==='valid');
-                  const hasSource=qcDevs.some(d=>d.id===cableMode?.from);
-                  if(!hasValidTarget&&!hasSource) return null;
-                  const qW=160;const headerH=28;const slotH=22;
-                  const qH=headerH+Math.max(2,qcDevs.length)*slotH+12;
-                  const cx=qc.x+qW/2,cy=qc.y+qH/2;
-                  const dotColor=hasSource?'#f59e0b':'#22c55e';
-                  const anchors=[[0,-qH/2-4],[qW/2+4,0],[0,qH/2+4],[-qW/2-4,0]];
-                  return <g key={'anc_qc_'+qc.id}>
-                    {anchors.map(([ax,ay],i)=>(
-                      <circle key={i} cx={cx+ax} cy={cy+ay} r={5}
-                        fill={dotColor} stroke="#fff" strokeWidth={1.5} opacity={0.85}
-                        style={{pointerEvents:'none'}}/>
-                    ))}
-                  </g>;
-                })}
-                {connections.map(conn=>{
-                  const from=devices.find(d=>d.id===conn.from);
-                  const to=devices.find(d=>d.id===conn.to);
-                  if(!from||!to) return null;
-                  const ct=CABLE_TYPES.find(c=>c.id===conn.type)||CABLE_TYPES[0];
-                  const isSel=selectedConn===conn.id;
-
-                  // Resolve device position (may be inside Quadro)
-                  const resolveDevPos=(dev)=>{
-                    const R=getDevR(dev);
-                    if(dev.quadroId){
-                      const qc=quadros.find(q=>q.id===dev.quadroId);
-                      if(qc) return {x:qc.x+80-R,y:qc.y+14-R,R,inQuadro:true};
-                    }
-                    return {x:dev.x,y:dev.y,R,inQuadro:false};
-                  };
-                  const fp=resolveDevPos(from);
-                  const tp=resolveDevPos(to);
-
-                  // Resolve anchors — use stored or auto-calculate
-                  const aFrom=conn.anchorFrom||bestAnchorPair({x:fp.x,y:fp.y},fp.R,{x:tp.x,y:tp.y},tp.R)[0];
-                  const aTo=conn.anchorTo||bestAnchorPair({x:fp.x,y:fp.y},fp.R,{x:tp.x,y:tp.y},tp.R)[1];
-
-                  // Anchor points (exact connection positions on device border)
-                  const ap1=getAnchorPoint({x:fp.x,y:fp.y},fp.R,aFrom);
-                  const ap2=getAnchorPoint({x:tp.x,y:tp.y},tp.R,aTo);
-
-                  // Offset for multiple connections between same pair
-                  const pairKey=[conn.from,conn.to].sort().join('|');
-                  const pairConns=connections.filter(c=>[c.from,c.to].sort().join('|')===pairKey);
-                  const pairIdx=pairConns.indexOf(conn);
-                  const pairTotal=pairConns.length;
-                  const offsetAmt=pairTotal>1?(pairIdx-(pairTotal-1)/2)*6:0;
-
-                  // Apply perpendicular offset for parallel cables
-                  const pdx=ap2.x-ap1.x,pdy=ap2.y-ap1.y;
-                  const plen=Math.sqrt(pdx*pdx+pdy*pdy)||1;
-                  const ppx=-pdy/plen,ppy=pdx/plen;
-                  const x1=ap1.x+ppx*offsetAmt;
-                  const y1=ap1.y+ppy*offsetAmt;
-                  const x2=ap2.x+ppx*offsetAmt;
-                  const y2=ap2.y+ppy*offsetAmt;
-
-                  const isPower=ct.group==='power';
-                  const isSignal=ct.group==='signal';
-                  const isAuto=ct.group==='automation';
-                  const isWireless=conn.type==='wireless';
-                  const dashArr=isWireless?'6 4':isPower?'10 5':isSignal?'4 4':isAuto?'10 4 3 4':'none';
-                  const sw=isPower?2.8:isAuto?2.4:isSignal?2:isWireless?1.5:2.2;
-                  const cableColor=isPower?'#dc2626':isSignal?'#16a34a':isAuto?'#7c3aed':isWireless?'#94a3b8':ct.color;
-                  const purposeIcon=isPower?'⚡':isSignal?'📡':isAuto?'🔧':'';
-                  const portLabel=conn.ifaceLabel?` [${conn.ifaceLabel.split('(')[0].trim()}]`:'';
-
-                  // Orthogonal routing with exit stubs
-                  const wps=conn.waypoints||[];
-                  const hasWps=wps.length>0;
-
-                  let allPts;
-                  if(hasWps){
-                    allPts=[{x:x1,y:y1},...wps,{x:x2,y:y2}];
-                  } else {
-                    allPts=autoOrthoRoute(x1,y1,x2,y2,aFrom,aTo);
-                  }
-
-                  const pathD=buildOrthoPath(allPts,10);
-
-                  // Label position: midpoint of path
-                  const totalLen=allPts.length;
-                  const midIdx=Math.floor(totalLen/2);
-                  const lp=allPts[midIdx];
-                  const lpPrev=allPts[Math.max(0,midIdx-1)];
-                  const labelX=(lp.x+lpPrev.x)/2;
-                  const labelY=(lp.y+lpPrev.y)/2-10;
-
-                  // Direction arrow at midpoint
-                  const arrowSeg1=allPts[Math.max(0,midIdx-1)];
-                  const arrowSeg2=allPts[midIdx];
-                  const arDx=arrowSeg2.x-arrowSeg1.x,arDy=arrowSeg2.y-arrowSeg1.y;
-                  const arLen=Math.sqrt(arDx*arDx+arDy*arDy)||1;
-                  const arAngle=Math.atan2(arDy,arDx)*180/Math.PI;
-                  const arMx=(arrowSeg1.x+arrowSeg2.x)/2;
-                  const arMy=(arrowSeg1.y+arrowSeg2.y)/2;
-
-                  const onConnClick=(e)=>{
-                    e.stopPropagation();
-                    if(cableMode) return;
-                    setSelectedConn(isSel?null:conn.id);
-                    setSelectedDevice(null);
-                  };
-
-                  return <g key={conn.id} className={`conn-g${isSel?' conn-selected':''}`}>
-                    {/* Hit area for selection */}
-                    <path d={pathD} className="conn-hit-area" onClick={onConnClick}/>
-                    {/* Cable path */}
-                    <path d={pathD} fill="none" className="conn-line-path"
-                      stroke={isSel?'#3b82f6':cableColor} strokeWidth={isSel?sw+1.5:sw}
-                      strokeDasharray={dashArr} strokeLinejoin="round" strokeLinecap="round"
-                      style={{pointerEvents:'none',opacity:isSel?1:0.85}}/>
-                    {/* Endpoint connection dots */}
-                    <circle cx={x1} cy={y1} r={isSel?4:3} fill={isSel?'#3b82f6':cableColor}
-                      stroke="#fff" strokeWidth={1} style={{pointerEvents:'none'}}/>
-                    <circle cx={x2} cy={y2} r={isSel?4:3} fill={isSel?'#3b82f6':cableColor}
-                      stroke="#fff" strokeWidth={1} style={{pointerEvents:'none'}}/>
-                    {/* Direction arrow at midpoint (only for data cables) */}
-                    {!isPower&&!isSignal&&arLen>30&&(
-                      <polygon
-                        points="-4,-3 4,0 -4,3"
-                        fill={isSel?'#3b82f6':cableColor}
-                        opacity={0.7}
-                        transform={`translate(${arMx},${arMy}) rotate(${arAngle})`}
-                        style={{pointerEvents:'none'}}/>
-                    )}
-                    {/* Cable label */}
-                    {showCableLabels&&(()=>{
-                      const lt=`${purposeIcon}${ct.name} · ${conn.distance}m${portLabel}`;
-                      const estW=Math.max(lt.length*6.2+14,44);
-                      return <g style={{pointerEvents:'none'}}>
-                        <rect x={labelX-estW/2} y={labelY-14} width={estW} height={18}
-                          rx={4} ry={4} fill="#fff" fillOpacity={0.94}
-                          stroke={isSel?'#3b82f6':'#e2e8f0'} strokeWidth={isSel?1:0.5}/>
-                        <text x={labelX} y={labelY} className="cable-label-v2">{lt}</text>
-                      </g>;
-                    })()}
-
-                    {/* Segment drag handles (when selected) */}
-                    {isSel&&allPts.slice(0,-1).map((pt,si)=>{
-                      const npt=allPts[si+1];
-                      const segD=`M${pt.x},${pt.y} L${npt.x},${npt.y}`;
-                      return <g key={'seg'+si}>
-                        <path d={segD} className="seg-hit"
-                          onMouseDown={(e)=>{
-                            if(cableMode) return;
-                            e.stopPropagation();e.preventDefault();
-                            const rect=canvasRef.current?.getBoundingClientRect();
-                            if(!rect) return;
-                            const mx=(e.clientX-rect.left)/zoom-pan.x/zoom;
-                            const my=(e.clientY-rect.top)/zoom-pan.y/zoom;
-                            if(!hasWps){
-                              const autoWps=autoOrthoRoute(x1,y1,x2,y2,aFrom,aTo);
-                              const innerWps=autoWps.slice(1,-1);
-                              updateConnWaypoints(conn.id,innerWps);
-                              setDraggingWp({connId:conn.id,type:'seg',segIdx:Math.min(si,innerWps.length-2>0?si-1:0),lastX:mx,lastY:my});
-                            } else {
-                              if(si===0||si>=allPts.length-2){
-                                setDraggingWp({connId:conn.id,type:'newSeg',segIdx:si,allPts,lastX:mx,lastY:my});
-                              } else {
-                                setDraggingWp({connId:conn.id,type:'seg',segIdx:si-1,lastX:mx,lastY:my});
-                              }
-                            }
-                            setSelectedConn(conn.id);
-                          }}/>
-                        <path d={segD} className="seg-highlight"/>
-                      </g>;
-                    })}
-
-                    {/* Waypoint handles */}
-                    {isSel&&wps.map((wp,wi)=>(
-                      <g key={'wph'+wi}>
-                        <rect x={wp.x-12} y={wp.y-12} width={24} height={24}
-                          fill="transparent" style={{cursor:'move'}}
-                          onMouseDown={(e)=>{
-                            e.stopPropagation();e.preventDefault();
-                            setDraggingWp({connId:conn.id,type:'point',wpIdx:wi});
-                            setSelectedConn(conn.id);
-                          }}
-                          onDoubleClick={(e)=>{
-                            e.stopPropagation();
-                            deleteWaypoint(conn.id,wi);
-                          }}/>
-                        <circle cx={wp.x} cy={wp.y} r={5}
-                          fill="#3b82f6" stroke="#fff" strokeWidth={2}
-                          style={{pointerEvents:'none'}}/>
-                      </g>
-                    ))}
-
-                    {/* Anchor change buttons (N/E/S/W) */}
-                    {isSel&&!cableMode&&(()=>{
-                      const stubF=getStubPoint(ap1,aFrom,12);
-                      const stubT=getStubPoint(ap2,aTo,12);
-                      return <>
-                        {/* From anchor indicator */}
-                        <circle cx={ap1.x} cy={ap1.y} r={7} fill="#046BD2" stroke="#fff" strokeWidth={2}
-                          style={{cursor:'pointer'}}
-                          onClick={(e)=>{
-                            e.stopPropagation();
-                            const nxt=nextAnchor(aFrom);
-                            updateFloor(f=>({...f,connections:f.connections.map(c=>
-                              c.id===conn.id?{...c,anchorFrom:nxt,waypoints:undefined}:c)}));
-                          }}>
-                          <title>Alterar saída: {aFrom} → {nextAnchor(aFrom)}</title>
-                        </circle>
-                        <text x={ap1.x} y={ap1.y+1} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={9} fontWeight={700} style={{pointerEvents:'none'}}>
-                          {aFrom}
-                        </text>
-                        {/* To anchor indicator */}
-                        <circle cx={ap2.x} cy={ap2.y} r={7} fill="#046BD2" stroke="#fff" strokeWidth={2}
-                          style={{cursor:'pointer'}}
-                          onClick={(e)=>{
-                            e.stopPropagation();
-                            const nxt=nextAnchor(aTo);
-                            updateFloor(f=>({...f,connections:f.connections.map(c=>
-                              c.id===conn.id?{...c,anchorTo:nxt,waypoints:undefined}:c)}));
-                          }}>
-                          <title>Alterar chegada: {aTo} → {nextAnchor(aTo)}</title>
-                        </circle>
-                        <text x={ap2.x} y={ap2.y+1} textAnchor="middle" dominantBaseline="central"
-                          fill="#fff" fontSize={9} fontWeight={700} style={{pointerEvents:'none'}}>
-                          {aTo}
-                        </text>
-                      </>;
-                    })()}
-                  </g>;
-                })}
+                <ConnectionsLayer
+                  connections={connections} devices={devices} quadros={quadros}
+                  cableMode={cableMode} validTargets={validTargets}
+                  selectedConn={selectedConn} setSelectedConn={setSelectedConn}
+                  setSelectedDevice={setSelectedDevice} showCableLabels={showCableLabels}
+                  getDevR={getDevR} zoom={zoom} pan={pan} canvasRef={canvasRef}
+                  updateFloor={updateFloor} updateConnWaypoints={updateConnWaypoints}
+                  setDraggingWp={setDraggingWp} snapToGrid={snapToGrid}/>
                 {/* Cable mode preview line from source device */}
                 {cableMode&&(()=>{
                   const from=devices.find(d=>d.id===cableMode.from);
@@ -2504,75 +2055,11 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
           )}
 
           {/* Port connection popup */}
-          {portPopup&&(()=>{
-            const ppDev=devices.find(d=>d.id===portPopup.devId);
-            if(!ppDev) return null;
-            const ifaces=getDeviceInterfaces(ppDev);
-            if(!ifaces.length) return null;
-            // Check which ports are already in use
-            const usedPorts=connections.filter(c=>c.from===ppDev.id||c.to===ppDev.id);
-            const getPortUsage=(iface)=>{
-              return usedPorts.filter(c=>c.ifaceType===iface.type).length;
-            };
-            const totalUsed=usedPorts.length;
-            const totalPorts=ifaces.length;
-            return (
-              <>
-                <div className="port-popup-overlay" onClick={()=>setPortPopup(null)}/>
-                <div className="port-popup" style={{left:portPopup.x,top:portPopup.y,position:'fixed',maxHeight:'calc(100vh - 24px)',overflowY:'auto'}}>
-                  <div className="pp-title">⚡ Portas — {ppDev.name}
-                    <span style={{fontSize:10,fontWeight:400,marginLeft:8,color:totalUsed>0?'#f59e0b':'#6b7280'}}>
-                      ({totalUsed}/{totalPorts} em uso)
-                    </span>
-                  </div>
-                  {ifaces.map((iface,i)=>{
-                    const usage=getPortUsage(iface);
-                    const isUsed=usage>0;
-                    const connectedTo=isUsed?usedPorts.filter(c=>c.ifaceType===iface.type).map(c=>{
-                      const otherId=c.from===ppDev.id?c.to:c.from;
-                      const otherDev=devices.find(d=>d.id===otherId);
-                      return otherDev?.name||'?';
-                    }).join(', '):'';
-                    return (
-                    <button key={i} className="port-btn" style={{opacity:isUsed?0.6:1,position:'relative'}} onClick={()=>{
-                      try{
-                        setCableMode({from:ppDev.id,ifaceType:iface.type||'data_io',ifaceLabel:iface.label||''});
-                        setTool('cable');
-                        setPortPopup(null);
-                      }catch(err){console.error('Port select error',err);setPortPopup(null)}
-                    }}>
-                      <div className={`pb-dot ${getPortDotClass(iface.type)}`} style={isUsed?{boxShadow:'0 0 0 2px #f59e0b'}:{}}/>
-                      <div className="pb-info">
-                        <div className="pb-label">{iface.label}
-                          {isUsed&&<span style={{marginLeft:6,fontSize:9,color:'#f59e0b',fontWeight:700}}>✓ CONECTADA → {connectedTo}</span>}
-                        </div>
-                        <div className="pb-type">{getPortTypeName(iface.type)} · {iface.cables?.map(c=>CABLE_TYPES.find(ct=>ct.id===c)?.name||c).join(', ')}</div>
-                      </div>
-                      {isUsed?<span style={{fontSize:9,color:'#f59e0b',fontWeight:700,flexShrink:0}}>EM USO</span>:
-                       iface.required?<span className="pb-req">OBRIG.</span>:<span className="pb-opt">disponível</span>}
-                    </button>);
-                  })}
-                  {/* Cross-floor connection button */}
-                  {project.floors.length>1&&(
-                    <button className="port-btn" style={{borderTop:'2px solid #E2E8F0',marginTop:4,background:'#f0f9ff'}}
-                      onClick={()=>{
-                        setCrossFloorModal({deviceId:ppDev.id});
-                        setPortPopup(null);
-                      }}>
-                      <div style={{width:16,height:16,borderRadius:'50%',background:'#046BD2',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                        <Layers size={10} color="#fff"/>
-                      </div>
-                      <div className="pb-info">
-                        <div className="pb-label" style={{color:'#046BD2',fontWeight:700}}>Conectar a outro Pavimento</div>
-                        <div className="pb-type">Criar conexão entre pisos diferentes</div>
-                      </div>
-                      <span style={{fontSize:9,color:'#046BD2',fontWeight:700,flexShrink:0}}>CROSS-FLOOR</span>
-                    </button>
-                  )}
-                </div>
-              </>
-            );
-          })()}
+          <PortConnectionPopup
+            portPopup={portPopup} devices={devices} connections={connections} project={project}
+            setCableMode={setCableMode} setTool={setTool} setPortPopup={setPortPopup}
+            setCrossFloorModal={setCrossFloorModal}/>
+
 
           {/* Empty state */}
           {devices.length===0&&(
@@ -2634,45 +2121,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
           )}
 
           {/* Cable picker modal */}
-          {cablePicker&&(
-            <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
-              background:'#fff',borderRadius:12,boxShadow:'0 8px 40px rgba(0,0,0,.25)',padding:20,
-              zIndex:40,minWidth:'min(320px, calc(100vw - 32px))',maxWidth:'min(420px, calc(100vw - 32px))'}}>
-              <div style={{fontSize:13,fontWeight:700,color:'var(--azul)',marginBottom:4}}>
-                Cabo Incompatível
-              </div>
-              <div style={{fontSize:11,color:'var(--cinza)',marginBottom:12,lineHeight:1.5}}>
-                {cablePicker.reason}
-              </div>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--cinza)',textTransform:'uppercase',
-                letterSpacing:.5,marginBottom:8}}>Cabos compatíveis:</div>
-              <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                {cablePicker.cables.map(cabId=>{
-                  const ct=CABLE_TYPES.find(c=>c.id===cabId);
-                  return (
-                    <button key={cabId} onClick={()=>confirmCablePick(cabId)}
-                      style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',
-                        border:'1px solid #e5e7eb',borderRadius:8,background:'#fafafa',
-                        cursor:'pointer',transition:'.15s',fontSize:11,textAlign:'left'}}
-                      onMouseOver={e=>e.currentTarget.style.background='#EBF5FB'}
-                      onMouseOut={e=>e.currentTarget.style.background='#fafafa'}>
-                      <span style={{width:10,height:10,borderRadius:'50%',background:ct?.color,flexShrink:0}}/>
-                      <span style={{flex:1,fontWeight:600}}>{ct?.name}</span>
-                      <span style={{color:'var(--cinza)',fontSize:9}}>{ct?.speed} · max {ct?.maxLen}m</span>
-                      <span style={{color:'var(--cinza)',fontSize:9}}>
-                        {ct?.group==='power'?'⚡ Energia':ct?.group==='signal'?'📡 Sinal':'🌐 Dados'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <button onClick={()=>setCablePicker(null)}
-                style={{marginTop:12,width:'100%',padding:'6px',border:'1px solid #e5e7eb',
-                  borderRadius:6,background:'transparent',color:'var(--cinza)',fontSize:10,cursor:'pointer'}}>
-                Cancelar
-              </button>
-            </div>
-          )}
+          <CablePickerModal cablePicker={cablePicker} onConfirm={confirmCablePick} onCancel={()=>setCablePicker(null)}/>
+
 
           {/* Panel toggle buttons on canvas edges */}
           {!leftPanelOpen&&(
@@ -2698,7 +2148,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
           <div className="canvas-controls">
             <button onClick={()=>setZoom(z=>Math.min(3,z+0.2))} title="Zoom +">+</button>
             <button onClick={()=>setZoom(z=>Math.max(0.3,z-0.2))} title="Zoom −">−</button>
-            <button onClick={()=>{setZoom(1);setPan({x:0,y:0})}} title="Resetar vista">⟳</button>
+            <button onClick={resetView} title="Resetar vista">⟳</button>
           </div>
           <div className="scale-indicator">Zoom: {Math.round(zoom*100)}%</div>
 
@@ -2860,167 +2310,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
             )}
             {/* QUADRO DE CONECTIVIDADE PANEL */}
             {rightTab==='quadro'&&(
-              <div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                  <div style={{fontSize:12,fontWeight:700,color:'#166534'}}>📦 Quadros de Conectividade</div>
-                  <button onClick={()=>addQuadro()} style={{padding:'4px 10px',border:'1px solid #16a34a',
-                    background:'#f0fdf4',color:'#166534',borderRadius:6,fontSize:10,cursor:'pointer',fontWeight:700}}>
-                    + Novo QC
-                  </button>
-                </div>
-                {quadros.length===0&&(
-                  <div style={{textAlign:'center',padding:'30px 16px',color:'#86efac'}}>
-                    <div style={{fontSize:28,opacity:.4,marginBottom:8}}>📦</div>
-                    <p style={{fontSize:11,color:'#64748b'}}>Nenhum quadro criado</p>
-                    <p style={{fontSize:9,color:'#94a3b8',marginTop:4}}>Clique "+ Novo QC" para adicionar</p>
-                  </div>
-                )}
-                {/* Quadro list */}
-                {quadros.map(qc=>{
-                  const qcDevices=devices.filter(d=>d.quadroId===qc.id);
-                  const isSel=selectedQuadroId===qc.id;
-                  return (
-                    <div key={qc.id} style={{border:`1.5px solid ${isSel?'#16a34a':'#e5e7eb'}`,borderRadius:8,
-                      marginBottom:8,background:isSel?'#f0fdf4':'#fff',cursor:'pointer',overflow:'hidden'}}
-                      onClick={()=>setSelectedQuadroId(isSel?null:qc.id)}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',
-                        borderBottom:isSel?'1px solid #dcfce7':'none'}}>
-                        <span style={{fontSize:14}}>📦</span>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:11,fontWeight:700,color:'#166534'}}>{qc.tag}</div>
-                          <div style={{fontSize:9,color:'#64748b'}}>{qc.name} · {qcDevices.length} dispositivos</div>
-                        </div>
-                        <span style={{fontSize:8,fontWeight:600,color:'#fff',background:'#16a34a',
-                          padding:'2px 6px',borderRadius:4}}>{qc.caixa}</span>
-                      </div>
-                      {/* Expanded details when selected */}
-                      {isSel&&(
-                        <div style={{padding:'8px 10px'}} onClick={e=>e.stopPropagation()}>
-                          {/* Name */}
-                          <div className="prop-row">
-                            <span className="pr-label" style={{fontSize:9}}>Nome:</span>
-                            <span className="pr-value">
-                              <input value={qc.name} style={{fontSize:10}} onChange={e=>updateQuadro(qc.id,{name:e.target.value})}/>
-                            </span>
-                          </div>
-                          {/* Caixa */}
-                          <div className="prop-row">
-                            <span className="pr-label" style={{fontSize:9}}>Caixa (cm):</span>
-                            <span className="pr-value">
-                              <select value={qc.caixa||'50x40x20'} style={{fontSize:10}}
-                                onChange={e=>updateQuadro(qc.id,{caixa:e.target.value})}>
-                                <option value="30x30x15">30×30×15</option>
-                                <option value="40x30x20">40×30×20</option>
-                                <option value="50x40x20">50×40×20</option>
-                                <option value="60x50x25">60×50×25</option>
-                                <option value="80x60x25">80×60×25</option>
-                              </select>
-                            </span>
-                          </div>
-                          {/* Aterramento */}
-                          <div className="prop-row">
-                            <span className="pr-label" style={{fontSize:9}}>Aterramento:</span>
-                            <span className="pr-value">
-                              <select value={qc.aterramento||'individual'} style={{fontSize:10}}
-                                onChange={e=>updateQuadro(qc.id,{aterramento:e.target.value})}>
-                                <option value="individual">Individual (haste própria)</option>
-                                <option value="edificacao">Edificação (barramento geral)</option>
-                                <option value="nenhum">Nenhum</option>
-                              </select>
-                            </span>
-                          </div>
-                          {/* Disjuntor */}
-                          <div className="prop-row">
-                            <span className="pr-label" style={{fontSize:9}}>Disjuntor:</span>
-                            <span className="pr-value" style={{display:'flex',gap:4}}>
-                              <select value={qc.disjuntor?.tipo||'bipolar'} style={{fontSize:10,flex:1}}
-                                onChange={e=>updateQuadro(qc.id,{disjuntor:{...qc.disjuntor,tipo:e.target.value}})}>
-                                <option value="unipolar">Unipolar</option>
-                                <option value="bipolar">Bipolar</option>
-                                <option value="tripolar">Tripolar</option>
-                              </select>
-                              <select value={qc.disjuntor?.amperagem||16} style={{fontSize:10,width:60}}
-                                onChange={e=>updateQuadro(qc.id,{disjuntor:{...qc.disjuntor,amperagem:parseInt(e.target.value)}})}>
-                                {[6,10,16,20,25,32,40].map(a=><option key={a} value={a}>{a}A</option>)}
-                              </select>
-                            </span>
-                          </div>
-                          {/* Prensa-cabo */}
-                          <div className="prop-row">
-                            <span className="pr-label" style={{fontSize:9}}>Prensa-cabo:</span>
-                            <span className="pr-value">
-                              <input type="number" min="0" max="30" value={qc.prensaCabo||0} style={{width:50,fontSize:10}}
-                                onChange={e=>updateQuadro(qc.id,{prensaCabo:parseInt(e.target.value)||0})}/>
-                            </span>
-                          </div>
-
-                          {/* Assigned devices */}
-                          <div style={{fontSize:9,fontWeight:700,color:'#64748b',textTransform:'uppercase',
-                            letterSpacing:.5,marginTop:10,marginBottom:4}}>
-                            Dispositivos ({qcDevices.length})
-                          </div>
-                          {qcDevices.length>0?qcDevices.map(d=>{
-                            const catColor=DEVICE_LIB.find(c=>c.items.some(it=>it.key===d.key))?.color||'#6b7280';
-                            return (
-                              <div key={d.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',
-                                fontSize:9,borderBottom:'1px solid #f0f0f0'}}>
-                                <span style={{width:6,height:6,borderRadius:'50%',background:catColor,flexShrink:0}}/>
-                                <span style={{flex:1,cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}
-                                  onClick={(e)=>{e.stopPropagation();setSelectedDevice(d.id);setRightTab('props')}}>
-                                  {d.name}
-                                </span>
-                                <span style={{fontSize:8,color:'#ef4444',cursor:'pointer',fontWeight:700}}
-                                  onClick={(e)=>{e.stopPropagation();unassignDeviceFromQuadro(d.id)}}>✕</span>
-                              </div>
-                            );
-                          }):(
-                            <div style={{fontSize:9,color:'#94a3b8',padding:'6px 0',textAlign:'center'}}>
-                              Nenhum dispositivo atribuído
-                            </div>
-                          )}
-
-                          {/* Quick-assign: show mountable unassigned devices */}
-                          {(()=>{
-                            const unassigned=devices.filter(d=>!d.quadroId&&!d.parentRack&&canMountInQuadro(d.key));
-                            if(!unassigned.length) return null;
-                            return (
-                              <div style={{marginTop:6}}>
-                                <select style={{width:'100%',fontSize:9,padding:'3px 4px',borderRadius:4,border:'1px solid #d1d5db'}}
-                                  value="" onChange={e=>{if(e.target.value) assignDeviceToQuadro(e.target.value,qc.id)}}>
-                                  <option value="">+ Atribuir dispositivo...</option>
-                                  {unassigned.map(d=><option key={d.id} value={d.id}>{d.name} ({d.key})</option>)}
-                                </select>
-                              </div>
-                            );
-                          })()}
-
-                          {/* BOM Preview */}
-                          <div style={{fontSize:9,fontWeight:700,color:'#64748b',textTransform:'uppercase',
-                            letterSpacing:.5,marginTop:10,marginBottom:4}}>
-                            BOM Automático
-                          </div>
-                          {getQuadroBom(qc).map((item,i)=>(
-                            <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:9,
-                              padding:'2px 0',borderBottom:'1px solid #f8fafc',color:'#334155'}}>
-                              <span>{item.name}</span>
-                              <span style={{fontWeight:700,color:'#16a34a'}}>{item.qty}×</span>
-                            </div>
-                          ))}
-
-                          {/* Actions */}
-                          <div style={{display:'flex',gap:6,marginTop:10}}>
-                            <button onClick={(e)=>{e.stopPropagation();deleteQuadro(qc.id)}}
-                              style={{flex:1,padding:'5px 8px',fontSize:9,fontWeight:600,background:'#fef2f2',
-                                color:'#ef4444',border:'1px solid #fecaca',borderRadius:4,cursor:'pointer'}}>
-                              🗑️ Excluir
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <QuadroDetailPanel
+                quadros={quadros} devices={devices} connections={connections}
+                selectedQuadroId={selectedQuadroId} setSelectedQuadroId={setSelectedQuadroId}
+                addQuadro={addQuadro} updateQuadro={updateQuadro} deleteQuadro={deleteQuadro}
+                assignDeviceToQuadro={assignDeviceToQuadro} unassignDeviceFromQuadro={unassignDeviceFromQuadro}
+                setSelectedDevice={setSelectedDevice} setRightTab={setRightTab}/>
             )}
             {/* PROPERTIES */}
             {rightTab==='props'&&selectedDev&&(
@@ -3131,106 +2426,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                 }}/>
             )}
             {/* UNIFILAR - Diagrama Unifilar Elétrico */}
-            {rightTab==='unifilar'&&(()=>{
-              // Analyze electrical topology from current project
-              const tensao=230; // Default trifásico
-              const fp=0.92; // Fator de potência
-              // Group devices by electrical circuit
-              const circuits=[];
-              let circNum=1;
-              // Group by ambiente label
-              const envGroups={};
-              devices.forEach(d=>{
-                const envName=d.ambiente||'Geral';
-                if(!envGroups[envName]) envGroups[envName]=[];
-                envGroups[envName].push(d);
-              });
-              // Build circuits per environment
-              Object.entries(envGroups).forEach(([envName,devs])=>{
-                // Separate by power type
-                const poeDevs=devs.filter(d=>{const def=findDevDef(d.key);return def?.poe});
-                const acDevs=devs.filter(d=>needsACPower(d.key));
-                const dcDevs=devs.filter(d=>needsDCPower(d.key)&&!findDevDef(d.key)?.poe);
-                if(poeDevs.length>0){
-                  const totalW=poeDevs.reduce((s,d)=>{const def=findDevDef(d.key);return s+(def?.poeW||15)},0);
-                  const corrente=(totalW/(tensao*fp)).toFixed(1);
-                  const secao=totalW<400?'1.5':totalW<800?'2.5':'4.0';
-                  const disj=corrente<10?10:corrente<16?16:corrente<20?20:corrente<25?25:32;
-                  circuits.push({num:circNum++,env:envName,desc:`CFTV/PoE (${poeDevs.length} câm.)`,
-                    potencia:totalW,tensao,corrente,secao,disj,idr:true,dps:true,devs:poeDevs});
-                }
-                if(acDevs.length>0){
-                  const totalW=acDevs.reduce((s,d)=>{
-                    const def=findDevDef(d.key);
-                    const p=parseInt(def?.props?.potencia)||100;return s+p},0);
-                  const corrente=(totalW/(tensao*fp)).toFixed(1);
-                  const secao=totalW<400?'1.5':totalW<800?'2.5':totalW<1500?'4.0':'6.0';
-                  const disj=corrente<10?10:corrente<16?16:corrente<20?20:corrente<25?25:corrente<32?32:40;
-                  circuits.push({num:circNum++,env:envName,desc:`Equip. AC (${acDevs.length} un.)`,
-                    potencia:totalW,tensao,corrente,secao,disj,idr:true,dps:true,devs:acDevs});
-                }
-                if(dcDevs.length>0){
-                  const totalW=dcDevs.length*5; // ~5W por device DC
-                  circuits.push({num:circNum++,env:envName,desc:`Sensores/DC (${dcDevs.length} un.)`,
-                    potencia:totalW,tensao:12,corrente:(totalW/12).toFixed(1),secao:'0.75',disj:6,idr:false,dps:false,devs:dcDevs});
-                }
-              });
-              const totalPot=circuits.reduce((s,c)=>s+c.potencia,0);
-              const totalCorr=(totalPot/(tensao*fp)).toFixed(1);
-              const djGeral=totalCorr<25?25:totalCorr<32?32:totalCorr<40?40:totalCorr<50?50:63;
-              return (
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--azul)',marginBottom:8}}>⚡ Diagrama Unifilar</div>
-                  {devices.length===0?(
-                    <div style={{textAlign:'center',padding:20,color:'var(--cinza)',fontSize:11}}>
-                      Adicione dispositivos para gerar o unifilar</div>
-                  ):(
-                    <div>
-                      {/* QGBT Summary */}
-                      <div style={{background:'#F0F5FA',borderRadius:6,padding:8,marginBottom:8,color:'#1e293b',border:'1px solid #E2E8F0'}}>
-                        <div style={{fontSize:10,fontWeight:700,marginBottom:4}}>QGBT — Quadro Geral</div>
-                        <div style={{fontSize:9,color:'#94a3b8',lineHeight:1.6}}>
-                          Pot. Total: {totalPot}W ({(totalPot/1000).toFixed(1)}kW)<br/>
-                          Corrente: {totalCorr}A @ {tensao}V<br/>
-                          DJ Geral: {djGeral}A tripolar<br/>
-                          IDR Geral: 30mA<br/>
-                          DPS Classe II: Sim<br/>
-                          Circuitos: {circuits.length}
-                        </div>
-                      </div>
-                      {/* Circuit table */}
-                      <div style={{fontSize:9,marginBottom:8}}>
-                        <div style={{display:'grid',gridTemplateColumns:'24px 1fr 50px 40px 32px 28px',gap:2,
-                          padding:'4px 0',borderBottom:'2px solid var(--azul)',fontWeight:700,color:'var(--azul)'}}>
-                          <span>#</span><span>Circuito</span><span>W</span><span>mm²</span><span>DJ</span><span>IDR</span>
-                        </div>
-                        {circuits.map(c=>(
-                          <div key={c.num} style={{display:'grid',gridTemplateColumns:'24px 1fr 50px 40px 32px 28px',gap:2,
-                            padding:'3px 0',borderBottom:'1px solid #eee',alignItems:'center'}}>
-                            <span style={{fontWeight:700,color:'var(--azul)'}}>{c.num}</span>
-                            <div>
-                              <div style={{fontWeight:600}}>{c.desc}</div>
-                              <div style={{fontSize:8,color:'#94a3b8'}}>{c.env}</div>
-                            </div>
-                            <span>{c.potencia}</span>
-                            <span>{c.secao}</span>
-                            <span>{c.disj}A</span>
-                            <span>{c.idr?'✓':'—'}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Legend */}
-                      <div style={{fontSize:8,color:'#94a3b8',lineHeight:1.5,borderTop:'1px solid #eee',paddingTop:6}}>
-                        <strong>Normas:</strong> NBR 5410 · IEC 60617<br/>
-                        <strong>Condutor:</strong> Seção nominal (mm²) c/ queda tensão ≤4%<br/>
-                        <strong>IDR:</strong> 30mA · <strong>DPS:</strong> Classe II em todos circuitos<br/>
-                        <strong>Condutor Terra:</strong> Verde-amarelo em todos
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+            {rightTab==='unifilar'&&<UnifilarPanel devices={devices}/>}
           </div>
         </div>
       </div>
@@ -3273,44 +2469,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         onClose={()=>setShowMigrationWizard(false)}/>}
 
       {/* CALIBRATION DISTANCE MODAL */}
-      {showCalibModal&&calibStart&&calibEnd&&(()=>{
-        const dx=calibEnd.x-calibStart.x,dy=calibEnd.y-calibStart.y;
-        const pixelDist=Math.sqrt(dx*dx+dy*dy);
-        const currentScale=floor?.bgScale||1;
-        const currentMeters=(pixelDist/(40*currentScale)).toFixed(2);
-        return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={e=>{if(e.target===e.currentTarget){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}>
-          <div style={{background:'#fff',borderRadius:12,padding:24,width:'min(340px, calc(100vw - 32px))',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
-            <div style={{fontSize:14,fontWeight:700,color:'#8e44ad',marginBottom:4}}>📐 Calibrar Escala</div>
-            <div style={{fontSize:10,color:'#64748b',marginBottom:16,lineHeight:1.4}}>
-              Distância medida na imagem: <b>{currentMeters}m</b> (escala atual)
-              <br/>Informe a distância real entre os dois pontos marcados.
-            </div>
-            <div style={{marginBottom:16}}>
-              <label style={{fontSize:10,fontWeight:600,color:'#374151',marginBottom:4,display:'block'}}>Distância real (metros)</label>
-              <input ref={calibInputRef} type="number" min="0.1" step="0.1" autoFocus
-                defaultValue=""
-                placeholder="Ex: 12.5"
-                onKeyDown={e=>{if(e.key==='Enter'){const v=parseFloat(e.target.value);if(v>0)confirmCalibration(v)}
-                  if(e.key==='Escape'){setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}}
-                style={{width:'100%',padding:'10px 12px',fontSize:14,border:'2px solid #8e44ad',borderRadius:8,
-                  outline:'none',boxSizing:'border-box'}}/>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>{setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}
-                style={{flex:1,padding:'8px 12px',fontSize:11,fontWeight:600,background:'#f1f5f9',color:'#64748b',
-                  border:'1px solid #d1d5db',borderRadius:6,cursor:'pointer'}}>
-                Cancelar
-              </button>
-              <button onClick={()=>{const v=parseFloat(calibInputRef.current?.value);if(v>0)confirmCalibration(v);else calibInputRef.current?.focus()}}
-                style={{flex:1,padding:'8px 12px',fontSize:11,fontWeight:600,background:'#8e44ad',color:'#fff',
-                  border:'none',borderRadius:6,cursor:'pointer'}}>
-                ✅ Aplicar Escala
-              </button>
-            </div>
-          </div>
-        </div>;
-      })()}
+      {showCalibModal&&<CalibrationModal calibStart={calibStart} calibEnd={calibEnd} floor={floor}
+        onConfirm={confirmCalibration}
+        onCancel={()=>{setShowCalibModal(false);setCalibStart(null);setCalibEnd(null);setTool('select')}}/>}
+
 
       {/* EXPORT MODAL */}
       {showExport&&<ExportModal project={project} bom={bom} allDevices={allDevices}
