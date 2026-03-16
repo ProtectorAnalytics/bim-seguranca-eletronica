@@ -17,7 +17,7 @@ import AdminPage from './AdminPage';
 import InviteRegisterPage from './InviteRegisterPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import UpgradeBanner from './UpgradeBanner';
-import VersionBadge from './VersionBadge';
+
 import ProjectApp from './ProjectApp';
 import SharedProjectView from './SharedProjectView';
 import { useSubscription } from '../hooks/useSubscription';
@@ -240,7 +240,7 @@ export default function App(){
   const urlType = urlParams.get('type')
 
   // Auth guard
-  if(authLoading) return <><LoadingScreen/><VersionBadge/></>;
+  if(authLoading) return <LoadingScreen/>;
 
   // Shared project link (can be accessed without auth)
   if(shareTokenParam) return (
@@ -249,17 +249,16 @@ export default function App(){
         shareToken={shareTokenParam}
         onExit={() => { window.history.replaceState({}, '', '/'); window.location.reload() }}
       />
-      <VersionBadge/>
     </>
   );
 
   // Invite registration (no auth required)
-  if(inviteToken) return <><InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /><VersionBadge/></>;
+  if(inviteToken) return <InviteRegisterPage token={inviteToken} onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
 
   // Password recovery (user arrives authenticated via Supabase recovery link)
-  if(urlType === 'recovery' && user) return <><ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} /><VersionBadge/></>;
+  if(urlType === 'recovery' && user) return <ResetPasswordPage onDone={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />;
 
-  if(!user) return <><LoginPage/><VersionBadge/></>;
+  if(!user) return <LoginPage/>;
 
   let content;
 
@@ -314,5 +313,5 @@ export default function App(){
 
   else content = <ProjectApp project={project} setProject={setProject} undo={undo} redo={redo} cloudSaveStatus={cloudSaveStatus} cloudFallback={cloudFallback} storageMode={storageMode} projectId={editingProjectId} onBack={()=>setScreen('dashboard')}/>;
 
-  return <>{content}{screen!=='client'&&<VersionBadge/>}</>;
+  return <>{content}</>;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_VERSION } from '@/data/constants';
 
 /**
  * Professional user menu dropdown — Lombada white identity.
@@ -147,6 +148,21 @@ export default function UserMenu({ onProfile, onSubscription, onSettings, onAdmi
               <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'left' }}>Encerrar sessao</div>
             </div>
           </button>
+
+          {/* Version info */}
+          <div style={{
+            borderTop: '1px solid #E2E8F0', margin: '4px 6px 0', padding: '8px 8px 4px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>
+              Protector <span style={{
+                fontSize: 10, fontWeight: 700, color: '#fff',
+                background: '#046BD2', borderRadius: 4,
+                padding: '1px 5px', marginLeft: 2,
+              }}>{APP_VERSION.full}</span>
+            </span>
+            <span style={{ fontSize: 9, color: '#cbd5e1' }}>{APP_VERSION.date}</span>
+          </div>
         </div>
       )}
 
