@@ -66,7 +66,8 @@ export const DEVICE_INTERFACES = {
                  {type:'signal_in',cables:['pp2v_05'],label:'Botoeira / Sensor porta',required:false}],
   leitor_tag:   [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true},
                  {type:'data_in',cables:['pp2v_05'],label:'Wiegand / RS-485',required:true},
-                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída automação (contato seco)',required:false}],
+                 {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída automação (contato seco)',required:false},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Botoeira / Sensor porta',required:false}],
   controladora: [{type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
                  {type:'data_in',cables:['cat5e','cat6'],label:'Rede TCP/IP (RJ45)',required:false},
                  {type:'automation_out',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Saída fechadura / eletroímã',required:true},
@@ -82,7 +83,8 @@ export const DEVICE_INTERFACES = {
   sensor_abertura:[{type:'signal_out',cables:['pp2v_05'],label:'Saída contato (NA/NF)',required:true}],
   motor:        [{type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC 110/220V',required:true},
                  {type:'signal_in',cables:['pp2v_05'],label:'Sinal central / controladora',required:false},
-                 {type:'automation_in',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Entrada automação (botoeira/contato)',required:false}],
+                 {type:'automation_in',cables:['pp2v_10','pp4v_10','pp2v_05'],label:'Entrada automação (botoeira/contato)',required:false},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Botoeira (contato NA/NF)',required:false}],
   // Rede
   sw_poe:       [{type:'data_io',cables:['cat5e','cat6','cat6a','smf','mmf'],label:'Portas de rede (uplink + PoE)',required:true},
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Alimentação AC bivolt',required:true},
@@ -112,7 +114,8 @@ export const DEVICE_INTERFACES = {
                  {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true}],
   fonte_nb:     [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC bivolt',required:true},
                  {type:'power_out',cables:['pp2v_10','pp2v_05'],label:'Saída 12VDC (equipamentos)',required:true},
-                 {type:'power_io',cables:['pp2v_10'],label:'Conexão bateria 12V',required:false}],
+                 {type:'power_io',cables:['pp2v_10'],label:'Conexão bateria 12V',required:false},
+                 {type:'signal_in',cables:['pp2v_05'],label:'Botoeira / Sensor porta (contato NA/NF)',required:false}],
   bat_12v:      [{type:'power_out',cables:['pp2v_10'],label:'Saída DC 12V (p/ fonte nobreak)',required:true}],
   rack:         [{type:'passthrough',cables:['cat5e','cat6','cat6a','pp2v_05','pp2v_10','ac_power','smf','mmf'],label:'Passagem de cabos (rack)'}],
   nobreak_ac:   [{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (rede elétrica)',required:true},
@@ -382,7 +385,8 @@ export function resolveInterfacesByKey(key) {
   if (key === 'leitor_biometrico') return DEVICE_INTERFACES.leitor_tag;
   if (key === 'leitor_rfid') return [
     {type:'power_in',cables:['pp2v_10','pp2v_05'],label:'12VDC',required:true},
-    {type:'data_in',cables:['pp2v_05'],label:'Wiegand/RS485',required:true}];
+    {type:'data_in',cables:['pp2v_05'],label:'Wiegand/RS485',required:true},
+    {type:'signal_in',cables:['pp2v_05'],label:'Botoeira / Sensor porta',required:false}];
   if (key === 'eletroima') return DEVICE_INTERFACES.fechadura;
   if (key.startsWith('fechadura_solenoide') || key === 'fechadura_eletromecanica') return DEVICE_INTERFACES.fechadura_sol;
   if (key === 'botoeira_nt' || key === 'botoeira_emergencia' || key.startsWith('botoeira')) return DEVICE_INTERFACES.botoeira;
