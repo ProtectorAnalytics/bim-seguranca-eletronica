@@ -65,7 +65,7 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
 
   // ── Connections (cables) ─────────────────────────
   if (drawConnections) {
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.5);
     connections.forEach(conn => {
       const fromDev = devices.find(d => d.id === conn.from);
       const toDev = devices.find(d => d.id === conn.to);
@@ -93,16 +93,21 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
         const mid = Math.floor(points.length / 2);
         const mx = (points[mid - 1].x + points[mid].x) / 2;
         const my = (points[mid - 1].y + points[mid].y) / 2;
-        doc.setFontSize(4);
+        // White background for readability
+        doc.setFontSize(5);
+        const labelTxt = `${conn.dist}m`;
+        const labelW = doc.getTextWidth(labelTxt) + 1.5;
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(tx(mx) - labelW / 2, ty(my) - 3, labelW, 3.5, 0.5, 0.5, 'F');
         doc.setTextColor(...color);
-        doc.text(`${conn.dist}m`, tx(mx), ty(my) - 1, { align: 'center' });
+        doc.text(labelTxt, tx(mx), ty(my) - 0.5, { align: 'center' });
       }
     });
   }
 
   // ── Devices ──────────────────────────────────────
   if (drawDevices) {
-    const devRadius = 3; // mm radius for device marker
+    const devRadius = 3.5; // mm radius for device marker
     devices.forEach(dev => {
       const def = findDevDef(dev.key);
       const x = tx(dev.x);
@@ -110,58 +115,69 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
 
       // Marker color based on device type
       let fillColor = [100, 116, 139]; // default gray
-      if (dev.key.startsWith('cam_')) fillColor = [52, 152, 219]; // blue (cameras)
+      if (dev.key.startsWith('cam_')) fillColor = [4, 107, 210]; // Protector blue (cameras)
       else if (dev.key.startsWith('nvr_') || dev.key.startsWith('dvr_')) fillColor = [155, 89, 182]; // purple (recorders)
       else if (dev.key.startsWith('sw_')) fillColor = [46, 204, 113]; // green (switches)
-      else if (dev.key.startsWith('nobreak_') || dev.key.startsWith('fonte_')) fillColor = [231, 76, 60]; // red (power)
-      else if (dev.key.startsWith('alarme_') || dev.key.startsWith('barreira_')) fillColor = [243, 156, 18]; // orange (security)
+      else if (dev.key.startsWith('nobreak_') || dev.key.startsWith('fonte_') || dev.key.startsWith('conversor_dc')) fillColor = [231, 76, 60]; // red (power)
+      else if (dev.key.startsWith('alarme_') || dev.key.startsWith('barreira_') || dev.key.startsWith('sensor_')) fillColor = [243, 156, 18]; // orange (security)
+      else if (dev.key.startsWith('leitor_') || dev.key.startsWith('catraca_') || dev.key.startsWith('fechadura')) fillColor = [52, 73, 94]; // dark (access)
+      else if (dev.key.startsWith('auto_') || dev.key.startsWith('cancela_') || dev.key === 'motor') fillColor = [142, 68, 173]; // purple (automation)
 
-      // Draw marker circle
+      // Draw marker circle with border
       doc.setFillColor(...fillColor);
       doc.setDrawColor(255, 255, 255);
-      doc.setLineWidth(0.3);
+      doc.setLineWidth(0.5);
       doc.circle(x, y, devRadius, 'FD');
 
-      // Device label
+      // Device label with background
       if (drawLabels) {
-        doc.setFontSize(3.5);
-        doc.setTextColor(44, 62, 80);
         const label = dev.name || def?.name || dev.key;
-        // Truncate long names
-        const shortLabel = label.length > 18 ? label.substring(0, 16) + '..' : label;
-        doc.text(shortLabel, x, y + devRadius + 2.5, { align: 'center' });
+        const shortLabel = label.length > 22 ? label.substring(0, 20) + '..' : label;
+        doc.setFontSize(5);
+        const labelW = doc.getTextWidth(shortLabel) + 2;
+        const labelX = x - labelW / 2;
+        const labelY = y + devRadius + 1;
+        // White background pill
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(200, 210, 220);
+        doc.setLineWidth(0.1);
+        doc.roundedRect(labelX, labelY, labelW, 4, 1, 1, 'FD');
+        doc.setTextColor(44, 62, 80);
+        doc.text(shortLabel, x, labelY + 3, { align: 'center' });
       }
     });
   }
 
   // ── Legend ────────────────────────────────────────
-  const legendX = offsetX + canvasW * scale - 45;
-  const legendY = offsetY + canvasH * scale - 25;
+  const legendW = 52;
+  const legendH = 28;
+  const legendX = offsetX + canvasW * scale - legendW - 2;
+  const legendY = offsetY + canvasH * scale - legendH - 2;
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.2);
-  doc.roundedRect(legendX, legendY, 42, 22, 1.5, 1.5, 'FD');
+  doc.setDrawColor(180, 190, 200);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(legendX, legendY, legendW, legendH, 2, 2, 'FD');
 
-  doc.setFontSize(4);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(44, 62, 80);
-  doc.text('Legenda', legendX + 2, legendY + 4);
+  doc.text('Legenda', legendX + 3, legendY + 5);
   doc.setFont('helvetica', 'normal');
 
   const legendItems = [
     { color: [52, 152, 219], label: 'Dados (Cat6/Fibra)' },
     { color: [231, 76, 60], label: 'Energia (AC/DC)' },
     { color: [46, 204, 113], label: 'Sinal (PP/Sensor)' },
-    { color: [155, 89, 182], label: 'Automacao' },
+    { color: [155, 89, 182], label: 'Automação' },
   ];
 
   legendItems.forEach((item, i) => {
-    const ly = legendY + 7 + i * 3.5;
+    const ly = legendY + 9 + i * 4.5;
     doc.setDrawColor(...item.color);
-    doc.setLineWidth(0.6);
-    doc.line(legendX + 2, ly, legendX + 8, ly);
-    doc.setFontSize(3.5);
-    doc.setTextColor(80, 80, 80);
-    doc.text(item.label, legendX + 10, ly + 0.8);
+    doc.setLineWidth(0.8);
+    doc.line(legendX + 3, ly, legendX + 10, ly);
+    doc.setFontSize(5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(item.label, legendX + 12, ly + 1);
   });
 }

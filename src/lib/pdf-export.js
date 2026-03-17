@@ -8,40 +8,46 @@ import { drawFloorplanVector } from './pdf-vector';
 
 // ── Color palette ──────────────────────────────────
 const COLORS = {
-  primary: [52, 152, 219],    // #3498db
+  primary: [4, 107, 210],     // #046BD2 (Protector blue)
   dark: [44, 62, 80],         // #2c3e50
   gray: [127, 140, 141],      // #7f8c8d
-  lightGray: [236, 240, 241], // #ecf0f1
+  lightGray: [240, 245, 250], // #F0F5FA (Protector light)
   green: [39, 174, 96],       // #27ae60
   orange: [243, 156, 18],     // #f39c12
   white: [255, 255, 255],
 };
 
+// ── Margins & layout constants ────────────────────
+const MARGIN = 14;
+const PAGE_W = 210;
+const PAGE_H = 297;
+const CONTENT_W = PAGE_W - MARGIN * 2; // 182mm usable
+
 // ── Utility: draw header on each page ──────────────
 function drawHeader(doc, projectName, pageNum, totalPages) {
   const w = doc.internal.pageSize.getWidth();
   // Top bar
-  doc.setFillColor(...COLORS.dark);
-  doc.rect(0, 0, w, 18, 'F');
+  doc.setFillColor(...COLORS.primary);
+  doc.rect(0, 0, w, 16, 'F');
   doc.setTextColor(...COLORS.white);
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('BIM Protector — ' + projectName, 14, 12);
+  doc.text('BIM Protector — ' + projectName, MARGIN, 11);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text(`Página ${pageNum}/${totalPages}`, w - 14, 12, { align: 'right' });
+  doc.setFontSize(8);
+  doc.text(`Página ${pageNum}/${totalPages}`, w - MARGIN, 11, { align: 'right' });
 }
 
 // ── Utility: draw footer ──────────────────────────
 function drawFooter(doc) {
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(...COLORS.lightGray);
-  doc.line(14, h - 14, w - 14, h - 14);
+  doc.setDrawColor(200, 210, 220);
+  doc.line(MARGIN, h - 12, w - MARGIN, h - 12);
   doc.setTextColor(...COLORS.gray);
-  doc.setFontSize(6);
-  doc.text(`Gerado por BIM Protector ${APP_VERSION.full} em ${new Date().toLocaleString('pt-BR')}`, 14, h - 9);
-  doc.text('www.protectoranalytics.com.br', w - 14, h - 9, { align: 'right' });
+  doc.setFontSize(7);
+  doc.text(`Gerado por BIM Protector ${APP_VERSION.full} em ${new Date().toLocaleString('pt-BR')}`, MARGIN, h - 7);
+  doc.text('www.protectoranalytics.com.br', w - MARGIN, h - 7, { align: 'right' });
 }
 
 // ── Helper: safely get finalY from autoTable result ──
@@ -87,52 +93,59 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   const h = doc.internal.pageSize.getHeight(); // 297
   let currentPage = 1;
 
+  const totalCableMeters = connections.reduce((a, c) => a + (c.distance || 0), 0);
+
   // ── PAGE 1: Cover ────────────────────────────────
-  // Dark header band
-  doc.setFillColor(...COLORS.dark);
-  doc.rect(0, 0, w, 65, 'F');
+  // Header band with Protector blue
+  doc.setFillColor(...COLORS.primary);
+  doc.rect(0, 0, w, 60, 'F');
 
   // Title
   doc.setTextColor(...COLORS.white);
-  doc.setFontSize(22);
+  doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('Projeto de Segurança Eletrônica', 14, 30);
+  doc.text('Projeto de Segurança Eletrônica', MARGIN + 4, 28);
 
   // Project name
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'normal');
-  doc.text(project.name || 'Sem nome', 14, 42);
+  const projName = project.name || 'Sem nome';
+  // Truncate if too long
+  const projNameTrunc = projName.length > 50 ? projName.substring(0, 48) + '...' : projName;
+  doc.text(projNameTrunc, MARGIN + 4, 42);
 
-  // Version badge
-  doc.setFillColor(...COLORS.primary);
-  doc.roundedRect(14, 48, 30, 8, 2, 2, 'F');
-  doc.setFontSize(7);
+  // Version + scenario badges
+  let badgeX = MARGIN + 4;
+  doc.setFillColor(255, 255, 255, 40);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(badgeX, 47, 32, 7, 2, 2, 'F');
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text(APP_VERSION.full, 29, 53.5, { align: 'center' });
+  doc.setTextColor(...COLORS.primary);
+  doc.text(APP_VERSION.full, badgeX + 16, 52, { align: 'center' });
+  badgeX += 36;
 
-  // Scenario badge
   if (project.scenario) {
     doc.setFillColor(...COLORS.green);
-    doc.roundedRect(48, 48, 40, 8, 2, 2, 'F');
-    doc.text(project.scenario, 68, 53.5, { align: 'center' });
+    doc.roundedRect(badgeX, 47, 42, 7, 2, 2, 'F');
+    doc.setTextColor(...COLORS.white);
+    doc.text(project.scenario, badgeX + 21, 52, { align: 'center' });
   }
 
   // Client info box
   const client = project.client || {};
-  let yPos = 80;
+  let yPos = 76;
 
   doc.setFillColor(...COLORS.lightGray);
-  doc.roundedRect(14, 72, w - 28, 55, 3, 3, 'F');
+  doc.roundedRect(MARGIN, 68, CONTENT_W, 58, 3, 3, 'F');
 
   doc.setTextColor(...COLORS.dark);
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Dados do Cliente', 20, yPos);
-  yPos += 8;
+  doc.text('Dados do Cliente', MARGIN + 6, yPos);
+  yPos += 9;
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...COLORS.gray);
+  doc.setFontSize(10);
 
   const clientFields = [
     ['Nome / Razão Social', client.razaoSocial || client.nome || '—'],
@@ -146,26 +159,28 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   clientFields.forEach(([label, value]) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.dark);
-    doc.text(label + ':', 20, yPos);
+    doc.text(label + ':', MARGIN + 6, yPos);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.gray);
-    doc.text(String(value), 65, yPos);
-    yPos += 6;
+    // Truncate long values to fit within box
+    const valStr = String(value);
+    const valTrunc = valStr.length > 55 ? valStr.substring(0, 53) + '...' : valStr;
+    doc.text(valTrunc, 68, yPos);
+    yPos += 7;
   });
 
   // Project summary box
   yPos = 142;
   doc.setFillColor(...COLORS.lightGray);
-  doc.roundedRect(14, yPos - 6, w - 28, 42, 3, 3, 'F');
+  doc.roundedRect(MARGIN, yPos - 6, CONTENT_W, 46, 3, 3, 'F');
 
   doc.setTextColor(...COLORS.dark);
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Resumo do Projeto', 20, yPos);
-  yPos += 8;
+  doc.text('Resumo do Projeto', MARGIN + 6, yPos);
+  yPos += 9;
 
-  doc.setFontSize(9);
-  const totalCableMeters = connections.reduce((a, c) => a + (c.distance || 0), 0);
+  doc.setFontSize(10);
   const summaryFields = [
     ['Pavimentos', String(project.floors?.length || 0)],
     ['Dispositivos', String(allDevices.length)],
@@ -177,22 +192,22 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
   summaryFields.forEach(([label, value]) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.dark);
-    doc.text(label + ':', 20, yPos);
+    doc.text(label + ':', MARGIN + 6, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...COLORS.gray);
-    doc.text(value, 65, yPos);
-    yPos += 6;
+    doc.setTextColor(...COLORS.primary);
+    doc.text(value, 68, yPos);
+    yPos += 7;
   });
 
   // Footer info
-  yPos = 200;
+  yPos = 206;
   doc.setTextColor(...COLORS.gray);
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Autor: ${author}`, 14, yPos);
-  doc.text(`Empresa: ${company}`, 14, yPos + 5);
-  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, yPos + 10);
-  if (client.projetoRef) doc.text(`Ref: ${client.projetoRef}`, 14, yPos + 15);
+  doc.text(`Autor: ${author}`, MARGIN, yPos);
+  doc.text(`Empresa: ${company}`, MARGIN, yPos + 6);
+  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, MARGIN, yPos + 12);
+  if (client.projetoRef) doc.text(`Ref: ${client.projetoRef}`, MARGIN, yPos + 18);
 
   drawFooter(doc);
 
@@ -204,84 +219,83 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     drawHeader(doc, project.name || '', currentPage, '?');
 
     doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumo Executivo', 14, 30);
+    doc.text('Resumo Executivo', MARGIN, 30);
 
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.gray);
-    doc.text('Visão geral do projeto de segurança eletrônica', 14, 36);
+    doc.text('Visão geral do projeto de segurança eletrônica', MARGIN, 37);
 
-    let sy = 44;
+    let sy = 46;
+
+    // ── Section header helper ──
+    const drawSectionHeader = (title, yStart) => {
+      doc.setFillColor(...COLORS.primary);
+      doc.roundedRect(MARGIN, yStart - 4, CONTENT_W, 9, 2, 2, 'F');
+      doc.setTextColor(...COLORS.white);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, MARGIN + 6, yStart + 2.5);
+      return yStart + 12;
+    };
 
     // ── Contagem por categoria ──
-    doc.setFillColor(...COLORS.lightGray);
-    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
-    doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Equipamentos por Categoria', 20, sy + 2);
-    sy += 10;
+    sy = drawSectionHeader('Equipamentos por Categoria', sy);
 
-    // Group devices by category
+    // Group devices by category — comprehensive classification
     const catCounts = {};
     allDevices.forEach(d => {
       const k = d.key || '';
       let cat = 'Outros';
       if (k.startsWith('cam_')) cat = 'CFTV — Câmeras';
-      else if (k.startsWith('nvr_')) cat = 'CFTV — Gravadores';
+      else if (k.startsWith('nvr_') || k.startsWith('dvr_')) cat = 'CFTV — Gravadores';
       else if (k.startsWith('sw_') || k === 'router') cat = 'Rede';
-      else if (k.startsWith('wifi_') || k.startsWith('ap_')) cat = 'Wi-Fi';
-      else if (k.startsWith('barreira_')) cat = 'Intrusão — Barreiras';
-      else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'eletroima' || k === 'leitor_tag' || k === 'leitor_biometrico' || k === 'leitor_rfid' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_')) cat = 'Controle de Acesso';
+      else if (k.startsWith('wifi_') || k.startsWith('ap_') || k.startsWith('ont_')) cat = 'Wi-Fi / Rede';
+      else if (k.startsWith('barreira_') || k.startsWith('sensor_') || k.startsWith('botoeira_') || k.startsWith('alarme_')) cat = 'Intrusão / Alarme';
+      else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'eletroima' || k === 'leitor_tag' || k === 'leitor_biometrico' || k === 'leitor_rfid' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_') || k.startsWith('fechadura_')) cat = 'Controle de Acesso';
       else if (k.startsWith('auto_') || k.startsWith('cancela_') || k === 'motor') cat = 'Automatização';
-      else if (k === 'nobreak_ac' || k === 'nobreak_dc' || k === 'fonte' || k === 'bateria_ext' || k === 'modulo_bat') cat = 'Energia';
+      else if (k === 'nobreak_ac' || k === 'nobreak_dc' || k.startsWith('fonte_nb') || k.startsWith('fonte_idpower') || k.startsWith('conversor_dc') || k === 'fonte' || k === 'bateria_ext' || k === 'modulo_bat' || k.startsWith('bateria_')) cat = 'Energia';
       else if (k === 'rack' || k === 'quadro' || k === 'quadro_eletrico' || k === 'dio' || k === 'borne_sak' || k === 'patch_panel' || k === 'conversor_midia' || k === 'dps_rede' || k === 'tomada_dupla' || k === 'cabo_engate') cat = 'Infraestrutura';
-      // Legacy devices from deleted families
+      else if (k.startsWith('custom_')) cat = 'Customizados';
       else if (d._legacy) cat = 'Legado';
       if (!catCounts[cat]) catCounts[cat] = 0;
       catCounts[cat]++;
     });
 
     const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     catEntries.forEach(([cat, count]) => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...COLORS.dark);
-      doc.text(`• ${cat}`, 22, sy);
+      doc.text(`• ${cat}`, MARGIN + 8, sy);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...COLORS.primary);
-      doc.text(String(count), 100, sy);
-      sy += 5.5;
+      doc.text(String(count), 110, sy, { align: 'right' });
+      sy += 6;
     });
 
     // Total
-    sy += 2;
-    doc.setDrawColor(...COLORS.lightGray);
-    doc.line(22, sy - 3, 110, sy - 3);
+    sy += 3;
+    doc.setDrawColor(200, 210, 220);
+    doc.line(MARGIN + 8, sy - 3, 120, sy - 3);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(10);
-    doc.text(`Total: ${allDevices.length} dispositivos`, 22, sy + 1);
-    sy += 12;
+    doc.setFontSize(11);
+    doc.text(`Total: ${allDevices.length} dispositivos`, MARGIN + 8, sy + 1);
+    sy += 14;
 
     // ── Cabeamento ──
-    const totalCableM = connections.reduce((a, c) => a + (c.distance || 0), 0);
-    doc.setFillColor(...COLORS.lightGray);
-    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
-    doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cabeamento', 20, sy + 2);
-    sy += 10;
+    sy = drawSectionHeader('Cabeamento', sy);
 
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`• Total de conexões: ${connections.length}`, 22, sy);
-    sy += 5.5;
-    doc.text(`• Metragem total estimada: ${totalCableM}m`, 22, sy);
-    sy += 5.5;
+    doc.setTextColor(...COLORS.dark);
+    doc.text(`• Total de conexões: ${connections.length}`, MARGIN + 8, sy);
+    sy += 6;
+    doc.text(`• Metragem total estimada: ${totalCableMeters}m`, MARGIN + 8, sy);
+    sy += 7;
 
     const cableTypes = {};
     connections.forEach(c => {
@@ -292,38 +306,39 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       cableTypes[name].meters += c.distance || 0;
     });
     Object.entries(cableTypes).sort((a, b) => b[1].meters - a[1].meters).forEach(([name, data]) => {
-      doc.text(`  → ${name}: ${data.count} lances, ${data.meters}m`, 22, sy);
-      sy += 5;
+      doc.text(`  → ${name}: ${data.count} lances, ${data.meters}m`, MARGIN + 8, sy);
+      sy += 5.5;
     });
-    sy += 6;
+    sy += 8;
 
     // ── Validações resumo ──
-    doc.setFillColor(...COLORS.lightGray);
-    doc.roundedRect(14, sy - 4, w - 28, 8, 2, 2, 'F');
-    doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Status de Validação', 20, sy + 2);
-    sy += 10;
+    // Check if we need a new page
+    if (sy > h - 60) {
+      doc.addPage();
+      currentPage++;
+      drawHeader(doc, project.name || '', currentPage, '?');
+      sy = 28;
+    }
+
+    sy = drawSectionHeader('Status de Validação', sy);
 
     const activeAlerts = validationResults.filter(v => v.msg);
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     if (activeAlerts.length === 0) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...COLORS.green);
-      doc.text('OK — Nenhum alerta ativo. Projeto dentro das boas práticas.', 22, sy);
+      doc.text('✓ Nenhum alerta ativo. Projeto dentro das boas práticas.', MARGIN + 8, sy);
     } else {
       const criticas = activeAlerts.filter(v => v.sev === 'CRÍTICA').length;
       const altas = activeAlerts.filter(v => v.sev === 'ALTA').length;
       const obrig = activeAlerts.filter(v => v.sev === 'OBRIGATÓRIA').length;
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...COLORS.dark);
-      if (criticas) { doc.setTextColor(231, 76, 60); doc.text(`• ${criticas} alerta(s) CRÍTICA(S)`, 22, sy); sy += 5.5; }
-      if (altas) { doc.setTextColor(243, 156, 18); doc.text(`• ${altas} alerta(s) ALTA(S)`, 22, sy); sy += 5.5; }
-      if (obrig) { doc.setTextColor(...COLORS.orange); doc.text(`• ${obrig} alerta(s) OBRIGATÓRIA(S)`, 22, sy); sy += 5.5; }
+      if (criticas) { doc.setTextColor(231, 76, 60); doc.text(`• ${criticas} alerta(s) CRÍTICA(S)`, MARGIN + 8, sy); sy += 6; }
+      if (altas) { doc.setTextColor(243, 156, 18); doc.text(`• ${altas} alerta(s) ALTA(S)`, MARGIN + 8, sy); sy += 6; }
+      if (obrig) { doc.setTextColor(...COLORS.orange); doc.text(`• ${obrig} alerta(s) OBRIGATÓRIA(S)`, MARGIN + 8, sy); sy += 6; }
       doc.setTextColor(...COLORS.gray);
-      doc.setFontSize(8);
-      doc.text('Veja a seção de Validação para detalhes completos.', 22, sy + 2);
+      doc.setFontSize(9);
+      doc.text('Veja a seção de Validação para detalhes completos.', MARGIN + 8, sy + 3);
     }
 
     drawFooter(doc);
@@ -334,28 +349,23 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     doc.addPage();
     currentPage++;
 
-    doc.setFillColor(...COLORS.dark);
-    doc.rect(0, 0, w, 18, 'F');
-    doc.setTextColor(...COLORS.white);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BIM Protector — ' + (project.name || ''), 14, 12);
+    drawHeader(doc, project.name || '', currentPage, '?');
 
     doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Lista de Materiais (BOM)', 14, 30);
+    doc.text('Lista de Materiais (BOM)', MARGIN, 30);
 
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.gray);
-    doc.text(`${bom.length} itens únicos · ${allDevices.length} dispositivos · ${totalCableMeters}m de cabeamento`, 14, 36);
+    doc.text(`${bom.length} itens únicos · ${allDevices.length} dispositivos · ${totalCableMeters}m de cabeamento`, MARGIN, 37);
 
     // Separate devices and cables
     const deviceItems = bom.filter(b => b.unit !== 'm');
     const cableItems = bom.filter(b => b.unit === 'm');
 
-    let tableY = 42;
+    let tableY = 43;
 
     // Device table — include IP column if any device has IP configured
     const hasAnyIP = deviceItems.some(item => {
@@ -388,33 +398,38 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         return row;
       });
       const devColStyles = hasAnyIP ? {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 50, fontSize: 6, textColor: COLORS.gray },
-        3: { cellWidth: 38, fontSize: 6, fontStyle: 'normal', textColor: [41,128,185] },
-        4: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-        5: { cellWidth: 10, halign: 'center', fontSize: 6 },
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 48 },
+        2: { cellWidth: 44, fontSize: 7.5, textColor: COLORS.gray },
+        3: { cellWidth: 36, fontSize: 7.5, fontStyle: 'normal', textColor: [4,107,210] },
+        4: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
+        5: { cellWidth: 12, halign: 'center' },
       } : {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 65 },
-        2: { cellWidth: 70, fontSize: 6, textColor: COLORS.gray },
-        3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-        4: { cellWidth: 10, halign: 'center', fontSize: 6 },
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 'auto', fontSize: 7.5, textColor: COLORS.gray },
+        3: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+        4: { cellWidth: 14, halign: 'center' },
       };
 
       const devTableResult = autoTable(doc, {
         startY: tableY,
         head: devHead,
         body: devBody,
-        styles: { fontSize: 7, cellPadding: 2, lineColor: [220, 220, 220], lineWidth: 0.1 },
-        headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
-        alternateRowStyles: { fillColor: [248, 249, 250] },
+        styles: { fontSize: 8, cellPadding: 2.5, lineColor: [220, 220, 220], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 8.5 },
+        alternateRowStyles: { fillColor: [245, 248, 252] },
         columnStyles: devColStyles,
-        margin: { left: 14, right: 14 },
-        didDrawPage: () => drawFooter(doc),
+        margin: { left: MARGIN, right: MARGIN },
+        tableWidth: 'auto',
+        didDrawPage: (data) => {
+          // Draw header on continuation pages
+          if (data.pageNumber > 1) drawHeader(doc, project.name || '', '?', '?');
+          drawFooter(doc);
+        },
       });
 
-      tableY = getFinalY(devTableResult, doc, tableY + 60) + 8;
+      tableY = getFinalY(devTableResult, doc, tableY + 60) + 10;
     }
 
     // Cable table
@@ -423,14 +438,15 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       if (tableY > h - 60) {
         doc.addPage();
         currentPage++;
-        tableY = 26;
+        drawHeader(doc, project.name || '', currentPage, '?');
+        tableY = 28;
       }
 
       doc.setTextColor(...COLORS.dark);
-      doc.setFontSize(10);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Cabeamento', 14, tableY);
-      tableY += 4;
+      doc.text('Cabeamento', MARGIN, tableY);
+      tableY += 5;
 
       autoTable(doc, {
         startY: tableY,
@@ -441,16 +457,17 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
           item.qty,
           `${item.totalMeters || item.qty}m`
         ]),
-        styles: { fontSize: 7, cellPadding: 2, lineColor: [220, 220, 220], lineWidth: 0.1 },
-        headStyles: { fillColor: COLORS.green, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
-        alternateRowStyles: { fillColor: [248, 249, 250] },
+        styles: { fontSize: 8, cellPadding: 2.5, lineColor: [220, 220, 220], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: COLORS.green, textColor: COLORS.white, fontStyle: 'bold', fontSize: 8.5 },
+        alternateRowStyles: { fillColor: [245, 248, 252] },
         columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 80 },
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 'auto' },
           2: { cellWidth: 25, halign: 'center' },
           3: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
         },
-        margin: { left: 14, right: 14 },
+        margin: { left: MARGIN, right: MARGIN },
+        tableWidth: 'auto',
         didDrawPage: () => drawFooter(doc),
       });
     }
@@ -484,19 +501,19 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         const lh = doc.internal.pageSize.getHeight();  // 210
 
         // Header
-        doc.setFillColor(...COLORS.dark);
-        doc.rect(0, 0, lw, 18, 'F');
+        doc.setFillColor(...COLORS.primary);
+        doc.rect(0, 0, lw, 16, 'F');
         doc.setTextColor(...COLORS.white);
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('BIM Protector — Planta: ' + (project.name || ''), 14, 12);
+        doc.text('BIM Protector — Planta: ' + (project.name || ''), MARGIN, 11);
 
         // Current floor name
         const activeFloor = project.floors?.find(f => f.id === project.activeFloor);
         if (activeFloor) {
-          doc.setFontSize(7);
+          doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
-          doc.text(`Pavimento: ${activeFloor.name}`, lw - 14, 12, { align: 'right' });
+          doc.text(`Pavimento: ${activeFloor.name}`, lw - MARGIN, 11, { align: 'right' });
         }
 
         // Image
@@ -546,48 +563,38 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     doc.addPage();
     currentPage++;
 
-    doc.setFillColor(...COLORS.dark);
-    doc.rect(0, 0, w, 18, 'F');
-    doc.setTextColor(...COLORS.white);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BIM Protector — Topologia: ' + (project.name || ''), 14, 12);
+    drawHeader(doc, project.name || '', currentPage, '?');
 
     doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Topologia de Rede', 14, 30);
+    doc.text('Topologia de Rede', MARGIN, 30);
 
     // Build connection table per floor
-    let yPos = 38;
+    let yPos = 40;
     (project.floors || []).forEach(floor => {
-      if (yPos > h - 40) {
+      if (yPos > h - 50) {
         doc.addPage();
         currentPage++;
-        doc.setFillColor(...COLORS.dark);
-        doc.rect(0, 0, w, 18, 'F');
-        doc.setTextColor(...COLORS.white);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.text('BIM Protector — Topologia', 14, 12);
-        yPos = 26;
+        drawHeader(doc, project.name || '', currentPage, '?');
+        yPos = 28;
       }
 
       doc.setTextColor(...COLORS.dark);
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Pavimento: ${floor.name}`, 14, yPos);
-      yPos += 2;
+      doc.text(`Pavimento: ${floor.name}`, MARGIN, yPos);
+      yPos += 3;
 
       const devs = floor.devices || [];
       const conns = floor.connections || [];
 
       if (conns.length === 0) {
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...COLORS.gray);
-        doc.text('Nenhuma conexão neste pavimento.', 14, yPos + 5);
-        yPos += 12;
+        doc.text('Nenhuma conexão neste pavimento.', MARGIN, yPos + 5);
+        yPos += 14;
         return;
       }
 
@@ -608,21 +615,22 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         startY: yPos,
         head: [['Origem', '', 'Destino', 'Cabo', 'Dist.']],
         body: connRows,
-        styles: { fontSize: 7, cellPadding: 1.5, lineColor: [220, 220, 220], lineWidth: 0.1 },
-        headStyles: { fillColor: COLORS.dark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
-        alternateRowStyles: { fillColor: [248, 249, 250] },
+        styles: { fontSize: 8, cellPadding: 2.5, lineColor: [220, 220, 220], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: COLORS.dark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 8.5 },
+        alternateRowStyles: { fillColor: [245, 248, 252] },
         columnStyles: {
-          0: { cellWidth: 55 },
+          0: { cellWidth: 'auto' },
           1: { cellWidth: 8, halign: 'center' },
-          2: { cellWidth: 55 },
-          3: { cellWidth: 40 },
-          4: { cellWidth: 15, halign: 'right' },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 38 },
+          4: { cellWidth: 18, halign: 'right' },
         },
-        margin: { left: 14, right: 14 },
+        margin: { left: MARGIN, right: MARGIN },
+        tableWidth: 'auto',
         didDrawPage: () => drawFooter(doc),
       });
 
-      yPos = getFinalY(topoResult, doc, yPos + 40) + 10;
+      yPos = getFinalY(topoResult, doc, yPos + 40) + 12;
     });
 
     drawFooter(doc);
@@ -639,14 +647,14 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       drawHeader(doc, project.name || '', currentPage, '?');
 
       doc.setTextColor(...COLORS.dark);
-      doc.setFontSize(14);
+      doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('Alertas de Validação', 14, 30);
+      doc.text('Alertas de Validação', MARGIN, 30);
 
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...COLORS.gray);
-      doc.text(`${activeAlerts.length} alerta(s) detectado(s) no projeto`, 14, 36);
+      doc.text(`${activeAlerts.length} alerta(s) detectado(s) no projeto`, MARGIN, 37);
 
       const sevColors = {
         'CRÍTICA': [231, 76, 60],
@@ -660,7 +668,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       };
 
       autoTable(doc, {
-        startY: 42,
+        startY: 43,
         head: [['Sev.', 'Categoria', 'Regra', 'Problema Detectado']],
         body: activeAlerts.map(v => [
           sevIcons[v.sev] || v.sev,
@@ -668,16 +676,17 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
           v.regra || '',
           v.msg || '',
         ]),
-        styles: { fontSize: 7, cellPadding: 2.5, lineColor: [220, 220, 220], lineWidth: 0.1 },
-        headStyles: { fillColor: COLORS.dark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 7 },
-        alternateRowStyles: { fillColor: [248, 249, 250] },
+        styles: { fontSize: 8, cellPadding: 3, lineColor: [220, 220, 220], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: COLORS.dark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 8.5 },
+        alternateRowStyles: { fillColor: [245, 248, 252] },
         columnStyles: {
-          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-          1: { cellWidth: 28 },
-          2: { cellWidth: 55 },
-          3: { cellWidth: 75, fontSize: 6.5 },
+          0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 'auto', fontSize: 7.5 },
         },
-        margin: { left: 14, right: 14 },
+        margin: { left: MARGIN, right: MARGIN },
+        tableWidth: 'auto',
         didDrawCell: (data) => {
           // Color the severity cell background
           if (data.section === 'body' && data.column.index === 0) {
@@ -687,7 +696,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
               doc.setFillColor(...color);
               doc.roundedRect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 1, 1, 'F');
               doc.setTextColor(255, 255, 255);
-              doc.setFontSize(6);
+              doc.setFontSize(7);
               doc.setFont('helvetica', 'bold');
               doc.text(
                 sevIcons[sev] || sev,
@@ -711,10 +720,10 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     doc.setPage(i);
     // Page number on footer area
     doc.setTextColor(...COLORS.gray);
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
-    doc.text(`${i} / ${totalPages}`, pw / 2, ph - 9, { align: 'center' });
+    doc.text(`${i} / ${totalPages}`, pw / 2, ph - 7, { align: 'center' });
   }
 
   // ── Download ─────────────────────────────────────
