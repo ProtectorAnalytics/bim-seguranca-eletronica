@@ -82,6 +82,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   const [defRefreshKey,setDefRefreshKey]=useState(0);
   const [customDevices,setCustomDevices]=useState(()=>getCustomDevices());
   const [selectedConn,setSelectedConn]=useState(null); // selected connection id
+  const [connMenu,setConnMenu]=useState(null); // {connId,x,y} — right-click context menu
   const [draggingWp,setDraggingWp]=useState(null); // {connId, wpIdx, startX, startY, origX, origY} or {connId, insertAfter, startX, startY, origX, origY}
   const [selectedRackId,setSelectedRackId]=useState(null);
   const [selectedQuadroId,setSelectedQuadroId]=useState(null);
@@ -1559,7 +1560,8 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                   setSelectedDevice={setSelectedDevice} showCableLabels={showCableLabels}
                   getDevR={getDevR} zoom={zoom} pan={pan} canvasRef={canvasRef}
                   updateFloor={updateFloor} updateConnWaypoints={updateConnWaypoints}
-                  setDraggingWp={setDraggingWp} snapToGrid={snapToGrid}/>
+                  setDraggingWp={setDraggingWp} snapToGrid={snapToGrid}
+                  onConnContextMenu={(connId,x,y)=>setConnMenu({connId,x,y})}/>
                 {/* Cable mode preview line from source device */}
                 {cableMode&&(()=>{
                   const from=devices.find(d=>d.id===cableMode.from);
@@ -2134,6 +2136,43 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
           {/* Cable picker modal */}
           <CablePickerModal cablePicker={cablePicker} onConfirm={confirmCablePick} onCancel={()=>setCablePicker(null)}/>
+
+          {/* Connection right-click context menu */}
+          {connMenu&&(()=>{
+            const cm=connMenu;
+            const conn=connections.find(c=>c.id===cm.connId);
+            const ct=conn?CABLE_TYPES.find(c=>c.id===conn.type):null;
+            const hasWps=conn?.waypoints?.length>0;
+            return (<>
+              <div style={{position:'fixed',inset:0,zIndex:890}} onClick={()=>setConnMenu(null)} onContextMenu={(e)=>{e.preventDefault();setConnMenu(null)}}/>
+              <div style={{position:'fixed',left:cm.x,top:cm.y,zIndex:900,background:'#fff',
+                border:'1px solid #e2e8f0',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,.15)',
+                minWidth:190,padding:'6px 0',fontSize:13}}>
+                {ct&&<div style={{padding:'6px 14px 8px',borderBottom:'1px solid #f1f5f9',color:'#94a3b8',fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>
+                  {ct.name} · {conn.distance}m
+                </div>}
+                {hasWps&&<button onClick={()=>{updateConnWaypoints(cm.connId,undefined);setConnMenu(null);}}
+                  style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'9px 14px',border:'none',background:'transparent',cursor:'pointer',fontSize:13,color:'#374151',textAlign:'left'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  ↺ Resetar rota
+                </button>}
+                <button onClick={()=>{setConnMenu(null);}}
+                  style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'9px 14px',border:'none',background:'transparent',cursor:'pointer',fontSize:13,color:'#374151',textAlign:'left'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  Propriedades
+                </button>
+                <div style={{height:1,background:'#f1f5f9',margin:'4px 0'}}/>
+                <button onClick={()=>{deleteConnection(cm.connId);setConnMenu(null);}}
+                  style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'9px 14px',border:'none',background:'transparent',cursor:'pointer',fontSize:13,color:'#dc2626',textAlign:'left'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  Excluir conexão
+                </button>
+              </div>
+            </>);
+          })()}
 
 
           {/* Panel toggle buttons on canvas edges */}
