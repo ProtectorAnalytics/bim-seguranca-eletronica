@@ -118,10 +118,10 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-s
 .tag-dc{background:#FEF5E7;color:#E67E22}
 
 /* ===== CANVAS AREA ===== */
-.canvas-area{flex:1;position:relative;overflow:hidden;background:#f0f2f5}
-.canvas-viewport{position:absolute;inset:0;overflow:hidden}
-.canvas-transform{transform-origin:0 0;position:absolute;top:0;left:0}
-.canvas-grid{position:absolute;top:0;left:0;pointer-events:none}
+.canvas-area{flex:1;position:relative;overflow:hidden;background:#f0f2f5;contain:layout}
+.canvas-viewport{position:absolute;inset:0;overflow:hidden;contain:strict}
+.canvas-transform{transform-origin:0 0;position:absolute;top:0;left:0;will-change:transform;contain:layout paint size;isolation:isolate}
+.canvas-grid{position:absolute;top:0;left:0;pointer-events:none;user-select:none}
 
 /* Device nodes on canvas */
 .device-on-canvas{position:absolute;cursor:move;user-select:none;z-index:5;display:flex;flex-direction:column;align-items:center;width:58px;overflow:visible}

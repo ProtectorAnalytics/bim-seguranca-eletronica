@@ -122,7 +122,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
   const [showCalibModal,setShowCalibModal]=useState(false); // distance input modal
   const _calibInputRef=useRef(null);
   const canvasRef=useRef(null);
-  const {zoom,setZoom,pan,setPan,isPanning,setIsPanning:_setIsPanning,isPanningRef:_isPanningRef,panStartRef:_panStartRef,handleWheel,startPan,resetView}=useCanvasInteraction();
+  const {zoom,setZoom,pan,setPan,isPanning,setIsPanning:_setIsPanning,isPanningRef:_isPanningRef,panStartRef:_panStartRef,handleWheel,startPan,resetView}=useCanvasInteraction(canvasRef);
   const [dragging,setDragging]=useState(null);
   const snap=(v)=>snapToGrid?Math.round(v/gridSize)*gridSize:v;
 
@@ -1174,7 +1174,9 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
 
   useEffect(()=>{
     if(!dragging) return;
-    const onMove=(e)=>{
+    let rafId=null;
+    let pendingE=null;
+    const processMove=(e)=>{
       if(dragging.isQuadro){
         // Quadro entity dragging
         const nx=snap(e.clientX/zoom-dragging.offsetX);
@@ -1200,7 +1202,15 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
         setGuides(newGuides);
       }
     };
+    const onMove=(e)=>{
+      pendingE=e;
+      if(!rafId) rafId=requestAnimationFrame(()=>{
+        rafId=null;
+        if(pendingE){processMove(pendingE);pendingE=null;}
+      });
+    };
     const onUp=(_e)=>{
+      if(rafId){cancelAnimationFrame(rafId);rafId=null;}
       // Check if device was dropped onto a QC entity on canvas
       if(dragging&&!dragging.isQuadro){
         const draggedDev=devices.find(d=>d.id===dragging.id);
@@ -1218,25 +1228,33 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
     };
     window.addEventListener('mousemove',onMove);
     window.addEventListener('mouseup',onUp);
-    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);if(rafId)cancelAnimationFrame(rafId);};
   },[dragging,zoom,quadros,snapToGrid]);
 
   // Group dragging (multi-select)
   useEffect(()=>{
     if(!groupDragging) return;
+    let rafId=null;
+    let pendingE=null;
     const onMove=(e)=>{
-      const dx=(e.clientX-groupDragging.startX)/zoom;
-      const dy=(e.clientY-groupDragging.startY)/zoom;
-      updateFloor(f=>({...f,devices:f.devices.map(d=>{
-        const orig=groupDragging.origPositions.find(o=>o.id===d.id);
-        if(!orig) return d;
-        return {...d,x:snap(orig.x+dx),y:snap(orig.y+dy)};
-      })}));
+      pendingE=e;
+      if(!rafId) rafId=requestAnimationFrame(()=>{
+        rafId=null;
+        if(!pendingE) return;
+        const e2=pendingE; pendingE=null;
+        const dx=(e2.clientX-groupDragging.startX)/zoom;
+        const dy=(e2.clientY-groupDragging.startY)/zoom;
+        updateFloor(f=>({...f,devices:f.devices.map(d=>{
+          const orig=groupDragging.origPositions.find(o=>o.id===d.id);
+          if(!orig) return d;
+          return {...d,x:snap(orig.x+dx),y:snap(orig.y+dy)};
+        })}));
+      });
     };
-    const onUp=()=>setGroupDragging(null);
+    const onUp=()=>{if(rafId){cancelAnimationFrame(rafId);rafId=null;}setGroupDragging(null);};
     window.addEventListener('mousemove',onMove);
     window.addEventListener('mouseup',onUp);
-    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp)};
+    return ()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);if(rafId)cancelAnimationFrame(rafId);};
   },[groupDragging,zoom,snapToGrid]);
 
   // Keyboard shortcuts (extracted hook)

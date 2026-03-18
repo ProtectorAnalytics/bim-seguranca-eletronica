@@ -37,12 +37,17 @@ export async function exportCanvasPNG({ projectName = 'projeto', floorName = '',
   selectedEls.forEach(el => el.setAttribute('data-selected', 'false'));
 
   try {
+    const dpr = Math.max(window.devicePixelRatio || 2, 2);
     const canvas = await html2canvas(canvasEl, {
-      scale: 2,
+      scale: dpr,
       backgroundColor: whiteBg ? '#ffffff' : '#1e293b',
       logging: false,
       useCORS: true,
       allowTaint: true,
+      width: canvasEl.scrollWidth,
+      height: canvasEl.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
     });
 
     // Gera download
