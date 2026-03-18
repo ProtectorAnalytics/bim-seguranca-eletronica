@@ -181,9 +181,13 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" style={{ ...btnStyle, opacity: loading ? 0.6 : 1, marginTop: tab === 'register' ? 16 : 8 }} disabled={loading}>
-            {loading ? '...' : tab === 'login' ? 'Entrar' : tab === 'register' ? 'Criar Conta' : 'Enviar Link de Recuperação'}
+          <button type="submit" aria-busy={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1, marginTop: tab === 'register' ? 16 : 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} disabled={loading}>
+            {loading && (
+              <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.4)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} aria-hidden="true" />
+            )}
+            {loading ? (tab === 'login' ? 'Entrando...' : tab === 'register' ? 'Criando conta...' : 'Enviando...') : tab === 'login' ? 'Entrar' : tab === 'register' ? 'Criar Conta' : 'Enviar Link de Recuperação'}
           </button>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </form>
       </div>
     </div>
