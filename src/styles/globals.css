@@ -1,5 +1,11 @@
-/* BIM Seguranca Eletronica - Global Styles v3.38.0 — Protector Identity */
+/* BIM Seguranca Eletronica - Global Styles v3.50.11 — Protector Identity */
 *{margin:0;padding:0;box-sizing:border-box}
+/* === Acessibilidade — focus-visible para navegação por teclado === */
+:focus-visible{outline:3px solid #046BD2;outline-offset:2px;border-radius:4px}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible,[role="tab"]:focus-visible{outline:3px solid #046BD2;outline-offset:2px;border-radius:4px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none} /* inputs usam box-shadow via JS/CSS */
+/* === Utilitário screen-reader === */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :root{
 /* Paleta Protector Sistemas (appps.com.br) */
 --azul:#045cb4;--azul2:#046bd2;--azulD:#033d7a;--laranja:#F39C12;--verde:#22c55e;--vermelho:#ef4444;
@@ -527,6 +533,12 @@ tr.rack-face-free td{color:#cbd5e1}
   .dashboard-header .dh-right{width:100%}
   /* Modal card full-width safety */
   .modal-card{max-width:min(520px,calc(100vw - 24px))!important;width:calc(100vw - 24px)}
+}
+
+/* === prefers-reduced-motion — respeita preferência do sistema === */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .anim-fade,.anim-slide-up,.anim-scale{animation:none}
 }
 
 @media print {

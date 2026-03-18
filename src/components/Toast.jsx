@@ -21,7 +21,7 @@ function ToastItem({ toast, onDismiss }) {
   useEffect(() => { const t = setTimeout(dismiss, toast.duration || 4000); return () => clearTimeout(t); }, []);
 
   return (
-    <div style={{
+    <div role={toast.type === 'error' ? 'alert' : 'status'} aria-live={toast.type === 'error' ? 'assertive' : 'polite'} aria-atomic="true" style={{
       display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
       background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 10,
       boxShadow: '0 4px 20px rgba(0,0,0,.12)', minWidth: 280, maxWidth: 420,
@@ -30,7 +30,7 @@ function ToastItem({ toast, onDismiss }) {
     }}>
       <Icon size={18} color={colors.icon} style={{ flexShrink: 0 }} />
       <span style={{ fontSize: 13, color: colors.text, flex: 1, lineHeight: 1.4 }}>{toast.message}</span>
-      <X size={14} color="#94a3b8" style={{ cursor: 'pointer', flexShrink: 0 }} onClick={dismiss} />
+      <X size={14} color="#94a3b8" style={{ cursor: 'pointer', flexShrink: 0 }} onClick={dismiss} aria-label="Fechar notificação" role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && dismiss()} />
     </div>
   );
 }
