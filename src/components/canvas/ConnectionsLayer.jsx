@@ -212,7 +212,7 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
 
             {/* Cable label */}
             {showCableLabels && (() => {
-              const purposeIcon = isPower ? '⚡' : isSignal ? '📡' : isAuto ? '🔧' : '';
+              const purposeIcon = isPower ? 'PWR ' : isSignal ? 'SIG ' : isAuto ? 'AUT ' : '';
               const lt = `${purposeIcon}${ct.name} · ${conn.distance}m${portLabel}`;
               const estW = Math.max(lt.length * 6.2 + 14, 44);
               return (
@@ -327,12 +327,10 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
                     style={{ pointerEvents: 'none' }}>
                     {dir}
                   </text>
-                  {/* Lock indicator on fixed anchors */}
+                  {/* Lock indicator on fixed anchors — small filled square */}
                   {isFixed && (
-                    <text x={pos.x} y={pos.y + 13} textAnchor="middle"
-                      fill="#046BD2" fontSize={7} style={{ pointerEvents: 'none' }}>
-                      🔒
-                    </text>
+                    <rect x={pos.x - 3} y={pos.y + 11} width={6} height={5}
+                      rx={1} fill="#046BD2" style={{ pointerEvents: 'none' }} />
                   )}
                 </g>
               );
@@ -366,10 +364,8 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
                     {dir}
                   </text>
                   {isFixed && (
-                    <text x={pos.x} y={pos.y + 13} textAnchor="middle"
-                      fill="#046BD2" fontSize={7} style={{ pointerEvents: 'none' }}>
-                      🔒
-                    </text>
+                    <rect x={pos.x - 3} y={pos.y + 11} width={6} height={5}
+                      rx={1} fill="#046BD2" style={{ pointerEvents: 'none' }} />
                   )}
                 </g>
               );
