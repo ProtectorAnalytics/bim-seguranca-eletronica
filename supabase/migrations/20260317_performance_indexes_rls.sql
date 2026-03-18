@@ -1,171 +1,202 @@
 -- ============================================================
--- PERFORMANCE: Índices e RLS otimizados
--- Baseado em: Supabase Postgres Best Practices
--- Execute no Supabase Dashboard > SQL Editor
+-- MIGRATION: Índices FK/parciais/compostos + RLS otimizado
+-- Aplicado diretamente via Supabase MCP em 2026-03-17
+-- Todos os advisors de WARN/ERROR zerados após aplicação
 -- ============================================================
 
--- ============================================================
--- 1. ÍNDICES EM FK COLUMNS (schema-foreign-key-indexes)
---    Postgres NÃO cria índices automaticamente em FK.
---    Falta de índice = full table scan em JOINs e CASCADE.
--- ============================================================
+-- ==== 1. Fix is_admin(): auth.uid() → (select auth.uid()) ====
+-- Sem este fix, auth.uid() é chamado POR LINHA dentro da função
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = (SELECT auth.uid())
+    AND role = 'admin'
+  );
+$$;
 
--- subscriptions.user_id → auth.users (CRÍTICO — RLS filtra por user_id)
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id
-  ON subscriptions (user_id);
+-- ==== 2. Índices FK ausentes (schema-foreign-key-indexes) ====
+-- Postgres NÃO cria índices em FKs automaticamente.
+-- Falta → full table scan em JOINs e ON DELETE CASCADE.
+CREATE INDEX IF NOT EXISTS idx_invite_links_created_by     ON public.invite_links (created_by);
+CREATE INDEX IF NOT EXISTS idx_invite_links_plan_id        ON public.invite_links (plan_id);
+CREATE INDEX IF NOT EXISTS idx_invite_links_used_by        ON public.invite_links (used_by) WHERE used_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_license_keys_plan_id        ON public.license_keys (plan_id);
+CREATE INDEX IF NOT EXISTS idx_license_keys_redeemed_by    ON public.license_keys (redeemed_by) WHERE redeemed_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_project_shares_created_by   ON public.project_shares (created_by) WHERE created_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id       ON public.subscriptions (user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_plan_id       ON public.subscriptions (plan_id);
+CREATE INDEX IF NOT EXISTS idx_project_floors_project_id   ON public.project_floors (project_id);
+-- idx_projects_user já existe; idx_projects_user_id foi dropado (duplicata)
 
--- subscriptions.plan_id → plans
-CREATE INDEX IF NOT EXISTS idx_subscriptions_plan_id
-  ON subscriptions (plan_id);
+-- ==== 3. Índices parciais (query-partial-indexes) ====
+-- Só indexa linhas que realmente serão consultadas → índice até 80% menor
+CREATE INDEX IF NOT EXISTS idx_invite_links_token_active   ON public.invite_links (token) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_license_keys_key_active     ON public.license_keys (key)   WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_project_shares_active       ON public.project_shares (token) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_plans_active_price          ON public.plans (price_brl)     WHERE is_active = true;
 
--- license_keys.plan_id → plans
-CREATE INDEX IF NOT EXISTS idx_license_keys_plan_id
-  ON license_keys (plan_id);
+-- ==== 4. Índices compostos (query-composite-indexes) ====
+-- Equality columns primeiro, range/order por último
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status   ON public.subscriptions (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_invite_links_status_expires ON public.invite_links (status, expires_at);
+CREATE INDEX IF NOT EXISTS idx_projects_user_updated       ON public.projects (user_id, updated_at DESC);
 
--- license_keys.redeemed_by → profiles
-CREATE INDEX IF NOT EXISTS idx_license_keys_redeemed_by
-  ON license_keys (redeemed_by)
-  WHERE redeemed_by IS NOT NULL;
+-- ==== 5. RLS — profiles ====
+-- ANTES: 2 policies SELECT + 2 policies UPDATE (multiple_permissive_policies WARN)
+-- DEPOIS: 1 policy SELECT + 1 policy UPDATE com condição combinada
+DROP POLICY IF EXISTS "Users read own profile"   ON public.profiles;
+DROP POLICY IF EXISTS "Admin read all profiles"  ON public.profiles;
+CREATE POLICY "profiles_select" ON public.profiles FOR SELECT
+  USING ((select auth.uid()) = id OR is_admin());
 
--- invite_links.plan_id → plans
-CREATE INDEX IF NOT EXISTS idx_invite_links_plan_id
-  ON invite_links (plan_id);
+DROP POLICY IF EXISTS "Users update own profile"  ON public.profiles;
+DROP POLICY IF EXISTS "Admin update all profiles" ON public.profiles;
+CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE
+  USING ((select auth.uid()) = id OR is_admin());
 
--- invite_links.created_by → profiles
-CREATE INDEX IF NOT EXISTS idx_invite_links_created_by
-  ON invite_links (created_by);
+-- ==== 6. RLS — subscriptions ====
+DROP POLICY IF EXISTS "Users read own sub"   ON public.subscriptions;
+DROP POLICY IF EXISTS "Admin manages subs"   ON public.subscriptions;
+CREATE POLICY "subscriptions_select" ON public.subscriptions FOR SELECT
+  USING (user_id = (select auth.uid()) OR is_admin());
+CREATE POLICY "subscriptions_insert" ON public.subscriptions FOR INSERT
+  WITH CHECK (is_admin());
+CREATE POLICY "subscriptions_update" ON public.subscriptions FOR UPDATE
+  USING (is_admin());
+CREATE POLICY "subscriptions_delete" ON public.subscriptions FOR DELETE
+  USING (is_admin());
 
--- project_floors.project_id → projects (CRÍTICO — toda query de floors filtra por project_id)
-CREATE INDEX IF NOT EXISTS idx_project_floors_project_id
-  ON project_floors (project_id);
+-- ==== 7. RLS — license_keys ====
+DROP POLICY IF EXISTS "Users read own redeemed" ON public.license_keys;
+DROP POLICY IF EXISTS "Admin manages keys"      ON public.license_keys;
+CREATE POLICY "license_keys_select" ON public.license_keys FOR SELECT
+  USING (redeemed_by = (select auth.uid()) OR is_admin());
+CREATE POLICY "license_keys_insert" ON public.license_keys FOR INSERT
+  WITH CHECK (is_admin());
+-- Admin atualiza qualquer chave; usuário só pode resgatar chave disponível
+CREATE POLICY "license_keys_update" ON public.license_keys FOR UPDATE
+  USING  (is_admin() OR (status = 'available' AND redeemed_by IS NULL))
+  WITH CHECK (is_admin() OR (redeemed_by = (select auth.uid()) AND status = 'redeemed'));
+CREATE POLICY "license_keys_delete" ON public.license_keys FOR DELETE
+  USING (is_admin());
 
--- projects.user_id → auth.users (CRÍTICO — RLS filtra por user_id)
-CREATE INDEX IF NOT EXISTS idx_projects_user_id
-  ON projects (user_id);
+-- ==== 8. RLS — plans ====
+DROP POLICY IF EXISTS "Anyone can read active plans" ON public.plans;
+DROP POLICY IF EXISTS "Admin manages plans"          ON public.plans;
+CREATE POLICY "plans_select" ON public.plans FOR SELECT
+  USING (is_active = true OR is_admin());
+CREATE POLICY "plans_insert" ON public.plans FOR INSERT
+  WITH CHECK (is_admin());
+CREATE POLICY "plans_update" ON public.plans FOR UPDATE
+  USING (is_admin());
+CREATE POLICY "plans_delete" ON public.plans FOR DELETE
+  USING (is_admin());
 
--- project_shares.created_by → auth.users (usado na RLS policy)
-CREATE INDEX IF NOT EXISTS idx_project_shares_created_by
-  ON project_shares (created_by)
-  WHERE created_by IS NOT NULL;
+-- ==== 9. RLS — invite_links ====
+DROP POLICY IF EXISTS "admins_full_access"              ON public.invite_links;
+DROP POLICY IF EXISTS "anyone_can_read_active_by_token" ON public.invite_links;
+CREATE POLICY "invite_links_select" ON public.invite_links FOR SELECT
+  USING (status = 'active' OR is_admin());
+CREATE POLICY "invite_links_insert" ON public.invite_links FOR INSERT
+  WITH CHECK (is_admin());
+-- Admin + usuário convidado pode marcar como usado (fluxo de cadastro via convite)
+CREATE POLICY "invite_links_update" ON public.invite_links FOR UPDATE
+  USING  (is_admin() OR status = 'active')
+  WITH CHECK (is_admin() OR status IN ('used', 'expired'));
+CREATE POLICY "invite_links_delete" ON public.invite_links FOR DELETE
+  USING (is_admin());
 
--- ============================================================
--- 2. ÍNDICES PARCIAIS (query-partial-indexes)
---    Índice menor = write mais rápido + query mais rápida.
---    Útil para colunas com filtros constantes (status, is_active).
--- ============================================================
+-- ==== 10. RLS — projects (auth_rls_initplan: 4 policies) ====
+DROP POLICY IF EXISTS "Users can view own projects"   ON public.projects;
+DROP POLICY IF EXISTS "Users can insert own projects" ON public.projects;
+DROP POLICY IF EXISTS "Users can update own projects" ON public.projects;
+DROP POLICY IF EXISTS "Users can delete own projects" ON public.projects;
+CREATE POLICY "projects_select" ON public.projects FOR SELECT
+  USING ((select auth.uid()) = user_id);
+CREATE POLICY "projects_insert" ON public.projects FOR INSERT
+  WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "projects_update" ON public.projects FOR UPDATE
+  USING  ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "projects_delete" ON public.projects FOR DELETE
+  USING ((select auth.uid()) = user_id);
 
--- invite_links: só tokens ativos são consultados no fluxo de cadastro
-CREATE INDEX IF NOT EXISTS idx_invite_links_token_active
-  ON invite_links (token)
-  WHERE status = 'active';
+-- ==== 11. RLS — project_floors (auth_rls_initplan: 4 policies) ====
+DROP POLICY IF EXISTS "Users can view own project floors"   ON public.project_floors;
+DROP POLICY IF EXISTS "Users can insert own project floors" ON public.project_floors;
+DROP POLICY IF EXISTS "Users can update own project floors" ON public.project_floors;
+DROP POLICY IF EXISTS "Users can delete own project floors" ON public.project_floors;
+CREATE POLICY "project_floors_select" ON public.project_floors FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_floors.project_id AND p.user_id = (select auth.uid())
+  ));
+CREATE POLICY "project_floors_insert" ON public.project_floors FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_floors.project_id AND p.user_id = (select auth.uid())
+  ));
+CREATE POLICY "project_floors_update" ON public.project_floors FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_floors.project_id AND p.user_id = (select auth.uid())
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_floors.project_id AND p.user_id = (select auth.uid())
+  ));
+CREATE POLICY "project_floors_delete" ON public.project_floors FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_floors.project_id AND p.user_id = (select auth.uid())
+  ));
 
--- license_keys: só chaves disponíveis são buscadas para resgate
-CREATE INDEX IF NOT EXISTS idx_license_keys_key_active
-  ON license_keys (key)
-  WHERE status = 'active';
-
--- project_shares: só shares ativos são acessados via link
-CREATE INDEX IF NOT EXISTS idx_project_shares_active
-  ON project_shares (token)
-  WHERE is_active = true;
-
--- plans: SubscriptionPage filtra is_active = true
-CREATE INDEX IF NOT EXISTS idx_plans_active_price
-  ON plans (price_brl)
-  WHERE is_active = true;
-
--- ============================================================
--- 3. ÍNDICES COMPOSTOS (query-composite-indexes)
---    Equality columns primeiro, range/order columns por último.
--- ============================================================
-
--- subscriptions: RLS filtra user_id + app filtra status
--- Cobre: WHERE user_id = ? (RLS) e WHERE user_id = ? AND status = 'active'
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status
-  ON subscriptions (user_id, status);
-
--- invite_links: consulta típica filtra status + verifica expires_at
--- Cobre: WHERE status = 'active' AND (expires_at IS NULL OR expires_at > now())
-CREATE INDEX IF NOT EXISTS idx_invite_links_status_expires
-  ON invite_links (status, expires_at);
-
--- projects: listagem filtra user_id + ordena por updated_at DESC
--- Cobre: WHERE user_id = ? ORDER BY updated_at DESC
-CREATE INDEX IF NOT EXISTS idx_projects_user_updated
-  ON projects (user_id, updated_at DESC);
-
--- ============================================================
--- 4. FIX RLS PERFORMANCE (security-rls-performance)
---    auth.uid() chamado sem SELECT = executado POR LINHA.
---    Wrapping em (select auth.uid()) = executado UMA vez e cacheado.
---    Impacto: até 100x mais rápido em tabelas grandes.
--- ============================================================
-
--- Fix: project_shares — policy owner_manage_shares
-DROP POLICY IF EXISTS "owner_manage_shares" ON project_shares;
-
-CREATE POLICY "owner_manage_shares" ON project_shares
-  FOR ALL USING (
-    created_by = (SELECT auth.uid())
+-- ==== 12. RLS — project_shares ====
+DROP POLICY IF EXISTS "owner_manage_shares"      ON public.project_shares;
+DROP POLICY IF EXISTS "anyone_read_active_share" ON public.project_shares;
+CREATE POLICY "project_shares_select" ON public.project_shares FOR SELECT
+  USING (
+    is_active = true
+    OR created_by = (select auth.uid())
     OR EXISTS (
-      SELECT 1 FROM projects
-      WHERE id = project_shares.project_id
-        AND user_id = (SELECT auth.uid())
+      SELECT 1 FROM public.projects
+      WHERE projects.id = project_shares.project_id
+        AND projects.user_id = (select auth.uid())
+    )
+  );
+CREATE POLICY "project_shares_insert" ON public.project_shares FOR INSERT
+  WITH CHECK (
+    created_by = (select auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.projects
+      WHERE projects.id = project_shares.project_id
+        AND projects.user_id = (select auth.uid())
+    )
+  );
+CREATE POLICY "project_shares_update" ON public.project_shares FOR UPDATE
+  USING (
+    created_by = (select auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.projects
+      WHERE projects.id = project_shares.project_id
+        AND projects.user_id = (select auth.uid())
+    )
+  );
+CREATE POLICY "project_shares_delete" ON public.project_shares FOR DELETE
+  USING (
+    created_by = (select auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.projects
+      WHERE projects.id = project_shares.project_id
+        AND projects.user_id = (select auth.uid())
     )
   );
 
--- Fix: project_shares — policy anyone_read_active_share
--- Esta policy não usa auth.uid(), mas garante filtro de is_active
--- (já está correta; apenas re-criando para uniformidade)
-DROP POLICY IF EXISTS "anyone_read_active_share" ON project_shares;
-
-CREATE POLICY "anyone_read_active_share" ON project_shares
-  FOR SELECT USING (is_active = true);
-
--- ============================================================
--- NOTA: Para as demais tabelas (projects, subscriptions, etc.)
--- aplique o mesmo padrão nas policies existentes via Dashboard:
---
---   ANTES:  using (user_id = auth.uid())
---   DEPOIS: using (user_id = (select auth.uid()))
---
--- Isso é especialmente importante em:
---   - projects: policy de acesso por user_id
---   - subscriptions: policy de acesso por user_id
---   - profiles: policy de acesso por id = auth.uid()
--- ============================================================
-
--- ============================================================
--- 5. VERIFICAÇÃO — queries para diagnóstico
--- Execute para confirmar que os índices foram criados:
--- ============================================================
-/*
-SELECT
-  schemaname,
-  tablename,
-  indexname,
-  indexdef
-FROM pg_indexes
-WHERE schemaname = 'public'
-  AND tablename IN (
-    'subscriptions', 'license_keys', 'invite_links',
-    'project_floors', 'projects', 'project_shares', 'plans'
-  )
-ORDER BY tablename, indexname;
-*/
-
--- Para encontrar FK columns sem índice no futuro:
-/*
-SELECT
-  conrelid::regclass AS table_name,
-  a.attname AS fk_column
-FROM pg_constraint c
-JOIN pg_attribute a
-  ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
-WHERE c.contype = 'f'
-  AND NOT EXISTS (
-    SELECT 1 FROM pg_index i
-    WHERE i.indrelid = c.conrelid AND a.attnum = ANY(i.indkey)
-  )
-ORDER BY table_name, fk_column;
-*/
+-- ==== 13. Remover índice duplicado ====
+DROP INDEX IF EXISTS public.idx_projects_user_id;
