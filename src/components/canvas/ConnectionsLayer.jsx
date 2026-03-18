@@ -214,12 +214,16 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
             {showCableLabels && (() => {
               const purposeIcon = isPower ? 'PWR ' : isSignal ? 'SIG ' : isAuto ? 'AUT ' : '';
               const lt = `${purposeIcon}${ct.name} · ${conn.distance}m${portLabel}`;
-              const estW = Math.max(lt.length * 6.2 + 14, 44);
+              const estW = Math.max(lt.length * 7 + 18, 52);
               return (
                 <g style={{ pointerEvents: 'none' }}>
-                  <rect x={labelX - estW / 2} y={labelY - 14} width={estW} height={18}
-                    rx={4} ry={4} fill="#fff" fillOpacity={0.94}
-                    stroke={isSel ? '#3b82f6' : '#e2e8f0'} strokeWidth={isSel ? 1 : 0.5} />
+                  {/* Shadow layer */}
+                  <rect x={labelX - estW / 2 + 0.5} y={labelY - 13.5} width={estW} height={22}
+                    rx={5} fill="rgba(0,0,0,0.08)" style={{ pointerEvents: 'none' }} />
+                  {/* Main pill */}
+                  <rect x={labelX - estW / 2} y={labelY - 14} width={estW} height={22}
+                    rx={5} ry={5} fill="#fff" fillOpacity={0.97}
+                    stroke={isSel ? '#3b82f6' : '#cbd5e1'} strokeWidth={isSel ? 1.5 : 0.75} />
                   <text x={labelX} y={labelY} className="cable-label-v2">{lt}</text>
                 </g>
               );
