@@ -35,8 +35,10 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
       const autoWps = autoOrthoRoute(x1, y1, x2, y2, aFrom, aTo);
       const innerWps = autoWps.slice(1, -1);
       updateConnWaypoints(conn.id, innerWps);
-      const clampedIdx = Math.min(si, Math.max(0, innerWps.length - 2));
-      setDraggingWp({ connId: conn.id, type: 'seg', segIdx: clampedIdx, lastX: mx, lastY: my });
+      // si is index in allPts; allPts[0] is anchor (not a waypoint),
+      // so the waypoint index is si-1. Clamp to valid range.
+      const segIdx = Math.max(0, Math.min(si - 1, innerWps.length - 2));
+      setDraggingWp({ connId: conn.id, type: 'seg', segIdx, lastX: mx, lastY: my });
     } else {
       if (si === 0 || si >= allPts.length - 2) {
         setDraggingWp({ connId: conn.id, type: 'newSeg', segIdx: si, allPts, lastX: mx, lastY: my });
@@ -290,59 +292,85 @@ const ConnectionsLayer = memo(function ConnectionsLayer({
               </g>
             ))}
 
-            {/* ── All 4 anchor buttons — FROM device ────────────────────
-                Shows all N/E/S/W options at once.
-                Active = blue filled, inactive = gray outlined.
+            {/* ── Anchor buttons — FROM device ──────────────────────────
+                Auto mode  (conn.anchorFrom = null): dashed outline blue
+                  → sistema calculou o melhor ângulo automaticamente
+                Fixed mode (conn.anchorFrom = dir): solid blue filled
+                  → usuário travou essa direção
+                Clicar na direção ativa travada → destrava (volta ao auto)
+                Clicar em qualquer outra → trava nessa direção
             ─────────────────────────────────────────────────────────── */}
             {isSel && !cableMode && ANCHORS.map(dir => {
-              const pos   = getAnchorPoint({ x: fp.x, y: fp.y }, fp.R, dir);
-              const isAct = dir === aFrom;
+              const pos     = getAnchorPoint({ x: fp.x, y: fp.y }, fp.R, dir);
+              const isAct   = dir === aFrom;            // currently active (auto or fixed)
+              const isFixed = conn.anchorFrom === dir;  // explicitly locked by user
               return (
                 <g key={'af_' + dir} style={{ cursor: 'pointer' }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Click on locked anchor → unlock (auto); click on any other → lock
+                    const newVal = isFixed ? undefined : dir;
                     updateFloor(f => ({
                       ...f, connections: f.connections.map(c =>
-                        c.id === conn.id ? { ...c, anchorFrom: dir, waypoints: undefined } : c)
+                        c.id === conn.id ? { ...c, anchorFrom: newVal, waypoints: undefined } : c)
                     }));
                   }}>
                   <circle cx={pos.x} cy={pos.y}
                     r={isAct ? 9 : 6}
-                    fill={isAct ? '#046BD2' : '#f8fafc'}
-                    stroke={isAct ? '#fff' : '#94a3b8'}
-                    strokeWidth={isAct ? 2 : 1.5} />
+                    fill={isFixed ? '#046BD2' : isAct ? '#eff6ff' : '#f8fafc'}
+                    stroke={isFixed ? '#fff' : isAct ? '#3b82f6' : '#94a3b8'}
+                    strokeWidth={isFixed ? 2 : 1.5}
+                    strokeDasharray={!isFixed && isAct ? '2.5 2' : 'none'} />
                   <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                    fill={isAct ? '#fff' : '#64748b'} fontSize={isAct ? 9 : 8} fontWeight={700}
+                    fill={isFixed ? '#fff' : isAct ? '#3b82f6' : '#94a3b8'}
+                    fontSize={isAct ? 9 : 8} fontWeight={700}
                     style={{ pointerEvents: 'none' }}>
                     {dir}
                   </text>
+                  {/* Lock indicator on fixed anchors */}
+                  {isFixed && (
+                    <text x={pos.x} y={pos.y + 13} textAnchor="middle"
+                      fill="#046BD2" fontSize={7} style={{ pointerEvents: 'none' }}>
+                      🔒
+                    </text>
+                  )}
                 </g>
               );
             })}
 
-            {/* ── All 4 anchor buttons — TO device ──────────────────── */}
+            {/* ── Anchor buttons — TO device ────────────────────────── */}
             {isSel && !cableMode && ANCHORS.map(dir => {
-              const pos   = getAnchorPoint({ x: tp.x, y: tp.y }, tp.R, dir);
-              const isAct = dir === aTo;
+              const pos     = getAnchorPoint({ x: tp.x, y: tp.y }, tp.R, dir);
+              const isAct   = dir === aTo;
+              const isFixed = conn.anchorTo === dir;
               return (
                 <g key={'at_' + dir} style={{ cursor: 'pointer' }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    const newVal = isFixed ? undefined : dir;
                     updateFloor(f => ({
                       ...f, connections: f.connections.map(c =>
-                        c.id === conn.id ? { ...c, anchorTo: dir, waypoints: undefined } : c)
+                        c.id === conn.id ? { ...c, anchorTo: newVal, waypoints: undefined } : c)
                     }));
                   }}>
                   <circle cx={pos.x} cy={pos.y}
                     r={isAct ? 9 : 6}
-                    fill={isAct ? '#046BD2' : '#f8fafc'}
-                    stroke={isAct ? '#fff' : '#94a3b8'}
-                    strokeWidth={isAct ? 2 : 1.5} />
+                    fill={isFixed ? '#046BD2' : isAct ? '#eff6ff' : '#f8fafc'}
+                    stroke={isFixed ? '#fff' : isAct ? '#3b82f6' : '#94a3b8'}
+                    strokeWidth={isFixed ? 2 : 1.5}
+                    strokeDasharray={!isFixed && isAct ? '2.5 2' : 'none'} />
                   <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                    fill={isAct ? '#fff' : '#64748b'} fontSize={isAct ? 9 : 8} fontWeight={700}
+                    fill={isFixed ? '#fff' : isAct ? '#3b82f6' : '#94a3b8'}
+                    fontSize={isAct ? 9 : 8} fontWeight={700}
                     style={{ pointerEvents: 'none' }}>
                     {dir}
                   </text>
+                  {isFixed && (
+                    <text x={pos.x} y={pos.y + 13} textAnchor="middle"
+                      fill="#046BD2" fontSize={7} style={{ pointerEvents: 'none' }}>
+                      🔒
+                    </text>
+                  )}
                 </g>
               );
             })}
