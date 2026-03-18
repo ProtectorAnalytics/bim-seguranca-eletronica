@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { CABLE_TYPES } from '@/data/cable-types';
 import { autoOrthoRoute, buildOrthoPath, getAnchorPoint, bestAnchorPair, nextAnchor } from '@/lib/cable-routing';
 
 /**
  * SVG layer rendering all cable connections between devices.
+ * Wrapped in React.memo — only re-renders when connections, devices or zoom/pan change.
  */
-export default function ConnectionsLayer({
+const ConnectionsLayer = memo(function ConnectionsLayer({
   connections, devices, quadros, cableMode, validTargets, selectedConn, setSelectedConn,
   setSelectedDevice, showCableLabels, getDevR, zoom, pan, canvasRef,
   updateFloor, updateConnWaypoints, setDraggingWp, snapToGrid: _snapToGrid
@@ -255,4 +256,6 @@ export default function ConnectionsLayer({
       })}
     </>
   );
-}
+});
+
+export default ConnectionsLayer;
