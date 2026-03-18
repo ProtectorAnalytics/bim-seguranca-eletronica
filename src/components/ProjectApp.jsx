@@ -1818,7 +1818,12 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                             // Clamp: if still overflows left
                             if(px<12) px=12;
                             setPortPopup({devId:dev.id,x:px,y:py,fixed:true});
-                          }}>⚡</div>
+                          }}>
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                              <line x1="5" y1="1" x2="5" y2="9" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+                              <line x1="1" y1="5" x2="9" y2="5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+                            </svg>
+                          </div>
                       );
                     })()}
                     {dev.ambiente&&(()=>{
@@ -1841,7 +1846,7 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                     ):null}
                     {inRack&&<div style={{position:'absolute',bottom:-4,left:'50%',transform:'translateX(-50%)',
                       fontSize:7,background:'var(--azul)',color:'#fff',padding:'0 4px',borderRadius:3,
-                      whiteSpace:'nowrap'}}>📦 {inRack.name}</div>}
+                      whiteSpace:'nowrap',letterSpacing:'.3px',fontWeight:700}}>RACK {inRack.name}</div>}
                     {/* Delete button on selected device */}
                     {selectedDevice===dev.id&&!cableMode&&(
                       <div style={{position:'absolute',top:-4,left:-4,width:16,height:16,borderRadius:'50%',
