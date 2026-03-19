@@ -32,7 +32,7 @@ function drawHeader(doc, projectName, pageNum, totalPages) {
   doc.setTextColor(...COLORS.white);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('BIM Protector — ' + projectName, MARGIN, 11);
+  doc.text('BIM Protector - ' + projectName, MARGIN, 11);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text(`Página ${pageNum}/${totalPages}`, w - MARGIN, 11, { align: 'right' });
@@ -308,7 +308,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       cableTypes[name].meters += c.distance || 0;
     });
     Object.entries(cableTypes).sort((a, b) => b[1].meters - a[1].meters).forEach(([name, data]) => {
-      doc.text(`  → ${name}: ${data.count} lances, ${data.meters}m`, MARGIN + 8, sy);
+      doc.text(`  > ${name}: ${data.count} lances, ${data.meters}m`, MARGIN + 8, sy);
       sy += 5.5;
     });
     sy += 8;
@@ -329,7 +329,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     if (activeAlerts.length === 0) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...COLORS.green);
-      doc.text('✓ Nenhum alerta ativo. Projeto dentro das boas práticas.', MARGIN + 8, sy);
+      doc.text('OK - Nenhum alerta ativo. Projeto dentro das boas praticas.', MARGIN + 8, sy);
     } else {
       const criticas = activeAlerts.filter(v => v.sev === 'CRÍTICA').length;
       const altas = activeAlerts.filter(v => v.sev === 'ALTA').length;
@@ -508,7 +508,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         doc.setTextColor(...COLORS.white);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('BIM Protector — Planta: ' + (project.name || ''), MARGIN, 11);
+        doc.text('BIM Protector - Planta: ' + (project.name || ''), MARGIN, 11);
 
         // Current floor name
         const activeFloor = project.floors?.find(f => f.id === project.activeFloor);
@@ -607,10 +607,10 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
         const cableType = CABLE_TYPES.find(ct => ct.id === c.type);
         return [
           fromDev?.name || c.from,
-          '→',
+          '>>',
           toDev?.name || c.to,
           cableType?.name || c.type,
-          c.distance ? `${c.distance}m` : '—',
+          c.distance ? `${c.distance}m` : '-',
         ];
       });
 
@@ -717,15 +717,24 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     }
   }
 
-  // ── Update page numbers ──────────────────────────
+  // ── Update page numbers (header + footer) ──────────
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    // Page number on footer area
-    doc.setTextColor(...COLORS.gray);
-    doc.setFontSize(7);
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
+    // Fix header "Página X/?" → "Página X/N" (overwrite with white rect + new text)
+    if (i > 1) { // page 1 is cover, no header
+      doc.setFillColor(...COLORS.primary);
+      doc.rect(pw - 60, 0, 60, 16, 'F'); // cover old "Página X/?"
+      doc.setTextColor(...COLORS.white);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${i} / ${totalPages}`, pw - MARGIN, 11, { align: 'right' });
+    }
+    // Footer center page number
+    doc.setTextColor(...COLORS.gray);
+    doc.setFontSize(7);
     doc.text(`${i} / ${totalPages}`, pw / 2, ph - 7, { align: 'center' });
   }
 
