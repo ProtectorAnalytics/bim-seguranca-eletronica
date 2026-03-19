@@ -1531,10 +1531,10 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
               <svg className="canvas-grid" width="2000" height="2000" style={{display:layers.grid?'block':'none'}}>
                 <defs>
                   <pattern id="grid-dots" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <circle cx="20" cy="20" r="0.8" fill="#94a3b8" opacity="0.25"/>
+                    <circle cx="20" cy="20" r="1.2" fill="#64748b" opacity="0.45" stroke="#fff" strokeWidth="0.5" strokeOpacity="0.3"/>
                   </pattern>
                   <pattern id="grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
-                    <circle cx="20" cy="20" r="1.4" fill="#64748b" opacity="0.35"/>
+                    <circle cx="20" cy="20" r="2" fill="#475569" opacity="0.55" stroke="#fff" strokeWidth="0.6" strokeOpacity="0.35"/>
                   </pattern>
                 </defs>
                 <rect width="2000" height="2000" fill="url(#grid-dots)"/>
@@ -2080,10 +2080,14 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
             setCrossFloorModal={setCrossFloorModal}/>
 
 
-          {/* Empty state */}
-          {devices.length===0&&(
+          {/* Empty state — only when no devices AND no background plant */}
+          {devices.length===0&&!floor?.bgImage&&(
             <div className="canvas-hint">
-              <div className="ch-icon">📐</div>
+              <div className="ch-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/>
+                </svg>
+              </div>
               <p>Arraste um dispositivo da paleta para cá</p>
               <div className="ch-sub">Ou clique no dispositivo e depois clique aqui</div>
             </div>
