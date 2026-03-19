@@ -21,7 +21,7 @@ export async function exportCanvasPNG({ projectName = 'projeto', floorName = '',
   if (!canvasEl) throw new Error('Canvas não encontrado (.canvas-transform / .canvas-area)');
 
   // Esconde overlays e controles durante a captura
-  const hideSelectors = ['.modal-overlay', '.canvas-controls', '.scale-indicator', '.minimap', '.toolbar'];
+  const hideSelectors = ['.modal-overlay', '.canvas-controls', '.scale-indicator', '.minimap', '.toolbar', '.carimbo-canvas'];
   const hidden = [];
   hideSelectors.forEach(sel => {
     document.querySelectorAll(sel).forEach(el => {
@@ -40,7 +40,7 @@ export async function exportCanvasPNG({ projectName = 'projeto', floorName = '',
     const dpr = Math.max(window.devicePixelRatio || 2, 2);
     const canvas = await html2canvas(canvasEl, {
       scale: dpr,
-      backgroundColor: whiteBg ? '#ffffff' : '#1e293b',
+      backgroundColor: whiteBg ? '#ffffff' : '#F0F5FA',
       logging: false,
       useCORS: true,
       allowTaint: true,

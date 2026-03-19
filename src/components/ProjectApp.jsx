@@ -1901,52 +1901,6 @@ export default function ProjectApp({project,setProject,undo,redo,onBack,readOnly
                 );
               })}
 
-              {/* Carimbo / Legenda profissional */}
-              {layers.devices&&(()=>{
-                const cw=320,ch=140,cx=2000-cw-20,cy=2000-ch-20;
-                const clientName=project.client?.razaoSocial||project.client?.nome||'';
-                const floorName=floor?.name||'';
-                const dateStr=new Date().toLocaleDateString('pt-BR');
-                return <div className="carimbo-canvas" style={{position:'absolute',left:cx,top:cy,width:cw,height:ch,
-                  border:'2px solid #E2E8F0',background:'rgba(255,255,255,0.98)',
-                  fontFamily:"Inter,system-ui,sans-serif",fontSize:10,color:'#1e293b',zIndex:5,
-                  display:'flex',flexDirection:'column',pointerEvents:'none',userSelect:'none'}}>
-                  {/* Header */}
-                  <div style={{background:'#046BD2',color:'#fff',padding:'4px 8px',fontSize:11,fontWeight:700,
-                    display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span>PROTECTOR SISTEMAS</span>
-                    <span style={{fontSize:8,opacity:.7}}>BIM {APP_VERSION.full}</span>
-                  </div>
-                  {/* Body */}
-                  <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
-                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1',borderRight:'1px solid #cbd5e1'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Projeto</div>
-                      <div style={{fontWeight:700,fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{project.name||'—'}</div>
-                    </div>
-                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Cliente</div>
-                      <div style={{fontWeight:600,fontSize:9,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{clientName||'—'}</div>
-                    </div>
-                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1',borderRight:'1px solid #cbd5e1'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Pavimento</div>
-                      <div style={{fontWeight:600,fontSize:10}}>{floorName}</div>
-                    </div>
-                    <div style={{padding:'3px 8px',borderBottom:'1px solid #cbd5e1'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Data</div>
-                      <div style={{fontWeight:600,fontSize:10}}>{dateStr}</div>
-                    </div>
-                    <div style={{padding:'3px 8px',borderRight:'1px solid #cbd5e1'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Escala</div>
-                      <div style={{fontWeight:600,fontSize:10}}>1:{Math.round(40/zoom)}</div>
-                    </div>
-                    <div style={{padding:'3px 8px'}}>
-                      <div style={{fontSize:7,color:'#64748b',textTransform:'uppercase',letterSpacing:.5}}>Resumo</div>
-                      <div style={{fontWeight:600,fontSize:9}}>{devices.length} disp · {connections.length} cabos</div>
-                    </div>
-                  </div>
-                </div>;
-              })()}
-
               {/* Dimension annotations (cotas) */}
               {layers.dimensions&&(
                 <svg width="2000" height="2000" style={{position:'absolute',top:0,left:0,pointerEvents:'none',zIndex:6}}>

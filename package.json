@@ -1,7 +1,7 @@
 {
   "name": "bim-seguranca-eletronica",
   "private": true,
-  "version": "3.50.22",
+  "version": "3.50.23",
   "type": "module",
   "scripts": {
     "dev": "vite",
