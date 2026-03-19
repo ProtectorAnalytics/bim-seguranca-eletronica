@@ -482,9 +482,29 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
     const canvasEl = document.querySelector('.canvas-area');
     if (canvasEl) {
       try {
-        // Temporarily style for better capture
-        const overlay = document.querySelector('.modal-overlay');
-        if (overlay) overlay.style.display = 'none';
+        // Hide UI controls that should not appear in the capture
+        const hideSelectors = [
+          '.modal-overlay', '.canvas-controls', '.scale-indicator',
+          '.minimap', '.dev-conn-btn', '.canvas-hint',
+          '[data-selected="true"]',
+        ];
+        const hidden = [];
+        hideSelectors.forEach(sel => {
+          canvasEl.querySelectorAll(sel).forEach(el => {
+            hidden.push({ el, prev: el.style.display });
+            el.style.display = 'none';
+          });
+        });
+        // Also hide from document level (controls outside canvas-area)
+        const docHide = ['.modal-overlay', '.canvas-controls', '.scale-indicator', '.minimap'];
+        docHide.forEach(sel => {
+          document.querySelectorAll(sel).forEach(el => {
+            if (!hidden.some(h => h.el === el)) {
+              hidden.push({ el, prev: el.style.display });
+              el.style.display = 'none';
+            }
+          });
+        });
 
         const canvas = await html2canvas(canvasEl, {
           scale: 2,
@@ -494,7 +514,8 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
           allowTaint: true,
         });
 
-        if (overlay) overlay.style.display = '';
+        // Restore hidden elements
+        hidden.forEach(({ el, prev }) => { el.style.display = prev; });
 
         doc.addPage('a4', 'landscape');
         currentPage++;
@@ -518,7 +539,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
           doc.text(`Pavimento: ${activeFloor.name}`, lw - MARGIN, 11, { align: 'right' });
         }
 
-        // Image
+        // Image — rasterized capture only (no vector overlay to avoid duplication)
         const imgData = canvas.toDataURL('image/jpeg', 0.92);
         const imgW = lw - 28;
         const imgH = lh - 36;
@@ -540,7 +561,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
 
         doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
 
-        // Vector overlay — connections, devices & labels as sharp PDF primitives
+        // Draw only carimbo + legend as vector (no connections/devices — those are in the raster)
         if (activeFloor) {
           drawFloorplanVector(doc, activeFloor, {
             offsetX: drawX,
@@ -549,8 +570,11 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
             areaH: drawH,
             canvasW: canvasEl.scrollWidth,
             canvasH: canvasEl.scrollHeight,
-            drawGrid: false, // rasterized capture already includes the grid
-            project,         // pass project data for carimbo rendering
+            drawGrid: false,
+            drawConnections: false,  // already in raster
+            drawDevices: false,      // already in raster
+            drawLabels: false,       // already in raster
+            project,
           });
         }
 
