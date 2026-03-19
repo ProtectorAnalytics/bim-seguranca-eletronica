@@ -573,7 +573,6 @@ tr.rack-face-free td{color:#cbd5e1}
     min-height: 800px;
   }
   .canvas-grid { opacity: 0.08 !important; }
-  .carimbo-canvas { display: block !important; border-color: #000 !important; }
 
   /* Device labels legíveis */
   .doc-label { color: #000 !important; }

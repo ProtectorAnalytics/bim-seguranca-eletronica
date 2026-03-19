@@ -4,6 +4,7 @@
 // Background image is still rasterized; overlay is sharp at any zoom
 // ====================================================================
 import { CABLE_TYPES } from '@/data/cable-types';
+import { APP_VERSION } from '@/data/constants';
 import { findDevDef } from './helpers';
 
 // Cable type → PDF line color [R, G, B]
@@ -41,6 +42,7 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
     drawConnections = true,
     drawDevices = true,
     drawLabels = true,
+    project = null,  // project data for carimbo
   } = opts;
 
   // Conversion: canvas pixels → PDF mm
@@ -89,14 +91,15 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
       }
 
       // Cable label at midpoint
-      if (drawLabels && conn.dist) {
+      const cableDist = conn.distance || conn.dist;
+      if (drawLabels && cableDist) {
         const mid = Math.floor(points.length / 2);
         const mx = (points[mid - 1].x + points[mid].x) / 2;
         const my = (points[mid - 1].y + points[mid].y) / 2;
-        // White background for readability
+        const ct = CABLE_TYPES.find(c => c.id === conn.type);
+        const labelTxt = ct ? `${ct.name} ${cableDist}m` : `${cableDist}m`;
         doc.setFontSize(5);
-        const labelTxt = `${conn.dist}m`;
-        const labelW = doc.getTextWidth(labelTxt) + 1.5;
+        const labelW = doc.getTextWidth(labelTxt) + 2;
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(tx(mx) - labelW / 2, ty(my) - 3, labelW, 3.5, 0.5, 0.5, 'F');
         doc.setTextColor(...color);
@@ -148,20 +151,85 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
     });
   }
 
-  // ── Legend ────────────────────────────────────────
+  // ── Carimbo Técnico (bottom-right) ──────────────────
+  const carimboW = 80;
+  const carimboH = 32;
+  const carimboX = offsetX + canvasW * scale - carimboW - 2;
+  const carimboY = offsetY + canvasH * scale - carimboH - 2;
+
+  // Background
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(4, 107, 210);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(carimboX, carimboY, carimboW, carimboH, 1.5, 1.5, 'FD');
+
+  // Header bar
+  doc.setFillColor(4, 107, 210);
+  doc.rect(carimboX, carimboY, carimboW, 6, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(5.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PROTECTOR SISTEMAS', carimboX + 2, carimboY + 4.2);
+  doc.setFontSize(4);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`BIM ${APP_VERSION.full}`, carimboX + carimboW - 2, carimboY + 4.2, { align: 'right' });
+
+  // Body — project info
+  const cy0 = carimboY + 8;
+  doc.setDrawColor(200, 210, 220);
+  doc.setLineWidth(0.1);
+
+  const projName = project?.name || '—';
+  const clientName = project?.client?.razaoSocial || project?.client?.nome || '—';
+  const floorName = floor?.name || '—';
+  const dateStr = new Date().toLocaleDateString('pt-BR');
+
+  // Row 1: Projeto | Cliente
+  doc.setFontSize(3.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('PROJETO', carimboX + 2, cy0);
+  doc.text('CLIENTE', carimboX + carimboW / 2 + 1, cy0);
+  doc.setFontSize(5);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  const pTrunc = projName.length > 18 ? projName.substring(0, 16) + '..' : projName;
+  const cTrunc = clientName.length > 18 ? clientName.substring(0, 16) + '..' : clientName;
+  doc.text(pTrunc, carimboX + 2, cy0 + 3.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(cTrunc, carimboX + carimboW / 2 + 1, cy0 + 3.5);
+  // Divider
+  doc.line(carimboX + carimboW / 2, cy0 - 1.5, carimboX + carimboW / 2, cy0 + 4.5);
+  doc.line(carimboX, cy0 + 5.5, carimboX + carimboW, cy0 + 5.5);
+
+  // Row 2: Pavimento | Data | Resumo
+  const cy1 = cy0 + 7;
+  doc.setFontSize(3.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('PAVIMENTO', carimboX + 2, cy1);
+  doc.text('DATA', carimboX + 28, cy1);
+  doc.text('RESUMO', carimboX + 50, cy1);
+  doc.setFontSize(5);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.text(floorName, carimboX + 2, cy1 + 3.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(dateStr, carimboX + 28, cy1 + 3.5);
+  doc.text(`${devices.length} disp / ${connections.length} cabos`, carimboX + 50, cy1 + 3.5);
+
+  // ── Legenda de cabos (bottom-left of carimbo) ──────
   const legendW = 52;
-  const legendH = 28;
-  const legendX = offsetX + canvasW * scale - legendW - 2;
-  const legendY = offsetY + canvasH * scale - legendH - 2;
+  const legendH = 22;
+  const legendX = carimboX - legendW - 4;
+  const legendY = carimboY + (carimboH - legendH);
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(180, 190, 200);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(legendX, legendY, legendW, legendH, 2, 2, 'FD');
+  doc.setLineWidth(0.2);
+  doc.roundedRect(legendX, legendY, legendW, legendH, 1, 1, 'FD');
 
-  doc.setFontSize(6);
+  doc.setFontSize(5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(44, 62, 80);
-  doc.text('Legenda', legendX + 3, legendY + 5);
+  doc.text('Legenda', legendX + 2, legendY + 4);
   doc.setFont('helvetica', 'normal');
 
   const legendItems = [
@@ -172,12 +240,12 @@ export function drawFloorplanVector(doc, floor, opts = {}) {
   ];
 
   legendItems.forEach((item, i) => {
-    const ly = legendY + 9 + i * 4.5;
+    const ly = legendY + 7.5 + i * 3.5;
     doc.setDrawColor(...item.color);
     doc.setLineWidth(0.8);
-    doc.line(legendX + 3, ly, legendX + 10, ly);
-    doc.setFontSize(5);
+    doc.line(legendX + 2, ly, legendX + 8, ly);
+    doc.setFontSize(4.5);
     doc.setTextColor(60, 60, 60);
-    doc.text(item.label, legendX + 12, ly + 1);
+    doc.text(item.label, legendX + 10, ly + 0.8);
   });
 }

@@ -257,6 +257,8 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
       else if (k === 'leitor_facial' || k === 'controladora' || k === 'fechadura' || k === 'eletroima' || k === 'leitor_tag' || k === 'leitor_biometrico' || k === 'leitor_rfid' || k.startsWith('biometrico_') || k.startsWith('tag_uhf_') || k.startsWith('catraca_') || k.startsWith('torniquete_') || k.startsWith('fechadura_')) cat = 'Controle de Acesso';
       else if (k.startsWith('auto_') || k.startsWith('cancela_') || k === 'motor') cat = 'Automatização';
       else if (k === 'nobreak_ac' || k === 'nobreak_dc' || k.startsWith('fonte_nb') || k.startsWith('fonte_idpower') || k.startsWith('conversor_dc') || k === 'fonte' || k === 'bateria_ext' || k === 'modulo_bat' || k.startsWith('bateria_')) cat = 'Energia';
+      else if (k.startsWith('ponto_dados_')) cat = 'Pontos de Dados';
+      else if (k.startsWith('cx_passagem') || k === 'cx_piso' || k === 'cx_derivacao') cat = 'Infraestrutura';
       else if (k === 'rack' || k === 'quadro' || k === 'quadro_eletrico' || k === 'dio' || k === 'borne_sak' || k === 'patch_panel' || k === 'conversor_midia' || k === 'dps_rede' || k === 'tomada_dupla' || k === 'cabo_engate') cat = 'Infraestrutura';
       else if (k.startsWith('custom_')) cat = 'Customizados';
       else if (d._legacy) cat = 'Legado';
@@ -548,6 +550,7 @@ export async function exportProjectPDF({ project, bom, allDevices, connections, 
             canvasW: canvasEl.scrollWidth,
             canvasH: canvasEl.scrollHeight,
             drawGrid: false, // rasterized capture already includes the grid
+            project,         // pass project data for carimbo rendering
           });
         }
 
