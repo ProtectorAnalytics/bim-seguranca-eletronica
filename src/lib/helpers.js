@@ -5,7 +5,8 @@ export function getSavedProjects(){
   try{ return JSON.parse(localStorage.getItem('bim_projects')||'[]'); }catch{ return []; }
 }
 export function saveProjects(projects){
-  localStorage.setItem('bim_projects',JSON.stringify(projects));
+  try{ localStorage.setItem('bim_projects',JSON.stringify(projects)); }
+  catch(e){ console.warn('[storage] Falha ao salvar projetos locais:',e.message); }
 }
 export function getSavedClients(){
   try{ return JSON.parse(localStorage.getItem('bim_clients')||'[]'); }catch{ return []; }
@@ -68,14 +69,37 @@ export function getCachedCloudProjects(){
   try{ return JSON.parse(localStorage.getItem('bim_cloud_projects_meta')||'[]'); }catch{ return []; }
 }
 export function setCachedCloudProjects(projects){
-  localStorage.setItem('bim_cloud_projects_meta',JSON.stringify(projects));
+  try{ localStorage.setItem('bim_cloud_projects_meta',JSON.stringify(projects)); }
+  catch(e){ console.warn('[storage] Cache de projetos cloud ignorado (quota):',e.message); }
 }
 export function getCachedProject(id){
   try{ return JSON.parse(localStorage.getItem(`bim_cloud_proj_${id}`)||'null'); }catch{ return null; }
 }
 export function setCachedProject(id, data){
-  if(data) localStorage.setItem(`bim_cloud_proj_${id}`,JSON.stringify(data));
-  else localStorage.removeItem(`bim_cloud_proj_${id}`);
+  if(data){
+    try{ localStorage.setItem(`bim_cloud_proj_${id}`,JSON.stringify(data)); }
+    catch(e){
+      // Quota exceeded — limpar caches antigos e tentar novamente
+      console.warn('[storage] Quota excedida ao cachear projeto, limpando caches antigos...');
+      _evictOldCaches(id);
+      try{ localStorage.setItem(`bim_cloud_proj_${id}`,JSON.stringify(data)); }
+      catch{ console.warn('[storage] Cache do projeto ignorado (quota persistente)'); }
+    }
+  } else {
+    localStorage.removeItem(`bim_cloud_proj_${id}`);
+  }
+}
+/** Remove caches de projetos cloud antigos para liberar espaço */
+function _evictOldCaches(keepId){
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('bim_cloud_proj_')&&k!=='bim_cloud_projects_meta'&&k!==`bim_cloud_proj_${keepId}`){
+      keys.push(k);
+    }
+  }
+  // Remove os caches mais antigos (todos exceto o atual)
+  keys.forEach(k=>localStorage.removeItem(k));
 }
 export function removeCachedProject(id){
   localStorage.removeItem(`bim_cloud_proj_${id}`);

@@ -1,6 +1,6 @@
 // ====================================================================
-// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (97 dispositivos)
-// Fabricante: Genérico | v3.19.1
+// DEVICE LIBRARY - Catálogo Genérico Segurança Eletrônica (110 dispositivos)
+// Fabricante: Genérico | v3.50.21
 // ====================================================================
 export const DEVICE_LIB = [
   // ================================================================
@@ -123,7 +123,20 @@ export const DEVICE_LIB = [
     {key:'cabo_extensor_usb',name:'Cabo Extensor USB',icon:'cabo_usb',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'USB 2.0 A-Macho/A-Fêmea',comprimento:'1.5-5m',uso:'Extensão mouse/teclado'},ref:''},
   ]},
   // ================================================================
-  // INFRAESTRUTURA (15 tipos)
+  // PONTOS DE DADOS (8 tipos)
+  // ================================================================
+  {cat:'Pontos de Dados',color:'#0ea5e9',items:[
+    {key:'ponto_dados_1_baixo',name:'Ponto de Dados Único — Baixo ▽',subcategory:'Baixo',icon:'ponto_dados',poe:false,ports:1,manufacturer:'Genérico',props:{tomadas:'1x RJ45',categoria:'CAT6',altura:'30cm (baixo)',simbolo:'▽'},ref:''},
+    {key:'ponto_dados_1_medio',name:'Ponto de Dados Único — Médio ◇',subcategory:'Médio',icon:'ponto_dados',poe:false,ports:1,manufacturer:'Genérico',props:{tomadas:'1x RJ45',categoria:'CAT6',altura:'120cm (médio)',simbolo:'◇'},ref:''},
+    {key:'ponto_dados_1_alto',name:'Ponto de Dados Único — Alto △',subcategory:'Alto',icon:'ponto_dados',poe:false,ports:1,manufacturer:'Genérico',props:{tomadas:'1x RJ45',categoria:'CAT6',altura:'250cm (alto)',simbolo:'△'},ref:''},
+    {key:'ponto_dados_1_forro',name:'Ponto de Dados Único — Acima do Forro ☐',subcategory:'Acima Forro',icon:'ponto_dados',poe:false,ports:1,manufacturer:'Genérico',props:{tomadas:'1x RJ45',categoria:'CAT6',altura:'Acima do forro',simbolo:'☐'},ref:''},
+    {key:'ponto_dados_2_baixo',name:'Ponto de Dados Duplo — Baixo ▽',subcategory:'Baixo',icon:'ponto_dados',poe:false,ports:2,manufacturer:'Genérico',props:{tomadas:'2x RJ45',categoria:'CAT6',altura:'30cm (baixo)',simbolo:'▽'},ref:''},
+    {key:'ponto_dados_2_medio',name:'Ponto de Dados Duplo — Médio ◇',subcategory:'Médio',icon:'ponto_dados',poe:false,ports:2,manufacturer:'Genérico',props:{tomadas:'2x RJ45',categoria:'CAT6',altura:'120cm (médio)',simbolo:'◇'},ref:''},
+    {key:'ponto_dados_2_alto',name:'Ponto de Dados Duplo — Alto △',subcategory:'Alto',icon:'ponto_dados',poe:false,ports:2,manufacturer:'Genérico',props:{tomadas:'2x RJ45',categoria:'CAT6',altura:'250cm (alto)',simbolo:'△'},ref:''},
+    {key:'ponto_dados_2_forro',name:'Ponto de Dados Duplo — Acima do Forro ☐',subcategory:'Acima Forro',icon:'ponto_dados',poe:false,ports:2,manufacturer:'Genérico',props:{tomadas:'2x RJ45',categoria:'CAT6',altura:'Acima do forro',simbolo:'☐'},ref:''},
+  ]},
+  // ================================================================
+  // INFRAESTRUTURA (15 tipos + caixas de passagem)
   // ================================================================
   {cat:'Infraestrutura',color:'#6b7280',items:[
     {key:'ont_gpon',name:'ONT GPON',icon:'dio',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'GPON',conector:'SC/APC',portas_lan:'1 GE',alimentacao:'PoE Reverso ou 12VDC'},ref:''},
@@ -152,5 +165,10 @@ export const DEVICE_LIB = [
     {key:'dps_rede',name:'DPS / Protetor de Surto',icon:'borne_sak',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'Proteção rede/energia'},ref:''},
     {key:'tomada_dupla',name:'Tomada Dupla 10A',icon:'tomada',poe:false,ports:1,manufacturer:'Genérico',props:{tipo:'2P+T 10A',padrao:'NBR 14136',uso:'Alimentação AC equipamentos'}},
     {key:'quadro_eletrico',name:'Quadro Elétrico',icon:'quadro_eletrico',poe:false,ports:1,isContainer:true,configurable:true,configFields:['disjuntores','dps','idr'],manufacturer:'Genérico',props:{tipo:'Quadro de distribuição',padrao:'NBR 5410',protecao:'Disjuntores + IDR + DPS'}},
+    {key:'cx_passagem_4x2',name:'Caixa de Passagem 4x2',icon:'cx_passagem',poe:false,ports:1,manufacturer:'Genérico',props:{dimensao:'4x2" (100x50mm)',material:'PVC/Metal',uso:'Passagem e derivação de cabos',norma:'NBR 5410'},ref:''},
+    {key:'cx_passagem_4x4',name:'Caixa de Passagem 4x4',icon:'cx_passagem',poe:false,ports:1,manufacturer:'Genérico',props:{dimensao:'4x4" (100x100mm)',material:'PVC/Metal',uso:'Passagem e derivação de cabos',norma:'NBR 5410'},ref:''},
+    {key:'cx_passagem_oct',name:'Caixa de Passagem Octogonal',icon:'cx_passagem',poe:false,ports:1,manufacturer:'Genérico',props:{dimensao:'Octogonal (ø 75mm)',material:'PVC/Metal',uso:'Derivação em teto/forro',norma:'NBR 5410'},ref:''},
+    {key:'cx_piso',name:'Caixa de Piso',icon:'cx_passagem',poe:false,ports:1,manufacturer:'Genérico',props:{dimensao:'Variável (4" a 6")',material:'Alumínio/ABS',uso:'Ponto de dados/energia em piso elevado',norma:'NBR 5410'},ref:''},
+    {key:'cx_derivacao',name:'Caixa de Derivação',icon:'cx_passagem',poe:false,ports:1,manufacturer:'Genérico',props:{dimensao:'150x150x80mm',material:'PVC/Metal',uso:'Derivação e emenda de cabos em infraestrutura',norma:'NBR 5410',ip:'IP44'},ref:''},
   ]},
 ];
