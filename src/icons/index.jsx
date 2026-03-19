@@ -57,6 +57,8 @@ export const ICONS = {
   cabo_engate:     ic(Unplug, '#dc2626'),
   borne_sak:       ic(GripHorizontal, '#78716c'),
   tomada:          ic(Plug, '#6b7280'),
+  ponto_dados:     ic(Waypoints, '#0ea5e9'),
+  cx_passagem:     ic(Box, '#78716c'),
   // Alarme / Incendio
   alarme_central:   ic(ShieldAlert, '#ef4444'),
   sensor_presenca:  ic(PersonStanding, '#ef4444'),
@@ -157,6 +159,8 @@ export const ICON_BANK = [
   { id: 'cabo_usb', label: 'Cabo USB' },
   { id: 'fechadura_mec', label: 'Fechadura Mec.' },
   { id: 'fechadura_sol', label: 'Fechadura Sol.' },
+  { id: 'ponto_dados', label: 'Ponto de Dados' },
+  { id: 'cx_passagem', label: 'Caixa Passagem' },
   // Extra icons
   { id: 'monitor', label: 'Monitor' },
   { id: 'cpu', label: 'CPU/Processador' },

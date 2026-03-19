@@ -139,6 +139,12 @@ export const DEVICE_INTERFACES = {
                  {type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada AC (circuito)',required:true}],
   quadro_eletrico:[{type:'power_in',cables:['ac_power','pp_flex'],label:'Entrada geral AC (QGBT)',required:true},
                    {type:'power_out',cables:['ac_power','pp_flex'],label:'Saída circuitos AC',required:true}],
+  // Pontos de Dados
+  ponto_dados_1:  [{type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Tomada RJ45 (1x)',required:true}],
+  ponto_dados_2:  [{type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Tomada RJ45 — porta 1',required:true},
+                   {type:'data_io',cables:['cat5e','cat6','cat6a'],label:'Tomada RJ45 — porta 2',required:true}],
+  // Caixas de Passagem
+  cx_passagem:    [{type:'passthrough',cables:['cat5e','cat6','cat6a','pp2v_05','pp2v_10','pp2v_15','pp4v_10','ac_power','pp_flex','smf','mmf'],label:'Passagem de cabos'}],
   // Fechaduras Solenoide / Eletromecânica
   fechadura_sol: [{type:'power_in',cables:['pp2v_10','pp2v_05'],label:'Alimentação 12VDC',required:true},
                   {type:'automation_in',cables:['pp2v_10','pp2v_05'],label:'Acionamento (facial / controladora)',required:true},
@@ -190,9 +196,11 @@ export const isFonte = k => k === 'fonte' || k.startsWith('fonte_nb_') || k.star
 export const isFonteNobreak = k => k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_');
 export const isONT = k => k === 'ont_gpon' || k.startsWith('ont_');
 export const isBateria = k => k === 'bateria_ext' || k.startsWith('bat_12v_');
-export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_') || k.startsWith('bat_12v_') || k.startsWith('conversor_dc_dc_');
+export const isPontoDados = k => k.startsWith('ponto_dados_');
+export const isCaixaPassagem = k => k.startsWith('cx_passagem') || k === 'cx_piso' || k === 'cx_derivacao';
+export const isInfra = k => ['rack','quadro_eletrico','dio','borne_sak','bateria_ext','modulo_bat','cabo_engate','tomada_dupla','dps_rede','patch_panel','conversor_midia'].includes(k) || k.startsWith('ont_') || k.startsWith('fonte_nb_') || k.startsWith('fonte_idpower_') || k.startsWith('bat_12v_') || k.startsWith('conversor_dc_dc_') || isCaixaPassagem(k);
 export const needsPoE = k => isCameraIP(k) || isAP(k);
-export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k);
+export const needsNetwork = k => needsPoE(k) || isGravador(k) || isCentralAlarme(k) || k === 'controladora' || k === 'leitor_facial' || k === 'router' || isSwitch(k) || isPontoDados(k);
 /** Concentradores de rede — conexão entre eles = uplink (não ocupa porta de acesso) */
 export const isConcentrador = k => isSwitch(k) || k === 'router' || isONT(k) || k === 'conversor_midia';
 /** Cabos que ocupam porta RJ45/SFP do switch (ethernet + fibra óptica) */
@@ -456,6 +464,13 @@ export function resolveInterfacesByKey(key) {
   // ── Mouse / Cabo USB ──
   if (key === 'mouse_usb') return DEVICE_INTERFACES.mouse_usb;
   if (key === 'cabo_extensor_usb') return DEVICE_INTERFACES.cabo_ext_usb;
+
+  // ── Pontos de Dados ──
+  if (key.startsWith('ponto_dados_2')) return DEVICE_INTERFACES.ponto_dados_2;
+  if (key.startsWith('ponto_dados_1')) return DEVICE_INTERFACES.ponto_dados_1;
+
+  // ── Caixas de Passagem ──
+  if (key.startsWith('cx_passagem') || key === 'cx_piso' || key === 'cx_derivacao') return DEVICE_INTERFACES.cx_passagem;
 
   // ── Fallback: power interface genérica para qualquer dispositivo ──
   return [{type:'power_in',cables:['pp2v_10','pp2v_05','ac_power'],label:'Alimentação',required:false}];
